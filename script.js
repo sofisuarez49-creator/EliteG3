@@ -4374,7 +4374,11 @@ const saveProfile = (e) => {
             )}
 
             {selectedGalleryPhoto && (
-                <div className="fixed inset-0 z-[260] bg-slate-950/95 backdrop-blur-xl flex items-center justify-center p-0" onClick={closeGalleryViewer}>
+                <div
+                    className="fixed top-0 bottom-0 z-[260] bg-slate-950/95 backdrop-blur-xl flex items-center justify-center p-0"
+                    style={isSidebarOpen ? { left: '18rem', width: 'calc(100vw - 18rem)' } : { left: 0, width: '100vw' }}
+                    onClick={closeGalleryViewer}
+                >
                     <button
                         type="button"
                         onClick={closeGalleryViewer}
