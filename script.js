@@ -1077,9 +1077,12 @@
                     <div style="padding: 0 14px 14px; display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px;">
                     ${BATTLE_PHOTO_SLOTS.map((slot) => {
                         const isProfileSlot = slot.id === 'perfil';
+                        const assignedUrl = isProfileSlot
+                            ? normalizedProfilePhotoUrl
+                            : (safeBattlePhotoPrefs[slot.id] || '');
                         const hasSelection = isProfileSlot
-                            ? !!normalizedProfilePhotoUrl
-                            : !!safeBattlePhotoPrefs[slot.id];
+                            ? !!assignedUrl
+                            : !!(assignedUrl && galleryImageByUrl[assignedUrl]);
                         const canPickFromGallery = !isProfileSlot;
                         return `
                             <div style="border:1px solid ${hasSelection ? 'rgba(34,197,94,0.9)' : 'rgba(239,68,68,0.95)'}; border-radius:10px; padding:10px; background: rgba(15,23,42,0.75); box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 0 0 1px ${hasSelection ? 'rgba(34,197,94,0.28)' : 'rgba(239,68,68,0.24)'};">
