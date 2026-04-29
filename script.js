@@ -3681,6 +3681,9 @@ const saveProfile = (e) => {
 
                 return sortDirection === 'asc' ? result : -result;
             });
+
+            const showExtendedRankingColumns = !isSidebarOpen;
+
             return (
                 <div className="app-space-theme flex h-screen w-screen overflow-hidden bg-[#020617] stone-wall-surface relative">
                     {isSidebarOpen && (
@@ -5025,7 +5028,7 @@ const saveProfile = (e) => {
     {activeTab === 'RANKING' && !selectedCategory && (
         <div className="theme-surface-card rounded-2xl gothic-frame gothic-frame--ornate animate-in zoom-in-95 duration-500 ranking-table-shell">
             <div className="ranking-table-scroll">
-            <table className="w-full min-w-[860px] xl:min-w-[980px] text-left border-collapse">
+            <table className={`w-full ${showExtendedRankingColumns ? 'min-w-[860px] xl:min-w-[980px]' : 'min-w-[700px] xl:min-w-[820px]'} text-left border-collapse`}>
                 <thead className="theme-surface-soft">
                     <tr>
                         <th className="px-4 py-6 text-[9px] font-black uppercase tracking-widest text-center rock-carved-text">#</th>
@@ -5065,24 +5068,28 @@ const saveProfile = (e) => {
                                 Actitud {sortBy === 'Actitud' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}
                             </button>
                         </th>
-                        <th className="px-4 py-6 text-[9px] font-black uppercase tracking-widest text-center rock-carved-text">
-                            <button
-                                type="button"
-                                onClick={() => toggleSort('nacionalidad', 'asc')}
-                                className="inline-flex items-center justify-center gap-1 hover:text-[var(--metal-gold)] transition-colors"
-                            >
-                                Ubicación {sortBy === 'nacionalidad' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}
-                            </button>
-                        </th>
-                        <th className="px-4 py-6 text-[9px] font-black uppercase tracking-widest text-center rock-carved-text">
-                            <button
-                                type="button"
-                                onClick={() => toggleSort('edad', 'desc')}
-                                className="inline-flex items-center justify-center gap-1 hover:text-[var(--metal-gold)] transition-colors"
-                            >
-                                Edad {sortBy === 'edad' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}
-                            </button>
-                        </th>
+                        {showExtendedRankingColumns && (
+                            <>
+                                <th className="px-4 py-6 text-[9px] font-black uppercase tracking-widest text-center rock-carved-text">
+                                    <button
+                                        type="button"
+                                        onClick={() => toggleSort('nacionalidad', 'asc')}
+                                        className="inline-flex items-center justify-center gap-1 hover:text-[var(--metal-gold)] transition-colors"
+                                    >
+                                        Ubicación {sortBy === 'nacionalidad' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}
+                                    </button>
+                                </th>
+                                <th className="px-4 py-6 text-[9px] font-black uppercase tracking-widest text-center rock-carved-text">
+                                    <button
+                                        type="button"
+                                        onClick={() => toggleSort('edad', 'desc')}
+                                        className="inline-flex items-center justify-center gap-1 hover:text-[var(--metal-gold)] transition-colors"
+                                    >
+                                        Edad {sortBy === 'edad' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}
+                                    </button>
+                                </th>
+                            </>
+                        )}
                         <th className="px-8 py-6 text-right">
                             <div className="flex flex-col items-end gap-1">
                                 <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Ordenar por</span>
@@ -5177,16 +5184,20 @@ const saveProfile = (e) => {
     </button>
 </td>
 
-{/* Ubicación (País y Ciudad) */}
-<td className="px-4 py-5 text-center">
-    <p className="text-[10px] font-bold text-slate-300 uppercase leading-none">{p.nacionalidad}</p>
-    <p className="text-[8px] font-black text-[var(--metal-gold)]/70 uppercase tracking-tighter">{p.ciudad}</p>
-</td>
+{showExtendedRankingColumns && (
+    <>
+        {/* Ubicación (País y Ciudad) */}
+        <td className="px-4 py-5 text-center">
+            <p className="text-[10px] font-bold text-slate-300 uppercase leading-none">{p.nacionalidad}</p>
+            <p className="text-[8px] font-black text-[var(--metal-gold)]/70 uppercase tracking-tighter">{p.ciudad}</p>
+        </td>
 
-{/* Edad */}
-<td className="px-4 py-5 text-center font-bold text-[10px] text-slate-400">
-    {calcularEdad(p.fechaNacimiento)} AÑOS
-</td>
+        {/* Edad */}
+        <td className="px-4 py-5 text-center font-bold text-[10px] text-slate-400">
+            {calcularEdad(p.fechaNacimiento)} AÑOS
+        </td>
+    </>
+)}
 
     <td className="px-8 py-5 text-right">
         <div className={`inline-block bg-slate-900 border px-4 py-2 rounded-xl transition-all duration-300 ${idx === 0 ? 'border-[#ffd700]/50 shadow-[0_0_15px_rgba(255,215,0,0.3)]' : idx === 1 ? 'border-[#c0c0c0]/50 shadow-[0_0_15px_rgba(192,192,192,0.3)]' : idx === 2 ? 'border-[#cd7f32]/50 shadow-[0_0_15px_rgba(205,127,50,0.3)]' : 'theme-border-secondary group-hover:border-[color:color-mix(in_srgb,var(--metal-gold)_50%,transparent)]'}`}>
