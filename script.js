@@ -5332,14 +5332,14 @@ const saveProfile = (e) => {
                 const categoryItems = SCORE_GROUP_TO_ARENAS[scoreBreakdownModal.category] || [];
                 return (
                     <div
-                        className="fixed inset-0 z-[140] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
+                        className={`fixed inset-0 z-[140] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 ${isSidebarOpen ? 'lg:pl-[19rem] lg:justify-end' : ''}`}
                         onClick={() => {
                             setScoreBreakdownModal({ isOpen: false, profile: null, category: null });
                             setScoreBreakdownItemDetail(null);
                         }}
                     >
                         <div
-                            className="w-full max-w-3xl theme-surface-card border theme-border-secondary rounded-2xl p-6"
+                            className="w-full max-w-3xl max-h-[90vh] overflow-y-auto themed-scrollbar theme-surface-card border theme-border-secondary rounded-2xl p-6"
                             onClick={(event) => event.stopPropagation()}
                         >
                             <div className="flex items-start justify-between gap-4 mb-6">
@@ -5411,7 +5411,7 @@ const saveProfile = (e) => {
                             </div>
 
                             {scoreBreakdownItemDetail?.arenaName && (
-                                <div className="mt-5 rounded-2xl border border-cyan-500/40 bg-cyan-950/15 p-4">
+                                <div className="mt-5 rounded-2xl border border-cyan-500/40 bg-cyan-950/15 p-4 max-h-[48vh] overflow-y-auto themed-scrollbar">
                                     <div className="flex items-center justify-between gap-3 mb-4">
                                         <h4 className="text-xs font-black uppercase tracking-[0.16em] text-cyan-200">
                                             Ítem: {scoreBreakdownItemDetail.arenaName}
