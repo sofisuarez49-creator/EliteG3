@@ -219,58 +219,6 @@
         const getGalleryItemUrl = (item) => normalizeGalleryItem(item).url;
         const getGalleryItemLabel = (item) => normalizeGalleryItem(item).label;
         const getGalleryItemType = (item) => normalizeGalleryItem(item).type;
-        const openSimpleTitleWindow = (title = '') => {
-            const normalizedTitle = String(title || '').trim();
-            if (!normalizedTitle) return;
-            const popup = window.open('', '_blank');
-            if (!popup) return;
-            popup.document.write(`
-                <!DOCTYPE html>
-                <html lang="es">
-                    <head>
-                        <meta charset="UTF-8" />
-                        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-                        <title>${normalizedTitle}</title>
-                        <link rel="stylesheet" href="styles.css" />
-                        <style>
-                            body { margin: 0; min-height: 100vh; overflow: auto; }
-                            .popup-shell { min-height: 100vh; padding: clamp(1rem, 2.8vw, 2.2rem); display: flex; justify-content: center; }
-                            .popup-panel { width: min(1100px, 100%); border-radius: 1.5rem; padding: clamp(1rem, 2.4vw, 2rem); }
-                            .popup-topline { font-size: 0.65rem; letter-spacing: 0.36em; text-transform: uppercase; color: color-mix(in srgb, var(--neon-cyan) 85%, white 15%); }
-                            .popup-title { margin-top: 0.65rem; font-size: clamp(1.9rem, 3.8vw, 2.9rem); font-weight: 800; text-transform: uppercase; color: #f8fbff; text-shadow: 0 0 20px rgba(34, 211, 238, 0.35); }
-                            .popup-grid { margin-top: 1.2rem; display: grid; gap: 0.9rem; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
-                            .popup-card { border-radius: 1rem; padding: 0.95rem 1rem; }
-                            .popup-card h3 { margin: 0 0 0.35rem 0; font-size: 0.92rem; letter-spacing: 0.08em; text-transform: uppercase; color: #e0f2fe; }
-                            .popup-card p { margin: 0; color: #cbd5e1; font-size: 0.82rem; line-height: 1.4; }
-                        </style>
-                    </head>
-                    <body class="text-slate-200">
-                        <main class="popup-shell">
-                            <section class="popup-panel gothic-frame surface-panel--neon">
-                                <p class="popup-topline">Panel del taller</p>
-                                <h1 class="popup-title font-title">${normalizedTitle}</h1>
-                                <p class="text-slate-300 text-sm mt-2">Esta vista mantiene la estética de la interfaz principal y está lista para recibir contenido dinámico.</p>
-                                <div class="popup-grid">
-                                    <article class="popup-card surface-panel theme-border-secondary">
-                                        <h3>Resumen</h3>
-                                        <p>Sección para métricas generales, progreso o highlights del personaje seleccionado.</p>
-                                    </article>
-                                    <article class="popup-card surface-panel theme-border-secondary">
-                                        <h3>Detalle</h3>
-                                        <p>Espacio reservado para tablas, tarjetas o controles específicos de ${normalizedTitle.toLowerCase()}.</p>
-                                    </article>
-                                    <article class="popup-card surface-panel theme-border-secondary">
-                                        <h3>Actividad</h3>
-                                        <p>Timeline compatible con eventos, historial de cambios o carga de nuevos recursos.</p>
-                                    </article>
-                                </div>
-                            </section>
-                        </main>
-                    </body>
-                </html>
-            `);
-            popup.document.close();
-        };
         const openMultimediaTab = (profile = null) => {
             if (!profile) return;
             const tab = window.open('', '_blank');
@@ -3859,7 +3807,7 @@ const saveProfile = (e) => {
                                                         <button
                                                             type="button"
                                                             onClick={() => {
-                                                                openSimpleTitleWindow('PUNTAJES');
+                                                                setScorePanelModal({ isOpen: true, profile: selectedTallerProfile });
                                                             }}
                                                             className="btn-metal py-3 rounded-xl text-[11px] font-black tracking-wide uppercase"
                                                         >
