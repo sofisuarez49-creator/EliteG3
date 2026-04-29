@@ -302,11 +302,15 @@
                                 : '<span class="multimedia-slot-empty">Sin foto designada</span>'}
                         </div>
                         ${isProfileSlot ? '' : `<div class="multimedia-slot-actions">
+                            <select class="multimedia-slot-picker" data-slot-picker="${slot.id}">
+                                <option value="">Elegir galería…</option>
+                                ${galleryItems
+                                    .filter((item) => item.type === 'image' && slot.labels.includes(item.label))
+                                    .map((item) => `<option value="${item.sourceIndex}" ${safeBattlePhotoPrefs[slot.id] === item.url ? 'selected' : ''}>${slot.label} · ${item.label || 'SIN ETIQUETA'} · #${item.sourceIndex + 1}</option>`)
+                                    .join('')}
+                            </select>
                             <button type="button" class="multimedia-slot-btn multimedia-slot-btn--gallery" data-slot-assign="${slot.id}">
-                                Designar desde galería
-                            </button>
-                            <button type="button" class="multimedia-slot-btn multimedia-slot-btn--url" data-slot-add-url="${slot.id}">
-                                Agregar URL/Archivo
+                                Designar de galería
                             </button>
                         </div>`}
                     </div>
@@ -375,11 +379,10 @@
                                 color: #dcfce7;
                                 box-shadow: 0 0 12px rgba(74,222,128,0.22);
                             }
-                            .multimedia-slot-btn--url {
-                                border-color: rgba(125,211,252,0.72);
-                                background: rgba(8,47,73,0.82);
-                                color: #e0f2fe;
-                                box-shadow: 0 0 12px rgba(125,211,252,0.25);
+                            .multimedia-slot-picker {
+                                width: 100%; border: 1px solid rgba(74,222,128,0.72); background: rgba(2,6,23,0.85);
+                                color: #dcfce7; border-radius: 8px; padding: 6px 8px; font-size: 10px; font-weight: 700;
+                                letter-spacing: .04em; outline: none;
                             }
                         </style>
                     </head>
@@ -474,66 +477,13 @@
                                 });
                             });
 
-                            const getGalleryCandidatesForSlot = (slotId = '') => {
-                                const slot = BATTLE_PHOTO_SLOTS.find((item) => item.id === slotId);
-                                if (!slot) return [];
-                                return galleryItems
-                                    .filter((item) => item.type === 'image' && slot.labels.includes(item.label));
-                            };
-
                             document.querySelectorAll('[data-slot-assign]').forEach((button) => {
                                 button.addEventListener('click', () => {
                                     const slotId = button.dataset.slotAssign || '';
-                                    if (!slotId || !window.opener) return;
-                                    const candidates = getGalleryCandidatesForSlot(slotId);
-                                    if (!candidates.length) {
-                                        window.alert('No hay fotos compatibles en la galería para este casillero.');
-                                        return;
-                                    }
-                                    const slotName = slotId;
-                                    const listText = candidates
-                                        .map((item, idx) => `${idx + 1}. ${item.label || 'SIN ETIQUETA'} · #${item.sourceIndex + 1}`)
-                                        .join('\n');
-                                    const selection = window.prompt(`Seleccioná una foto para ${slotName}:\n\n${listText}\n\nEscribí el número.`, '1');
-                                    if (selection === null) return;
-                                    const selectedIndex = Number(selection) - 1;
-                                    if (Number.isNaN(selectedIndex) || selectedIndex < 0 || selectedIndex >= candidates.length) {
-                                        window.alert('Selección inválida.');
-                                        return;
-                                    }
-                                    const selected = candidates[selectedIndex];
-                                    window.opener.postMessage({ type: 'SET_BATTLE_PHOTO_PREF', id: profileId, slotId, index: selected.sourceIndex, mediaType: 'image' }, '*');
-                                });
-                            });
-
-                            document.querySelectorAll('[data-slot-add-url]').forEach((button) => {
-                                button.addEventListener('click', () => {
-                                    const slotId = button.dataset.slotAddUrl || '';
-                                    if (!slotId || !window.opener) return;
-                                    const nextUrl = window.prompt('Pegá una URL o dejá vacío para elegir archivo desde tu dispositivo:');
-                                    if (nextUrl === null) return;
-                                    const commitUrl = (urlValue) => {
-                                        const normalized = String(urlValue || '').trim();
-                                        if (!normalized) return;
-                                        window.opener.postMessage({ type: 'ADD_IMAGE', url: normalized, label: '', mediaType: detectGalleryItemType(normalized, 'image'), id: profileId }, '*');
-                                        window.opener.postMessage({ type: 'SET_BATTLE_PHOTO_PREF_BY_URL', id: profileId, slotId, url: normalized, mediaType: 'image', label: '' }, '*');
-                                    };
-                                    if (nextUrl.trim()) {
-                                        commitUrl(nextUrl);
-                                        return;
-                                    }
-                                    const picker = document.createElement('input');
-                                    picker.type = 'file';
-                                    picker.accept = 'image/*,video/*,.gif';
-                                    picker.addEventListener('change', () => {
-                                        const selectedFile = picker.files?.[0];
-                                        if (!selectedFile) return;
-                                        const reader = new FileReader();
-                                        reader.onload = () => commitUrl(String(reader.result || ''));
-                                        reader.onerror = () => window.alert('No se pudo leer el archivo seleccionado.');
-                                        reader.readAsDataURL(selectedFile);
-                                    });
-                                    picker.click();
+                                    const picker = document.querySelector('[data-slot-picker="' + slotId + '"]');
+                                    const index = Number(picker?.value ?? -1);
+                                    if (!slotId || !window.opener || Number.isNaN(index) || index < 0) return;
+                                    window.opener.postMessage({ type: 'SET_BATTLE_PHOTO_PREF', id: profileId, slotId, index, mediaType: 'image' }, '*');
                                 });
                             });
 
