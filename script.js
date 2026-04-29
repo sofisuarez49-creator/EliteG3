@@ -3889,6 +3889,9 @@ const saveProfile = (e) => {
                             )}
 
                             {selectedTallerProfile && (
+                                (() => {
+                                    const professionVisual = getProfessionCardVisual(selectedTallerProfile?.profesion || '');
+                                    return (
                                 <div
                                     className={`fixed inset-0 z-[140] flex items-center justify-center bg-slate-950/75 backdrop-blur-sm px-4 py-8 ${isSidebarOpen ? 'lg:pl-[19rem] lg:justify-end' : ''}`}
                                     onClick={() => setSelectedTallerProfileId('')}
@@ -3896,6 +3899,10 @@ const saveProfile = (e) => {
                                 >
                                     <section
                                         className="taller-detail-panel rounded-[2rem] p-8 md:p-10 relative overflow-hidden w-full max-w-5xl max-h-[90vh] overflow-y-auto"
+                                        style={{
+                                            '--taller-profession-color': professionVisual.baseColor,
+                                            '--taller-profession-glow': professionVisual.glowColor
+                                        }}
                                         onClick={(event) => event.stopPropagation()}
                                         role="dialog"
                                         aria-modal="true"
@@ -3919,7 +3926,12 @@ const saveProfile = (e) => {
                                             </div>
                                             <div className="space-y-6">
                                                 <div>
-                                                    <p className="text-[10px] uppercase tracking-[0.35em] text-cyan-200/90 font-black">Ficha del personaje</p>
+                                                    <p
+                                                        className="text-[10px] uppercase tracking-[0.35em] font-black"
+                                                        style={{ color: 'color-mix(in srgb, var(--taller-profession-color) 52%, #e0f2fe 48%)' }}
+                                                    >
+                                                        Ficha del personaje
+                                                    </p>
                                                     <h3 className="taller-detail-title text-3xl md:text-4xl font-black uppercase mt-2">
                                                         {selectedTallerProfile.nombre || 'Sin nombre'}
                                                     </h3>
@@ -3951,7 +3963,7 @@ const saveProfile = (e) => {
                                                             onClick={() => {
                                                                 setScorePanelModal({ isOpen: true, profile: selectedTallerProfile });
                                                             }}
-                                                            className="btn-metal py-3 rounded-xl text-[11px] font-black tracking-wide uppercase"
+                                                            className="btn-metal btn-profession-accent py-3 rounded-xl text-[11px] font-black tracking-wide uppercase"
                                                         >
                                                             Puntajes
                                                         </button>
@@ -3975,7 +3987,7 @@ const saveProfile = (e) => {
                                                                 });
                                                                 nuevaVentana?.focus();
                                                             }}
-                                                            className="btn-metal py-3 rounded-xl text-[11px] font-black tracking-wide uppercase"
+                                                            className="btn-metal btn-profession-accent py-3 rounded-xl text-[11px] font-black tracking-wide uppercase"
                                                         >
                                                             Ver Galería
                                                         </button>
@@ -3985,6 +3997,8 @@ const saveProfile = (e) => {
                                         </div>
                                     </section>
                                 </div>
+                                    );
+                                })()
                             )}
                             <MultimediaModal
                                 isOpen={isMultimediaModalOpen}
