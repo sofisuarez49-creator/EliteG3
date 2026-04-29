@@ -234,6 +234,7 @@
                         sourceIndex
                     }))
                 : [];
+            const galleryPhotoItems = galleryItems.filter((item) => item.type === 'image' && item.sourceTag === 'fotos');
             const safeBattlePhotoPrefs = sanitizeBattlePhotoPreferences(profile?.batallaFotosPreferidas || profile?.galeria?.battlePhotoPreferences || {});
             const normalizedProfilePhotoUrl = getSafeImageSrc(String(profile?.fotos?.[0] || profile?.foto || '').trim(), '');
             const galleryImageByUrl = galleryItems
@@ -260,6 +261,26 @@
                     </button>
                 `).join('')
                 : '<p class="text-slate-300">Sin contenido en galería.</p>';
+            const brokenGalleryHtml = galleryPhotoItems.length
+                ? galleryPhotoItems.map((item, index) => `
+                    <button
+                        type="button"
+                        class="surface-panel rounded-xl overflow-hidden border border-rose-300/35 text-left multimedia-thumb-btn multimedia-thumb-btn--broken"
+                        data-url="${item.url}"
+                        data-label="${item.label || ''}"
+                        data-index="${item.sourceIndex}"
+                        data-tag="${item.sourceTag}"
+                        data-broken-card="true"
+                        style="display:none;"
+                        title="Imagen rota: tocar para editar URL o etiqueta"
+                    >
+                        <div class="multimedia-thumb-wrap multimedia-thumb-wrap--broken">
+                            <img src="${item.url}" alt="Imagen rota ${index + 1}" style="width:100%;height:100%;object-fit:contain;" loading="lazy" />
+                            <span class="multimedia-thumb-label">${item.label || 'SIN ETIQUETA'}</span>
+                        </div>
+                    </button>
+                `).join('')
+                : '<p class="text-slate-300">Sin imágenes en galería.</p>';
             const slotHtml = BATTLE_PHOTO_SLOTS.map((slot) => {
                 const isProfileSlot = slot.id === 'perfil';
                 const assignedUrl = isProfileSlot ? normalizedProfilePhotoUrl : (safeBattlePhotoPrefs[slot.id] || '');
@@ -300,6 +321,21 @@
                             .multimedia-thumb-btn { transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
                             .multimedia-thumb-btn:hover { transform: translateY(-2px); border-color: rgba(34,211,238,0.55); box-shadow: 0 0 22px rgba(34,211,238,0.22); }
                             .multimedia-thumb-wrap { position: relative; background: rgba(2,6,23,0.78); height: 170px; display: flex; align-items: center; justify-content: center; }
+                            .multimedia-thumb-wrap--broken::after {
+                                content: 'ROTA';
+                                position: absolute;
+                                top: 8px;
+                                left: 8px;
+                                font-size: 10px;
+                                font-weight: 900;
+                                letter-spacing: .12em;
+                                text-transform: uppercase;
+                                color: #fecaca;
+                                background: rgba(127,29,29,.82);
+                                border: 1px solid rgba(252,165,165,.8);
+                                border-radius: 999px;
+                                padding: 3px 8px;
+                            }
                             .multimedia-thumb-label {
                                 position: absolute; right: 8px; bottom: 8px; z-index: 4; max-width: calc(100% - 16px);
                                 border-radius: 999px; padding: 4px 10px; font-size: 10px; font-weight: 800; letter-spacing: .12em;
@@ -333,6 +369,12 @@
                                     <h2 class="font-black uppercase tracking-wide mb-3">5 principales</h2>
                                     <div class="multimedia-slots-grid">${slotHtml}</div>
                                 </article>
+                                <article class="surface-panel rounded-2xl border border-rose-300/25 mt-4 p-4">
+                                    <h2 class="font-black uppercase tracking-wide mb-2">Imágenes rotas</h2>
+                                    <p class="text-xs text-rose-100/80 uppercase tracking-[0.12em] mb-3">Solo fotos que ya no cargan. Tocá una para corregir URL y etiqueta.</p>
+                                    <div id="brokenGalleryGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">${brokenGalleryHtml}</div>
+                                    <p id="brokenGalleryEmpty" class="text-sm text-slate-300">No hay imágenes rotas detectadas.</p>
+                                </article>
                             </section>
                         </main>
                         <script>
@@ -340,6 +382,15 @@
                             const validLabels = ${JSON.stringify(GALLERY_LABELS)};
                             const dbRef = window.opener && window.opener.firebase && window.opener.firebase.database ? window.opener.firebase.database() : null;
                             const normalizeLabel = (rawLabel = '') => validLabels.includes(rawLabel) ? rawLabel : '';
+                            const brokenCards = new Set();
+                            const syncBrokenEmptyState = () => {
+                                const grid = document.getElementById('brokenGalleryGrid');
+                                const empty = document.getElementById('brokenGalleryEmpty');
+                                if (!grid || !empty) return;
+                                const visibleBrokenCount = Array.from(grid.querySelectorAll('[data-broken-card=\"true\"]'))
+                                    .filter((card) => card.style.display !== 'none').length;
+                                empty.style.display = visibleBrokenCount ? 'none' : 'block';
+                            };
                             const saveGalleryItem = async ({ sourceTag = 'fotos', sourceIndex = -1, url = '', label = '' }) => {
                                 if (!dbRef || !profileId || sourceIndex < 0) return false;
                                 const galleryRef = dbRef.ref(\`perfiles/\${profileId}/galeria/\${sourceTag}\`);
@@ -356,6 +407,20 @@
                             };
 
                             document.querySelectorAll('.multimedia-thumb-btn').forEach((button) => {
+                                const isBrokenCard = button.dataset.brokenCard === 'true';
+                                const img = button.querySelector('img');
+                                if (isBrokenCard && img) {
+                                    img.addEventListener('error', () => {
+                                        button.style.display = '';
+                                        brokenCards.add(button.dataset.index || '');
+                                        syncBrokenEmptyState();
+                                    });
+                                    img.addEventListener('load', () => {
+                                        button.style.display = 'none';
+                                        brokenCards.delete(button.dataset.index || '');
+                                        syncBrokenEmptyState();
+                                    });
+                                }
                                 button.addEventListener('click', async () => {
                                     const sourceTag = button.dataset.tag || 'fotos';
                                     const sourceIndex = Number(button.dataset.index);
@@ -374,12 +439,14 @@
                                         const badge = button.querySelector('.multimedia-thumb-label');
                                         if (img) img.src = nextUrl.trim();
                                         if (badge) badge.textContent = button.dataset.label || 'SIN ETIQUETA';
+                                        if (isBrokenCard) syncBrokenEmptyState();
                                     } catch (error) {
                                         console.error('No se pudo guardar multimedia:', error);
                                         window.alert('No se pudo actualizar esta multimedia.');
                                     }
                                 });
                             });
+                            syncBrokenEmptyState();
                         </script>
                     </body>
                 </html>
