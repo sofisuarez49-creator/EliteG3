@@ -3923,14 +3923,11 @@ const saveProfile = (e) => {
                                                     <h3 className="taller-detail-title text-3xl md:text-4xl font-black uppercase mt-2">
                                                         {selectedTallerProfile.nombre || 'Sin nombre'}
                                                     </h3>
-                                                    <p className="text-sm text-slate-300 mt-3">Perfil destacado del Taller con identidad metalizada y luces neón.</p>
                                                 </div>
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                    <article className="taller-data-chip"><span>Nacionalidad</span><strong>{selectedTallerProfile.nacionalidad || 'No definida'}</strong></article>
-                                                    <article className="taller-data-chip"><span>Edad</span><strong>{calcularEdad(selectedTallerProfile.fechaNacimiento)} años</strong></article>
-                                                    <article className="taller-data-chip"><span>Nacimiento</span><strong>{selectedTallerProfile.fechaNacimiento || 'No informado'}</strong></article>
+                                                <div className="grid grid-cols-1 gap-4">
                                                     <article className="taller-data-chip"><span>Profesión</span><strong>{selectedTallerProfile.profesion || 'No definida'}</strong></article>
-                                                    <article className="taller-data-chip"><span>Ciudad</span><strong>{selectedTallerProfile.ciudad || 'No definida'}</strong></article>
+                                                    <article className="taller-data-chip"><span>Nacionalidad - Ciudad</span><strong>{`${selectedTallerProfile.nacionalidad || 'No definida'} - ${selectedTallerProfile.ciudad || 'No definida'}`}</strong></article>
+                                                    <article className="taller-data-chip"><span>Fecha de nacimiento - Edad</span><strong>{`${selectedTallerProfile.fechaNacimiento || 'No informado'} - ${calcularEdad(selectedTallerProfile.fechaNacimiento)} años`}</strong></article>
                                                     <article className="taller-data-chip"><span>Estatura</span><strong>{selectedTallerProfile.estaturaCm ? `${selectedTallerProfile.estaturaCm} cm` : 'No informada'}</strong></article>
                                                 </div>
                                                 <div className="pt-2 space-y-3">
