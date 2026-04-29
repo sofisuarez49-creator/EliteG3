@@ -3958,11 +3958,26 @@ const saveProfile = (e) => {
                                                         <button
                                                             type="button"
                                                             onClick={() => {
-                                                                openMultimediaTab(selectedTallerProfile);
+                                                                const existingWindow = galleryWindowRef.current;
+                                                                const nuevaVentana = existingWindow && !existingWindow.closed ? existingWindow : window.open('', '_blank');
+                                                                galleryWindowRef.current = nuevaVentana;
+                                                                renderGalleryWindow({
+                                                                    targetWindow: nuevaVentana,
+                                                                    profileName: selectedTallerProfile?.nombre || '',
+                                                                    profession: selectedTallerProfile?.profesion || '',
+                                                                    photos: [
+                                                                        ...((selectedTallerProfile?.galeria?.fotos || []).map((item, index) => ({ ...normalizeGalleryItem(item, 'image'), sourceTag: 'fotos', sourceIndex: index }))),
+                                                                        ...((selectedTallerProfile?.galeria?.videos || []).map((item, index) => ({ ...normalizeGalleryItem(item, 'video'), sourceTag: 'videos', sourceIndex: index })))
+                                                                    ],
+                                                                    editingId: selectedTallerProfile?.firebaseId || selectedTallerProfile?.id || '',
+                                                                    battlePhotoPrefs: selectedTallerProfile?.batallaFotosPreferidas || selectedTallerProfile?.galeria?.battlePhotoPreferences || {},
+                                                                    profilePhotoUrl: selectedTallerProfile?.fotos?.[0] || ''
+                                                                });
+                                                                nuevaVentana?.focus();
                                                             }}
                                                             className="btn-metal py-3 rounded-xl text-[11px] font-black tracking-wide uppercase"
                                                         >
-                                                            Multimedia
+                                                            Ver Galería
                                                         </button>
                                                     </div>
                                                 </div>
@@ -5624,27 +5639,15 @@ const saveProfile = (e) => {
                     <button
     type="button"
     onClick={() => {
-        const existingWindow = galleryWindowRef.current;
-        const nuevaVentana = existingWindow && !existingWindow.closed ? existingWindow : window.open('', '_blank');
-        galleryWindowRef.current = nuevaVentana;
-        renderGalleryWindow({
-            targetWindow: nuevaVentana,
-            profileName: formData.nombre,
-            profession: formData.profesion,
-            photos: [
-                ...(formData.galeria?.fotos || []).map((item, index) => ({ ...normalizeGalleryItem(item, 'image'), sourceTag: 'fotos', sourceIndex: index })),
-                ...(formData.galeria?.videos || []).map((item, index) => ({ ...normalizeGalleryItem(item, 'video'), sourceTag: 'videos', sourceIndex: index }))
-            ],
-            editingId,
-            battlePhotoPrefs: formData.batallaFotosPreferidas,
-            profilePhotoUrl: formData.fotos?.[0] || ''
+        openMultimediaTab({
+            ...formData,
+            firebaseId: editingId
         });
-        nuevaVentana.focus();
     }}
     className="btn-metal btn-metal--gold ml-4 px-4 py-2 rounded-xl text-[10px] flex items-center gap-2"
 >
     <LucideIcon name="image" size={14} />
-    Ver Galería
+    Multimedia
 </button>
                 )}
             </div>
