@@ -3840,6 +3840,112 @@ const saveProfile = (e) => {
                             <div className="corner-ember-glow corner-ember-glow--left corner-ember-glow--top" aria-hidden="true"></div>
                             <div className="corner-ember-glow corner-ember-glow--right corner-ember-glow--top" aria-hidden="true"></div>
 
+                    {selectedTallerProfile && (
+                        <div
+                            className={`fixed inset-0 z-[140] flex items-center justify-center bg-slate-950/75 backdrop-blur-sm px-4 py-8 ${isSidebarOpen ? 'lg:pl-[19rem] lg:justify-end' : ''}`}
+                            onClick={() => setSelectedTallerProfileId('')}
+                            role="presentation"
+                        >
+                            <section
+                                className="taller-detail-panel rounded-[2rem] p-8 md:p-10 relative overflow-hidden w-full max-w-5xl max-h-[90vh] overflow-y-auto"
+                                onClick={(event) => event.stopPropagation()}
+                                role="dialog"
+                                aria-modal="true"
+                                aria-label="Ficha del personaje"
+                            >
+                                <button
+                                    type="button"
+                                    onClick={() => setSelectedTallerProfileId('')}
+                                    className="absolute top-4 right-4 w-10 h-10 rounded-full border border-cyan-200/35 bg-slate-900/80 text-slate-100 flex items-center justify-center hover:bg-slate-800/90 transition"
+                                    aria-label="Cerrar ficha"
+                                >
+                                    <LucideIcon name="x" size={18} />
+                                </button>
+                                <div className="grid grid-cols-1 lg:grid-cols-[minmax(260px,320px),1fr] gap-8 items-start">
+                                    <div className="taller-detail-avatar rounded-[1.8rem] overflow-hidden border border-cyan-200/35">
+                                        <img
+                                            src={selectedTallerProfile.fotos?.[0] || 'https://via.placeholder.com/500x700'}
+                                            alt={selectedTallerProfile.nombre || 'Perfil seleccionado'}
+                                            className="w-full h-full object-cover"
+                                        />
+                                    </div>
+                                    <div className="space-y-6">
+                                        <div>
+                                            <p className="text-[10px] uppercase tracking-[0.35em] text-cyan-200/90 font-black">Ficha del personaje</p>
+                                            <h3 className="taller-detail-title text-3xl md:text-4xl font-black uppercase mt-2">
+                                                {selectedTallerProfile.nombre || 'Sin nombre'}
+                                            </h3>
+                                        </div>
+                                        <div className="grid grid-cols-1 gap-4">
+                                            <article className="taller-data-chip"><span>Profesión</span><strong>{selectedTallerProfile.profesion || 'No definida'}</strong></article>
+                                            <article className="taller-data-chip"><span>Nacionalidad - Ciudad</span><strong>{`${selectedTallerProfile.nacionalidad || 'No definida'} - ${selectedTallerProfile.ciudad || 'No definida'}`}</strong></article>
+                                            <article className="taller-data-chip"><span>Fecha de nacimiento - Edad</span><strong>{`${selectedTallerProfile.fechaNacimiento || 'No informado'} - ${calcularEdad(selectedTallerProfile.fechaNacimiento)} años`}</strong></article>
+                                            <article className="taller-data-chip"><span>Estatura</span><strong>{selectedTallerProfile.estaturaCm ? `${selectedTallerProfile.estaturaCm} cm` : 'No informada'}</strong></article>
+                                        </div>
+                                        <div className="pt-2 space-y-3">
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setScorePanelModal({ isOpen: true, profile: selectedTallerProfile });
+                                                    }}
+                                                    className="btn-metal py-3 rounded-xl text-[11px] font-black tracking-wide uppercase"
+                                                >
+                                                    Puntajes
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const existingWindow = galleryWindowRef.current;
+                                                        const nuevaVentana = existingWindow && !existingWindow.closed ? existingWindow : window.open('', '_blank');
+                                                        galleryWindowRef.current = nuevaVentana;
+                                                        renderGalleryWindow({
+                                                            targetWindow: nuevaVentana,
+                                                            profileName: selectedTallerProfile?.nombre || '',
+                                                            profession: selectedTallerProfile?.profesion || '',
+                                                            photos: [
+                                                                ...((selectedTallerProfile?.galeria?.fotos || []).map((item, index) => ({ ...normalizeGalleryItem(item, 'image'), sourceTag: 'fotos', sourceIndex: index }))),
+                                                                ...((selectedTallerProfile?.galeria?.videos || []).map((item, index) => ({ ...normalizeGalleryItem(item, 'video'), sourceTag: 'videos', sourceIndex: index })))
+                                                            ],
+                                                            editingId: selectedTallerProfile?.firebaseId || selectedTallerProfile?.id || '',
+                                                            battlePhotoPrefs: selectedTallerProfile?.batallaFotosPreferidas || selectedTallerProfile?.galeria?.battlePhotoPreferences || {},
+                                                            profilePhotoUrl: selectedTallerProfile?.fotos?.[0] || ''
+                                                        });
+                                                        nuevaVentana?.focus();
+                                                    }}
+                                                    className="btn-metal py-3 rounded-xl text-[11px] font-black tracking-wide uppercase"
+                                                >
+                                                    Ver Galería
+                                                </button>
+                                            </div>
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setSelectedTallerProfileId('');
+                                                        openProfileEditor(selectedTallerProfile);
+                                                    }}
+                                                    className="w-full btn-metal btn-metal--gold py-3 rounded-xl text-xs flex items-center justify-center gap-2"
+                                                >
+                                                    <LucideIcon name="pencil" size={14} className="text-yellow-300" />
+                                                    Editar ficha completa
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => requestDeleteProfile(selectedTallerProfile)}
+                                                    className="w-full btn-metal btn-metal--danger py-3 rounded-xl text-xs flex items-center justify-center gap-2"
+                                                >
+                                                    <LucideIcon name="trash-2" size={14} className="text-red-300" />
+                                                    Eliminar
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </section>
+                        </div>
+                    )}
+
                     {/* VISTA TALLER (VACÍA POR AHORA) */}
                     {activeTab === 'TALLER' && (
                         <div className="space-y-8 animate-in fade-in duration-500">
@@ -3898,111 +4004,6 @@ const saveProfile = (e) => {
                                 </div>
                             )}
 
-                            {selectedTallerProfile && (
-                                <div
-                                    className={`fixed inset-0 z-[140] flex items-center justify-center bg-slate-950/75 backdrop-blur-sm px-4 py-8 ${isSidebarOpen ? 'lg:pl-[19rem] lg:justify-end' : ''}`}
-                                    onClick={() => setSelectedTallerProfileId('')}
-                                    role="presentation"
-                                >
-                                    <section
-                                        className="taller-detail-panel rounded-[2rem] p-8 md:p-10 relative overflow-hidden w-full max-w-5xl max-h-[90vh] overflow-y-auto"
-                                        onClick={(event) => event.stopPropagation()}
-                                        role="dialog"
-                                        aria-modal="true"
-                                        aria-label="Ficha del personaje"
-                                    >
-                                        <button
-                                            type="button"
-                                            onClick={() => setSelectedTallerProfileId('')}
-                                            className="absolute top-4 right-4 w-10 h-10 rounded-full border border-cyan-200/35 bg-slate-900/80 text-slate-100 flex items-center justify-center hover:bg-slate-800/90 transition"
-                                            aria-label="Cerrar ficha"
-                                        >
-                                            <LucideIcon name="x" size={18} />
-                                        </button>
-                                        <div className="grid grid-cols-1 lg:grid-cols-[minmax(260px,320px),1fr] gap-8 items-start">
-                                            <div className="taller-detail-avatar rounded-[1.8rem] overflow-hidden border border-cyan-200/35">
-                                                <img
-                                                    src={selectedTallerProfile.fotos?.[0] || 'https://via.placeholder.com/500x700'}
-                                                    alt={selectedTallerProfile.nombre || 'Perfil seleccionado'}
-                                                    className="w-full h-full object-cover"
-                                                />
-                                            </div>
-                                            <div className="space-y-6">
-                                                <div>
-                                                    <p className="text-[10px] uppercase tracking-[0.35em] text-cyan-200/90 font-black">Ficha del personaje</p>
-                                                    <h3 className="taller-detail-title text-3xl md:text-4xl font-black uppercase mt-2">
-                                                        {selectedTallerProfile.nombre || 'Sin nombre'}
-                                                    </h3>
-                                                </div>
-                                                <div className="grid grid-cols-1 gap-4">
-                                                    <article className="taller-data-chip"><span>Profesión</span><strong>{selectedTallerProfile.profesion || 'No definida'}</strong></article>
-                                                    <article className="taller-data-chip"><span>Nacionalidad - Ciudad</span><strong>{`${selectedTallerProfile.nacionalidad || 'No definida'} - ${selectedTallerProfile.ciudad || 'No definida'}`}</strong></article>
-                                                    <article className="taller-data-chip"><span>Fecha de nacimiento - Edad</span><strong>{`${selectedTallerProfile.fechaNacimiento || 'No informado'} - ${calcularEdad(selectedTallerProfile.fechaNacimiento)} años`}</strong></article>
-                                                    <article className="taller-data-chip"><span>Estatura</span><strong>{selectedTallerProfile.estaturaCm ? `${selectedTallerProfile.estaturaCm} cm` : 'No informada'}</strong></article>
-                                                </div>
-                                                <div className="pt-2 space-y-3">
-                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => {
-                                                                setScorePanelModal({ isOpen: true, profile: selectedTallerProfile });
-                                                            }}
-                                                            className="btn-metal py-3 rounded-xl text-[11px] font-black tracking-wide uppercase"
-                                                        >
-                                                            Puntajes
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => {
-                                                                const existingWindow = galleryWindowRef.current;
-                                                                const nuevaVentana = existingWindow && !existingWindow.closed ? existingWindow : window.open('', '_blank');
-                                                                galleryWindowRef.current = nuevaVentana;
-                                                                renderGalleryWindow({
-                                                                    targetWindow: nuevaVentana,
-                                                                    profileName: selectedTallerProfile?.nombre || '',
-                                                                    profession: selectedTallerProfile?.profesion || '',
-                                                                    photos: [
-                                                                        ...((selectedTallerProfile?.galeria?.fotos || []).map((item, index) => ({ ...normalizeGalleryItem(item, 'image'), sourceTag: 'fotos', sourceIndex: index }))),
-                                                                        ...((selectedTallerProfile?.galeria?.videos || []).map((item, index) => ({ ...normalizeGalleryItem(item, 'video'), sourceTag: 'videos', sourceIndex: index })))
-                                                                    ],
-                                                                    editingId: selectedTallerProfile?.firebaseId || selectedTallerProfile?.id || '',
-                                                                    battlePhotoPrefs: selectedTallerProfile?.batallaFotosPreferidas || selectedTallerProfile?.galeria?.battlePhotoPreferences || {},
-                                                                    profilePhotoUrl: selectedTallerProfile?.fotos?.[0] || ''
-                                                                });
-                                                                nuevaVentana?.focus();
-                                                            }}
-                                                            className="btn-metal py-3 rounded-xl text-[11px] font-black tracking-wide uppercase"
-                                                        >
-                                                            Ver Galería
-                                                        </button>
-                                                    </div>
-                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => {
-                                                                setSelectedTallerProfileId('');
-                                                                openProfileEditor(selectedTallerProfile);
-                                                            }}
-                                                            className="w-full btn-metal btn-metal--gold py-3 rounded-xl text-xs flex items-center justify-center gap-2"
-                                                        >
-                                                            <LucideIcon name="pencil" size={14} className="text-yellow-300" />
-                                                            Editar ficha completa
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => requestDeleteProfile(selectedTallerProfile)}
-                                                            className="w-full btn-metal btn-metal--danger py-3 rounded-xl text-xs flex items-center justify-center gap-2"
-                                                        >
-                                                            <LucideIcon name="trash-2" size={14} className="text-red-300" />
-                                                            Eliminar
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </section>
-                                </div>
-                            )}
                             <MultimediaModal
                                 isOpen={isMultimediaModalOpen}
                                 profile={selectedTallerProfile}
@@ -4126,7 +4127,6 @@ const saveProfile = (e) => {
                             key={p.firebaseId || Math.random()}
                             onClick={() => {
                                 setContextMenuProfileId(null);
-                                setActiveTab('TALLER');
                                 setTallerSearchTerm('');
                                 setSelectedTallerProfileId(p.firebaseId || '');
                             }}
