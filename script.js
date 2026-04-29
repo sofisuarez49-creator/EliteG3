@@ -1079,6 +1079,22 @@
                                 <div style="font-size:10px; color:${hasSelection ? '#86efac' : '#fca5a5'}; margin-top:4px;">
                                     ${hasSelection ? '✅ Foto asignada' : '❌ Sin foto asignada'}
                                 </div>
+                                <div style="display:grid; gap:6px; margin-top:8px;">
+                                    <button
+                                        type="button"
+                                        onclick="event.stopPropagation(); openSlotActionModal('${slot.id}', 'url');"
+                                        style="width:100%; border:1px solid rgba(125,211,252,0.6); background: rgba(2,6,23,0.82); color:#e2e8f0; border-radius:8px; padding:6px 8px; font-size:10px; font-weight:800; letter-spacing:0.08em; text-transform:uppercase; cursor:pointer; box-shadow: 0 0 12px rgba(34,211,238,0.22);"
+                                    >
+                                        URL / Archivo
+                                    </button>
+                                    ${canPickFromGallery ? `<button
+                                        type="button"
+                                        onclick="event.stopPropagation(); selectSlotFromGallery('${slot.id}');"
+                                        style="width:100%; border:1px solid rgba(74,222,128,0.7); background: rgba(20,83,45,0.78); color:#dcfce7; border-radius:8px; padding:6px 8px; font-size:10px; font-weight:800; letter-spacing:0.08em; text-transform:uppercase; cursor:pointer; box-shadow: 0 0 12px rgba(74,222,128,0.22);"
+                                    >
+                                        Elegir galería
+                                    </button>` : ''}
+                                </div>
                                 ${isProfileSlot ? '' : `<button
                                     type="button"
                                     onclick="event.stopPropagation(); window.opener.postMessage({type: 'CLEAR_BATTLE_PHOTO_PREF', id: '${editingId}', slotId: '${slot.id}'}, '*');"
@@ -1246,6 +1262,13 @@
                             galleryHint.style.display = mode === 'gallery' && slotId !== 'perfil' ? 'block' : 'none';
                         }
                         if (modal) modal.style.display = 'block';
+                    }
+
+                    function selectSlotFromGallery(slotId) {
+                        activeSlotSelectionId = slotId || '';
+                        const slotInput = document.getElementById('slotSelectionId');
+                        if (slotInput) slotInput.value = activeSlotSelectionId;
+                        alert('Listo. Ahora elegí una imagen tocando el chip del slot sobre la foto en la galería.');
                     }
 
                     function resetAddMediaModalFields() {
@@ -1778,12 +1801,31 @@ const getInitialCatFormData = () => ({
                 reader.onerror = () => reject(new Error('No se pudo leer el archivo.'));
                 reader.readAsDataURL(file);
             });
+            const withProfilePhotoSyncedToGallery = (prevState, profilePhotoUrlRaw) => {
+                const normalizedProfileUrl = String(profilePhotoUrlRaw || '').trim();
+                const currentGallery = Array.isArray(prevState?.galeria?.fotos) ? prevState.galeria.fotos : [];
+                if (!normalizedProfileUrl) {
+                    return { ...prevState, fotos: [''] };
+                }
+                const alreadyExists = currentGallery.some((item) => normalizeGalleryItem(item, 'image').url === normalizedProfileUrl);
+                const nextGallery = alreadyExists
+                    ? currentGallery
+                    : [...currentGallery, { url: normalizedProfileUrl, label: 'C', type: 'image' }];
+                return {
+                    ...prevState,
+                    fotos: [normalizedProfileUrl],
+                    galeria: {
+                        ...(prevState.galeria || {}),
+                        fotos: nextGallery
+                    }
+                };
+            };
             const handleLocalProfilePhotoUpload = async (event) => {
                 const selectedFile = event.target.files?.[0];
                 if (!selectedFile) return;
                 try {
                     const dataUrl = await readFileAsDataUrl(selectedFile);
-                    setFormData(prev => ({ ...prev, fotos: [dataUrl] }));
+                    setFormData(prev => withProfilePhotoSyncedToGallery(prev, dataUrl));
                 } catch (error) {
                     console.error('Error al cargar foto de perfil local:', error);
                 } finally {
@@ -5592,7 +5634,7 @@ const saveProfile = (e) => {
                         placeholder="https://imagen.com/foto.jpg"
                         className="w-full theme-surface-soft border theme-border-secondary p-5 rounded-xl outline-none focus:ring-2 focus:ring-[var(--glow-gold)] text-white font-bold text-xs"
                         value={formData.fotos[0] || ''}
-                        onChange={e => setFormData({...formData, fotos: [e.target.value]})}
+                        onChange={e => setFormData(prev => withProfilePhotoSyncedToGallery(prev, e.target.value))}
                     />
                     <input
                         type="file"
