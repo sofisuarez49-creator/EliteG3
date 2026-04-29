@@ -4423,7 +4423,7 @@ const saveProfile = (e) => {
             )}
 
             {selectedGalleryPhoto && (
-                <div className="fixed inset-0 z-[120] bg-slate-950/95 backdrop-blur-xl flex items-center justify-center p-4 sm:p-8" onClick={closeGalleryViewer}>
+                <div className="fixed inset-0 z-[260] bg-slate-950/95 backdrop-blur-xl flex items-center justify-center p-0" onClick={closeGalleryViewer}>
                     <button
                         type="button"
                         onClick={closeGalleryViewer}
@@ -4433,7 +4433,7 @@ const saveProfile = (e) => {
                         <span className="text-[26px] leading-none font-black">✕</span>
                     </button>
 
-                    <div className="w-full max-w-6xl max-h-full flex flex-col gap-4" onClick={(event) => event.stopPropagation()}>
+                    <div className="w-screen h-screen max-h-screen flex flex-col gap-4 px-4 py-4 sm:px-6 sm:py-6" onClick={(event) => event.stopPropagation()}>
                         <div className="flex items-center justify-between gap-4 px-1 sm:px-2">
                             <div>
                                 <p className="text-2xl sm:text-3xl font-black italic text-white tracking-tighter">{selectedGalleryPhoto.nombre}</p>
