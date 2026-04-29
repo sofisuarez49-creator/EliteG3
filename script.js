@@ -340,7 +340,7 @@
                         <script src="https://cdn.tailwindcss.com"></script>
                         <link rel="stylesheet" href="styles.css" />
                         <style>
-                            .multimedia-gallery-scroll { max-height: 52vh; overflow-y: auto; padding-right: 4px; }
+                            .multimedia-gallery-scroll { overflow: visible; padding-right: 0; }
                             .multimedia-gallery-scroll::-webkit-scrollbar { width: 8px; }
                             .multimedia-gallery-scroll::-webkit-scrollbar-thumb { background: rgba(34,211,238,0.45); border-radius: 99px; }
                             .multimedia-thumb-btn { transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
@@ -373,9 +373,7 @@
                                 <p class="text-center text-cyan-100/80 text-xs uppercase tracking-[0.2em] mt-2">${profile?.nombre || 'Personaje'}</p>
                                 <article class="surface-panel rounded-2xl border border-cyan-200/20 mt-6 p-4">
                                     <h2 class="font-black uppercase tracking-wide mb-3">Galería</h2>
-                                    <div class="multimedia-gallery-scroll">
-                                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">${galleryHtml}</div>
-                                    </div>
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">${galleryHtml}</div>
                                 </article>
                                 <article class="surface-panel rounded-2xl border border-cyan-200/20 mt-4 p-4">
                                     <h2 class="font-black uppercase tracking-wide mb-3">5 principales</h2>
