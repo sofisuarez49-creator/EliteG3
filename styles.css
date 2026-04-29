@@ -685,3 +685,14 @@ button:hover,
     letter-spacing: 0.14em;
     text-transform: uppercase;
 }
+
+.ranking-table-shell {
+    max-width: 100%;
+}
+
+.ranking-table-scroll {
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+}
