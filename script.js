@@ -287,6 +287,7 @@
                     }))
                 : [];
             const safeBattlePhotoPrefs = sanitizeBattlePhotoPreferences(profile?.galeria?.battlePhotoPreferences || {});
+            const normalizedProfilePhotoUrl = getSafeImageSrc(String(profile?.foto || '').trim(), '');
             const galleryImageByUrl = galleryItems
                 .filter((item) => item.type === 'image' && item.url)
                 .reduce((acc, item) => {
@@ -312,8 +313,13 @@
                 `).join('')
                 : '<p class="text-slate-300">Sin contenido en galería.</p>';
             const slotHtml = BATTLE_PHOTO_SLOTS.map((slot) => {
-                const assignedUrl = safeBattlePhotoPrefs[slot.id] || '';
-                const assignedPhoto = assignedUrl ? galleryImageByUrl[assignedUrl] : null;
+                const isProfileSlot = slot.id === 'perfil';
+                const assignedUrl = isProfileSlot ? normalizedProfilePhotoUrl : (safeBattlePhotoPrefs[slot.id] || '');
+                const assignedPhoto = assignedUrl
+                    ? (isProfileSlot
+                        ? { url: assignedUrl }
+                        : galleryImageByUrl[assignedUrl])
+                    : null;
                 const isAssigned = !!assignedPhoto;
                 return `
                     <div class="multimedia-slot-card ${isAssigned ? 'is-assigned' : 'is-missing'}">
