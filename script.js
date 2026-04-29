@@ -1572,6 +1572,15 @@
         "DEFAULT": { color: "#334155", sombra: "transparent" }
                 };
 
+                const getNeonClassByProfession = (profession = '') => {
+                    const normalizedKey = String(profession || '')
+                        .normalize('NFD')
+                        .replace(/[̀-ͯ]/g, '')
+                        .trim()
+                        .toUpperCase();
+                    return neonColors[normalizedKey] || neonColors.DEFAULT;
+                };
+
             const [categorias, setCategorias] = useState(INITIAL_CATEGORIES);
             const [activeTab, setActiveTab] = useState('EXPLORAR');
             const [selectedArena, setSelectedArena] = useState(null);
@@ -3967,8 +3976,7 @@ const saveProfile = (e) => {
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-10">
                                 {tallerProfiles.map((p) => {
-                                    const profKey = p.profesion?.toUpperCase() || 'DEFAULT';
-                                    const neonClass = (typeof neonColors !== 'undefined' && neonColors[profKey]) ? neonColors[profKey] : { color: '#06b6d4', sombra: 'rgba(6,182,212,0.5)' };
+                                    const neonClass = getNeonClassByProfession(p.profesion);
                                     const isSelected = selectedTallerProfileId && selectedTallerProfileId === p.firebaseId;
                                     return (
                                         <button
@@ -4123,8 +4131,7 @@ const saveProfile = (e) => {
                             : scoreValue >= 75
                                 ? 'card-score-badge--fire'
                                 : '';
-                    const profKey = p.profesion?.toUpperCase() || 'DEFAULT';
-                    const neonClass = (typeof neonColors !== 'undefined' && neonColors[profKey]) ? neonColors[profKey] : { color: '#06b6d4', sombra: 'rgba(6,182,212,0.5)' };
+                    const neonClass = getNeonClassByProfession(p.profesion);
                     return (
                         <div
                             key={p.firebaseId || Math.random()}
@@ -5279,8 +5286,8 @@ const saveProfile = (e) => {
             {/* MINIATURA CON NEÓN */}
             <div className="w-14 h-14 rounded-xl border-2 p-0.5 transition-all duration-500"
      style={{
-         borderColor: (neonColors[p.profesion?.toUpperCase()] || neonColors["DEFAULT"]).color,
-         boxShadow: `0 0 10px ${(neonColors[p.profesion?.toUpperCase()] || neonColors["DEFAULT"]).sombra}`
+         borderColor: getNeonClassByProfession(p.profesion).color,
+         boxShadow: `0 0 10px ${getNeonClassByProfession(p.profesion).sombra}`
      }}>
                 <img src={getSafeImageSrc(p.fotos?.[0], 'https://via.placeholder.com/400x500')} className="w-full h-full object-cover transition-transform duration-700 opacity-80 group-hover:opacity-100" onError={applyCryingEmojiFallback} />
             </div>
