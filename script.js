@@ -3934,18 +3934,20 @@ const saveProfile = (e) => {
                                                         setSelectedTallerProfileId('');
                                                         openProfileEditor(selectedTallerProfile);
                                                     }}
-                                                    className="w-full btn-metal btn-metal--gold py-3 rounded-xl text-xs flex items-center justify-center gap-2"
+                                                    className="w-full btn-metal btn-metal--gold py-3 rounded-xl text-xs flex items-center justify-center"
+                                                    aria-label="Editar ficha completa"
+                                                    title="Editar ficha completa"
                                                 >
-                                                    <LucideIcon name="pencil" size={14} className="text-yellow-300" />
-                                                    Editar ficha completa
+                                                    <LucideIcon name="pencil" size={18} className="text-yellow-300" />
                                                 </button>
                                                 <button
                                                     type="button"
                                                     onClick={() => requestDeleteProfile(selectedTallerProfile)}
-                                                    className="w-full btn-metal btn-metal--danger py-3 rounded-xl text-xs flex items-center justify-center gap-2"
+                                                    className="w-full btn-metal btn-metal--danger py-3 rounded-xl text-xs flex items-center justify-center"
+                                                    aria-label="Eliminar ficha"
+                                                    title="Eliminar ficha"
                                                 >
-                                                    <LucideIcon name="trash-2" size={14} className="text-red-300" />
-                                                    Eliminar
+                                                    <LucideIcon name="trash-2" size={18} className="text-red-400" />
                                                 </button>
                                             </div>
                                         </div>
