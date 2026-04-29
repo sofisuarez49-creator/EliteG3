@@ -3853,12 +3853,13 @@ const saveProfile = (e) => {
                                 {tallerProfiles.map((p) => {
                                     const profKey = p.profesion?.toUpperCase() || 'DEFAULT';
                                     const neonClass = (typeof neonColors !== 'undefined' && neonColors[profKey]) ? neonColors[profKey] : { color: '#06b6d4', sombra: 'rgba(6,182,212,0.5)' };
+                                    const isSelected = selectedTallerProfileId && selectedTallerProfileId === p.firebaseId;
                                     return (
                                         <button
                                             key={p.firebaseId || p.nombre}
                                             type="button"
-                                            onClick={() => openProfileEditor(p)}
-                                            className="profile-card rounded-2xl p-4 relative overflow-hidden text-left transition-all"
+                                            onClick={() => setSelectedTallerProfileId(p.firebaseId || '')}
+                                            className={`profile-card rounded-2xl p-4 relative overflow-hidden text-left transition-all ${isSelected ? 'taller-card--selected' : ''}`}
                                         >
                                             <div className="w-full aspect-[4/5] rounded-xl overflow-hidden mb-4 bg-slate-900/70">
                                                 <img
@@ -3887,6 +3888,104 @@ const saveProfile = (e) => {
                                 </div>
                             )}
 
+                            {selectedTallerProfile && (
+                                <div
+                                    className={`fixed inset-0 z-[140] flex items-center justify-center bg-slate-950/75 backdrop-blur-sm px-4 py-8 ${isSidebarOpen ? 'lg:pl-[19rem] lg:justify-end' : ''}`}
+                                    onClick={() => setSelectedTallerProfileId('')}
+                                    role="presentation"
+                                >
+                                    <section
+                                        className="taller-detail-panel rounded-[2rem] p-8 md:p-10 relative overflow-hidden w-full max-w-5xl max-h-[90vh] overflow-y-auto"
+                                        onClick={(event) => event.stopPropagation()}
+                                        role="dialog"
+                                        aria-modal="true"
+                                        aria-label="Ficha del personaje"
+                                    >
+                                        <button
+                                            type="button"
+                                            onClick={() => setSelectedTallerProfileId('')}
+                                            className="absolute top-4 right-4 w-10 h-10 rounded-full border border-cyan-200/35 bg-slate-900/80 text-slate-100 flex items-center justify-center hover:bg-slate-800/90 transition"
+                                            aria-label="Cerrar ficha"
+                                        >
+                                            <LucideIcon name="x" size={18} />
+                                        </button>
+                                        <div className="grid grid-cols-1 lg:grid-cols-[minmax(260px,320px),1fr] gap-8 items-start">
+                                            <div className="taller-detail-avatar rounded-[1.8rem] overflow-hidden border border-cyan-200/35">
+                                                <img
+                                                    src={selectedTallerProfile.fotos?.[0] || 'https://via.placeholder.com/500x700'}
+                                                    alt={selectedTallerProfile.nombre || 'Perfil seleccionado'}
+                                                    className="w-full h-full object-cover"
+                                                />
+                                            </div>
+                                            <div className="space-y-6">
+                                                <div>
+                                                    <p className="text-[10px] uppercase tracking-[0.35em] text-cyan-200/90 font-black">Ficha del personaje</p>
+                                                    <h3 className="taller-detail-title text-3xl md:text-4xl font-black uppercase mt-2">
+                                                        {selectedTallerProfile.nombre || 'Sin nombre'}
+                                                    </h3>
+                                                    <p className="text-sm text-slate-300 mt-3">Perfil destacado del Taller con identidad metalizada y luces neón.</p>
+                                                </div>
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    <article className="taller-data-chip"><span>Nacionalidad</span><strong>{selectedTallerProfile.nacionalidad || 'No definida'}</strong></article>
+                                                    <article className="taller-data-chip"><span>Edad</span><strong>{calcularEdad(selectedTallerProfile.fechaNacimiento)} años</strong></article>
+                                                    <article className="taller-data-chip"><span>Nacimiento</span><strong>{selectedTallerProfile.fechaNacimiento || 'No informado'}</strong></article>
+                                                    <article className="taller-data-chip"><span>Profesión</span><strong>{selectedTallerProfile.profesion || 'No definida'}</strong></article>
+                                                    <article className="taller-data-chip"><span>Ciudad</span><strong>{selectedTallerProfile.ciudad || 'No definida'}</strong></article>
+                                                    <article className="taller-data-chip"><span>Estatura</span><strong>{selectedTallerProfile.estaturaCm ? `${selectedTallerProfile.estaturaCm} cm` : 'No informada'}</strong></article>
+                                                </div>
+                                                <div className="pt-2 space-y-3">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setSelectedTallerProfileId('');
+                                                            openProfileEditor(selectedTallerProfile);
+                                                        }}
+                                                        className="w-full btn-metal btn-metal--gold py-3 rounded-xl text-xs flex items-center justify-center gap-2"
+                                                    >
+                                                        <LucideIcon name="pencil" size={14} />
+                                                        Editar ficha completa
+                                                    </button>
+                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setScorePanelModal({ isOpen: true, profile: selectedTallerProfile });
+                                                            }}
+                                                            className="btn-metal py-3 rounded-xl text-[11px] font-black tracking-wide uppercase"
+                                                        >
+                                                            Puntajes
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                const existingWindow = galleryWindowRef.current;
+                                                                const nuevaVentana = existingWindow && !existingWindow.closed ? existingWindow : window.open('', '_blank');
+                                                                galleryWindowRef.current = nuevaVentana;
+                                                                renderGalleryWindow({
+                                                                    targetWindow: nuevaVentana,
+                                                                    profileName: selectedTallerProfile?.nombre || '',
+                                                                    profession: selectedTallerProfile?.profesion || '',
+                                                                    photos: [
+                                                                        ...((selectedTallerProfile?.galeria?.fotos || []).map((item, index) => ({ ...normalizeGalleryItem(item, 'image'), sourceTag: 'fotos', sourceIndex: index }))),
+                                                                        ...((selectedTallerProfile?.galeria?.videos || []).map((item, index) => ({ ...normalizeGalleryItem(item, 'video'), sourceTag: 'videos', sourceIndex: index })))
+                                                                    ],
+                                                                    editingId: selectedTallerProfile?.firebaseId || selectedTallerProfile?.id || '',
+                                                                    battlePhotoPrefs: selectedTallerProfile?.batallaFotosPreferidas || selectedTallerProfile?.galeria?.battlePhotoPreferences || {},
+                                                                    profilePhotoUrl: selectedTallerProfile?.fotos?.[0] || ''
+                                                                });
+                                                                nuevaVentana?.focus();
+                                                            }}
+                                                            className="btn-metal py-3 rounded-xl text-[11px] font-black tracking-wide uppercase"
+                                                        >
+                                                            Ver Galería
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </section>
+                                </div>
+                            )}
                             <MultimediaModal
                                 isOpen={isMultimediaModalOpen}
                                 profile={selectedTallerProfile}
