@@ -4564,8 +4564,12 @@ const saveProfile = (e) => {
             )}
 
             {isBrokenGalleryModalOpen && (
-                <div className="fixed inset-0 z-[130] bg-slate-950/90 backdrop-blur-xl flex items-center justify-center p-3 sm:p-6" onClick={() => setIsBrokenGalleryModalOpen(false)}>
-                    <div className="w-full max-w-[min(1200px,100%)] max-h-full theme-surface-card border theme-border-secondary rounded-[2rem] p-4 sm:p-6 overflow-hidden" onClick={(event) => event.stopPropagation()}>
+                <div
+                    className="fixed inset-0 z-[130] bg-slate-950/90 backdrop-blur-xl flex items-center justify-center p-3 sm:p-6"
+                    style={isSidebarOpen ? { left: '18rem' } : undefined}
+                    onClick={() => setIsBrokenGalleryModalOpen(false)}
+                >
+                    <div className="w-full max-w-[1200px] max-h-full theme-surface-card border theme-border-secondary rounded-[2rem] p-4 sm:p-6 overflow-hidden" onClick={(event) => event.stopPropagation()}>
                         <div className="flex items-center justify-between gap-4 mb-5">
                             <div>
                                 <p className="text-2xl font-black italic text-white tracking-tighter">Fotos rotas</p>
