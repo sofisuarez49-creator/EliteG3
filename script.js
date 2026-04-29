@@ -4013,7 +4013,6 @@ const saveProfile = (e) => {
                                 setActiveTab('TALLER');
                                 setTallerSearchTerm('');
                                 setSelectedTallerProfileId(p.firebaseId || '');
-                                openProfileEditor(p);
                             }}
                             onContextMenu={(event) => handleContextMenuOpen(event, p)}
                             className="profile-card group relative rounded-2xl overflow-hidden cursor-pointer"
