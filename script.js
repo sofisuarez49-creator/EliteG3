@@ -4094,7 +4094,9 @@ const saveProfile = (e) => {
                             key={p.firebaseId || Math.random()}
                             onClick={() => {
                                 setContextMenuProfileId(null);
-                                openProfileEditor(p);
+                                setActiveTab('TALLER');
+                                setTallerSearchTerm('');
+                                setSelectedTallerProfileId(p.firebaseId || '');
                             }}
                             onContextMenu={(event) => handleContextMenuOpen(event, p)}
                             className="profile-card group relative rounded-2xl overflow-hidden cursor-pointer"
