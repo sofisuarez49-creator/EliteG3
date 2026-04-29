@@ -272,6 +272,65 @@
             `);
             popup.document.close();
         };
+        const openMultimediaTab = (profile = null) => {
+            if (!profile) return;
+            const tab = window.open('', '_blank');
+            if (!tab) return;
+            const galleryItems = Array.isArray(profile?.galeria?.fotos)
+                ? profile.galeria.fotos
+                    .map((item) => normalizeGalleryItem(item, 'image'))
+                    .filter((item) => item.url)
+                : [];
+            const topScores = Object.entries(profile?.puntuaciones || {})
+                .map(([label, value]) => ({ label, value: Number(value) || 0 }))
+                .sort((a, b) => b.value - a.value)
+                .slice(0, 5);
+            const galleryHtml = galleryItems.length
+                ? galleryItems.map((item, index) => `
+                    <figure class="surface-panel rounded-xl overflow-hidden border border-cyan-200/20">
+                        <img src="${item.url}" alt="Multimedia ${index + 1}" style="width:100%;height:190px;object-fit:cover;" loading="lazy" />
+                    </figure>
+                `).join('')
+                : '<p class="text-slate-300">Sin contenido en galería.</p>';
+            const scoreHtml = topScores.length
+                ? topScores.map((item) => `
+                    <div class="surface-panel rounded-xl px-3 py-2 flex items-center justify-between">
+                        <span class="text-sm text-slate-200 uppercase">${item.label}</span>
+                        <strong class="text-cyan-200">${item.value}</strong>
+                    </div>
+                `).join('')
+                : '<p class="text-slate-300">Sin puntajes cargados.</p>';
+
+            tab.document.write(`
+                <!DOCTYPE html>
+                <html lang="es">
+                    <head>
+                        <meta charset="UTF-8" />
+                        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+                        <title>Multimedia - ${profile?.nombre || 'Personaje'}</title>
+                        <script src="https://cdn.tailwindcss.com"></script>
+                        <link rel="stylesheet" href="styles.css" />
+                    </head>
+                    <body class="text-slate-200">
+                        <main class="min-h-screen p-4 md:p-8">
+                            <section class="gothic-frame surface-panel surface-panel--neon rounded-[2rem] p-6 md:p-8 w-full max-w-6xl mx-auto">
+                                <h1 class="font-title text-center text-3xl md:text-4xl text-white uppercase tracking-wide">Multimedia</h1>
+                                <p class="text-center text-cyan-100/80 text-xs uppercase tracking-[0.2em] mt-2">${profile?.nombre || 'Personaje'}</p>
+                                <article class="surface-panel rounded-2xl border border-cyan-200/20 mt-6 p-4">
+                                    <h2 class="font-black uppercase tracking-wide mb-3">Galería</h2>
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">${galleryHtml}</div>
+                                </article>
+                                <article class="surface-panel rounded-2xl border border-cyan-200/20 mt-4 p-4">
+                                    <h2 class="font-black uppercase tracking-wide mb-3">5 principales</h2>
+                                    <div class="space-y-2">${scoreHtml}</div>
+                                </article>
+                            </section>
+                        </main>
+                    </body>
+                </html>
+            `);
+            tab.document.close();
+        };
         const MultimediaModal = ({
             isOpen = false,
             profile = null,
@@ -3708,7 +3767,7 @@ const saveProfile = (e) => {
                                                         <button
                                                             type="button"
                                                             onClick={() => {
-                                                                setIsMultimediaModalOpen(true);
+                                                                openMultimediaTab(selectedTallerProfile);
                                                             }}
                                                             className="btn-metal py-3 rounded-xl text-[11px] font-black tracking-wide uppercase"
                                                         >
