@@ -219,6 +219,74 @@
         const getGalleryItemUrl = (item) => normalizeGalleryItem(item).url;
         const getGalleryItemLabel = (item) => normalizeGalleryItem(item).label;
         const getGalleryItemType = (item) => normalizeGalleryItem(item).type;
+        const openScoreTab = (profile = null) => {
+            if (!profile) return;
+            const tab = window.open('', '_blank');
+            if (!tab) return;
+
+            const profileScores = { ...createZeroScores(), ...(profile?.puntuaciones || {}) };
+            const categoryEntries = Object.entries(SCORE_GROUP_TO_ARENAS);
+            const totalScore = Number(typeof calcularPromedio === 'function' ? calcularPromedio(profile) : 0) || 0;
+
+            const itemRows = CARACTERISTICAS.map((itemKey) => `
+                <tr>
+                    <td>${itemKey}</td>
+                    <td>${Number(profileScores[itemKey] || 0).toFixed(0)}</td>
+                </tr>
+            `).join('');
+
+            const categoryRows = categoryEntries.map(([categoryKey]) => `
+                <tr>
+                    <td>${categoryKey}</td>
+                    <td>${getCategoryScore(profile, categoryKey).toFixed(0)}</td>
+                </tr>
+            `).join('');
+
+            tab.document.write(`
+                <!DOCTYPE html>
+                <html lang="es">
+                    <head>
+                        <meta charset="UTF-8" />
+                        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+                        <title>Puntaje - ${profile?.nombre || 'Personaje'}</title>
+                        <style>
+                            body { margin: 0; font-family: Arial, sans-serif; background: #020617; color: #e2e8f0; }
+                            main { max-width: 920px; margin: 0 auto; padding: 28px 16px 48px; }
+                            h1, h2 { margin: 0; }
+                            .panel { border: 1px solid rgba(34,211,238,.35); background: rgba(15,23,42,.85); border-radius: 14px; padding: 16px; margin-top: 16px; }
+                            .score-total { font-size: 34px; font-weight: 800; color: #facc15; margin-top: 8px; }
+                            table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+                            th, td { border-bottom: 1px solid rgba(148,163,184,.28); padding: 8px; text-align: left; }
+                            th { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: #67e8f9; }
+                        </style>
+                    </head>
+                    <body>
+                        <main>
+                            <h1>Puntaje · ${profile?.nombre || 'Personaje'}</h1>
+                            <section class="panel">
+                                <h2>Puntaje de Score total</h2>
+                                <p class="score-total">${totalScore.toFixed(0)}</p>
+                            </section>
+                            <section class="panel">
+                                <h2>Puntaje de cada una de las características</h2>
+                                <table>
+                                    <thead><tr><th>Característica</th><th>Puntaje</th></tr></thead>
+                                    <tbody>${categoryRows}</tbody>
+                                </table>
+                            </section>
+                            <section class="panel">
+                                <h2>Puntaje de cada uno de los items</h2>
+                                <table>
+                                    <thead><tr><th>Item</th><th>Puntaje</th></tr></thead>
+                                    <tbody>${itemRows}</tbody>
+                                </table>
+                            </section>
+                        </main>
+                    </body>
+                </html>
+            `);
+            tab.document.close();
+        };
         const openMultimediaTab = (profile = null) => {
             if (!profile) return;
             const tab = window.open('', '_blank');
@@ -3807,11 +3875,11 @@ const saveProfile = (e) => {
                                                         <button
                                                             type="button"
                                                             onClick={() => {
-                                                                setScorePanelModal({ isOpen: true, profile: selectedTallerProfile });
+                                                                openScoreTab(selectedTallerProfile);
                                                             }}
                                                             className="btn-metal py-3 rounded-xl text-[11px] font-black tracking-wide uppercase"
                                                         >
-                                                            Puntajes
+                                                            Puntaje
                                                         </button>
                                                         <button
                                                             type="button"
