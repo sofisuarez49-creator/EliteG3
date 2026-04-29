@@ -1586,6 +1586,7 @@
             const [isModalOpen, setIsModalOpen] = useState(false);
             const [isCatModalOpen, setIsCatModalOpen] = useState(false);
             const [editingId, setEditingId] = useState(null);
+            const [isEditFormVisible, setIsEditFormVisible] = useState(false);
             const [contextMenuProfileId, setContextMenuProfileId] = useState(null);
             const [contextProfile, setContextProfile] = useState(null);
             const [isDeleteProfileModalOpen, setIsDeleteProfileModalOpen] = useState(false);
@@ -1682,11 +1683,13 @@ const getInitialCatFormData = () => ({
             const openProfileEditor = (contextProfile = {}) => {
                 setFormData(mapProfileToFormData(contextProfile));
                 setEditingId(contextProfile.firebaseId || contextProfile.id || null);
+                setIsEditFormVisible(false);
                 setIsModalOpen(true);
             };
             const openNewProfileForm = (prefilledProfession = '') => {
                 const normalizedProfession = String(prefilledProfession || '').trim();
                 setEditingId(null);
+                setIsEditFormVisible(true);
                 setFormData({
                     ...getEmptyProfileFormData(),
                     profesion: normalizedProfession
@@ -5524,8 +5527,41 @@ const saveProfile = (e) => {
     <LucideIcon name="x" size={20} className="text-slate-400" />
 </button>
                                 <form onSubmit={saveProfile} className="flex-1 overflow-y-auto p-12 space-y-12">
+                                    {editingId && !isEditFormVisible && (
+                                        <div className="space-y-8">
+                                            <div className="flex items-center justify-between gap-4">
+                                                <h3 className="text-2xl font-black italic tracking-tight text-white">Ficha del personaje</h3>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setIsEditFormVisible(true)}
+                                                    className="btn-metal btn-metal--gold px-5 py-3 rounded-xl text-[10px] uppercase tracking-widest"
+                                                >
+                                                    Editar perfil
+                                                </button>
+                                            </div>
+                                            <div className="rounded-3xl border theme-border-secondary theme-surface-card p-6">
+                                                <div className="flex flex-col md:flex-row gap-6">
+                                                    <div className="w-full md:w-48 h-64 rounded-2xl overflow-hidden border theme-border-secondary bg-slate-900">
+                                                        {formData.fotos.length > 0 && formData.fotos[0] ? (
+                                                            <img src={getSafeImageSrc(formData.fotos[0], CRYING_EMOJI_FALLBACK)} className="w-full h-full object-cover" alt={formData.nombre || 'Perfil'} onError={applyCryingEmojiFallback} />
+                                                        ) : (
+                                                            <div className="w-full h-full flex items-center justify-center text-slate-500 text-xs font-bold uppercase">Sin foto</div>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                                                        <div><p className="text-slate-400 text-[10px] uppercase tracking-wider">Nombre</p><p className="text-white font-black">{formData.nombre || 'Sin completar'}</p></div>
+                                                        <div><p className="text-slate-400 text-[10px] uppercase tracking-wider">Profesión</p><p className="text-white font-black">{formData.profesion || 'Sin completar'}</p></div>
+                                                        <div><p className="text-slate-400 text-[10px] uppercase tracking-wider">Nacionalidad</p><p className="text-white font-black">{formData.nacionalidad || 'Sin completar'}</p></div>
+                                                        <div><p className="text-slate-400 text-[10px] uppercase tracking-wider">Ciudad</p><p className="text-white font-black">{formData.ciudad || 'Sin completar'}</p></div>
+                                                        <div><p className="text-slate-400 text-[10px] uppercase tracking-wider">Nacimiento</p><p className="text-white font-black">{formData.fechaNacimiento || 'Sin completar'}</p></div>
+                                                        <div><p className="text-slate-400 text-[10px] uppercase tracking-wider">Estatura</p><p className="text-white font-black">{formData.estaturaCm ? `${formData.estaturaCm} cm` : 'Sin completar'}</p></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
 
-                                    <div className="grid grid-cols-1 gap-16">
+                                    <div className={`grid grid-cols-1 gap-16 ${editingId && !isEditFormVisible ? 'hidden' : ''}`}>
     <div className="space-y-8">
         {/* CABECERA Y VISTA PREVIA */}
         <div className="flex flex-col items-center gap-6">
