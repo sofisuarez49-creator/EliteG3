@@ -3906,6 +3906,10 @@ const saveProfile = (e) => {
                                 >
                                     <section
                                         className="taller-detail-panel rounded-[2rem] p-8 md:p-10 relative overflow-hidden w-full max-w-5xl max-h-[90vh] overflow-y-auto"
+                                        style={{
+                                            '--taller-profession-color': getProfessionCardVisual(selectedTallerProfile.profesion).baseColor,
+                                            '--taller-profession-glow': getProfessionCardVisual(selectedTallerProfile.profesion).glowColor
+                                        }}
                                         onClick={(event) => event.stopPropagation()}
                                         role="dialog"
                                         aria-modal="true"
