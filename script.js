@@ -3640,7 +3640,7 @@ const saveProfile = (e) => {
 
                             {selectedTallerProfile && (
                                 <div
-                                    className="fixed inset-0 z-[140] flex items-center justify-center bg-slate-950/75 backdrop-blur-sm px-4 py-8"
+                                    className={`fixed inset-0 z-[140] flex items-center justify-center bg-slate-950/75 backdrop-blur-sm px-4 py-8 ${isSidebarOpen ? 'lg:pl-[19rem] lg:justify-end' : ''}`}
                                     onClick={() => setSelectedTallerProfileId('')}
                                     role="presentation"
                                 >
