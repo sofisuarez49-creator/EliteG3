@@ -318,13 +318,6 @@
                             .multimedia-slot-preview { border-radius: 8px; overflow: hidden; aspect-ratio: 4/3; border: 1px dashed rgba(148,163,184,0.45); background: rgba(15,23,42,0.88); display: flex; align-items: center; justify-content: center; }
                             .multimedia-slot-preview img { width: 100%; height: 100%; object-fit: cover; display:block; }
                             .multimedia-slot-empty { color: #fca5a5; font-size: 10px; text-transform: uppercase; letter-spacing: .08em; font-weight: 700; text-align: center; padding: 0 8px; }
-                            .multimedia-summary-toggle { cursor: pointer; list-style: none; display: flex; align-items: center; justify-content: space-between; }
-                            .multimedia-summary-toggle::-webkit-details-marker { display: none; }
-                            .multimedia-summary-toggle::after { content: '−'; color: rgba(165,243,252,0.9); font-size: 16px; }
-                            details:not([open]) .multimedia-summary-toggle::after { content: '+'; }
-                            .broken-photo-card { border-radius: 10px; overflow: hidden; border: 1px solid rgba(239,68,68,0.62); background: rgba(2,6,23,0.74); }
-                            .broken-photo-card img { width: 100%; height: 120px; object-fit: cover; display: block; }
-                            .broken-photo-url { color: #fecaca; font-size: 9px; letter-spacing: .04em; padding: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
                         </style>
                     </head>
                     <body class="text-slate-200">
@@ -332,18 +325,13 @@
                             <section class="gothic-frame surface-panel surface-panel--neon rounded-[2rem] p-6 md:p-8 w-full max-w-6xl mx-auto">
                                 <h1 class="font-title text-center text-3xl md:text-4xl text-white uppercase tracking-wide">Multimedia</h1>
                                 <p class="text-center text-cyan-100/80 text-xs uppercase tracking-[0.2em] mt-2">${profile?.nombre || 'Personaje'}</p>
-                                <details class="surface-panel rounded-2xl border border-cyan-200/20 mt-6 p-4" open>
-                                    <summary class="multimedia-summary-toggle font-black uppercase tracking-wide">Galería</summary>
-                                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-3">${galleryHtml}</div>
-                                </details>
-                                <details class="surface-panel rounded-2xl border border-cyan-200/20 mt-4 p-4" open>
-                                    <summary class="multimedia-summary-toggle font-black uppercase tracking-wide">5 principales</summary>
-                                    <div class="multimedia-slots-grid mt-3">${slotHtml}</div>
-                                </details>
+                                <article class="surface-panel rounded-2xl border border-cyan-200/20 mt-6 p-4">
+                                    <h2 class="font-black uppercase tracking-wide mb-3">Galería</h2>
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">${galleryHtml}</div>
+                                </article>
                                 <article class="surface-panel rounded-2xl border border-cyan-200/20 mt-4 p-4">
-                                    <h2 class="font-black uppercase tracking-wide">Fotos rotas</h2>
-                                    <p class="text-cyan-100/80 text-xs uppercase tracking-[0.16em] mt-2">Total: <span id="brokenPhotosCount">0</span></p>
-                                    <div id="brokenPhotosGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mt-3"></div>
+                                    <h2 class="font-black uppercase tracking-wide mb-3">5 principales</h2>
+                                    <div class="multimedia-slots-grid">${slotHtml}</div>
                                 </article>
                             </section>
                         </main>
@@ -365,31 +353,6 @@
                                 currentItems[sourceIndex] = nextItem;
                                 await galleryRef.set(currentItems);
                                 return true;
-                            };
-
-                            const brokenPhotosCountEl = document.getElementById('brokenPhotosCount');
-                            const brokenPhotosGridEl = document.getElementById('brokenPhotosGrid');
-                            const testImageUrl = (url = '') => new Promise((resolve) => {
-                                const img = new Image();
-                                img.onload = () => resolve(false);
-                                img.onerror = () => resolve(true);
-                                img.src = url;
-                            });
-                            const updateBrokenPhotos = async () => {
-                                const brokenItems = [];
-                                const photoButtons = Array.from(document.querySelectorAll('.multimedia-thumb-btn'));
-                                for (const button of photoButtons) {
-                                    const url = (button.dataset.url || '').trim();
-                                    if (!url) continue;
-                                    const isBroken = await testImageUrl(url);
-                                    if (isBroken) brokenItems.push(url);
-                                }
-                                if (brokenPhotosCountEl) brokenPhotosCountEl.textContent = String(brokenItems.length);
-                                if (brokenPhotosGridEl) {
-                                    brokenPhotosGridEl.innerHTML = brokenItems.length
-                                        ? brokenItems.map((url) => `<article class="broken-photo-card"><img src="${url}" alt="Foto rota" loading="lazy" /><p class="broken-photo-url" title="${url}">${url}</p></article>`).join('')
-                                        : '<p class="text-cyan-100/80 text-xs uppercase tracking-[0.12em] col-span-full">No se detectaron fotos rotas.</p>';
-                                }
                             };
 
                             document.querySelectorAll('.multimedia-thumb-btn').forEach((button) => {
@@ -414,13 +377,9 @@
                                     } catch (error) {
                                         console.error('No se pudo guardar multimedia:', error);
                                         window.alert('No se pudo actualizar esta multimedia.');
-                                    } finally {
-                                        updateBrokenPhotos();
                                     }
                                 });
                             });
-
-                            updateBrokenPhotos();
                         </script>
                     </body>
                 </html>
