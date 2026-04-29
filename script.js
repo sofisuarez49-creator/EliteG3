@@ -5019,7 +5019,7 @@ const saveProfile = (e) => {
     {activeTab === 'RANKING' && !selectedCategory && (
         <div className="theme-surface-card rounded-2xl gothic-frame gothic-frame--ornate animate-in zoom-in-95 duration-500 ranking-table-shell">
             <div className="ranking-table-scroll">
-            <table className="w-full min-w-[980px] text-left border-collapse">
+            <table className="w-full min-w-[860px] xl:min-w-[980px] text-left border-collapse">
                 <thead className="theme-surface-soft">
                     <tr>
                         <th className="px-4 py-6 text-[9px] font-black uppercase tracking-widest text-center rock-carved-text">#</th>
