@@ -3789,7 +3789,7 @@ const saveProfile = (e) => {
                                 { id: 'RANKING', icon: 'trending-up', label: 'Ranking' },
                                 { id: 'BATALLAS', icon: 'swords', label: 'Batallas' },
                                 { id: 'GALERIA', icon: 'images', label: 'Galería' },
-                                { id: 'TALLER', icon: 'hammer', label: 'Taller' }
+                                { id: 'TALLER', icon: 'hammer', label: 'Personaje' }
                             ].map(item => (
                                 <button
                                     key={item.id}
@@ -3834,7 +3834,7 @@ const saveProfile = (e) => {
                     {activeTab === 'TALLER' && (
                         <div className="space-y-8 animate-in fade-in duration-500">
                             <div className="space-y-2">
-                                <h2 className="neon-sign neon-sign--cyan text-4xl font-black italic text-white uppercase tracking-tighter">Taller</h2>
+                                <h2 className="neon-sign neon-sign--cyan text-4xl font-black italic text-white uppercase tracking-tighter">Personaje</h2>
                             </div>
 
                             <div className="max-w-2xl">
@@ -3844,7 +3844,7 @@ const saveProfile = (e) => {
                                     value={tallerSearchTerm}
                                     onChange={(event) => setTallerSearchTerm(event.target.value)}
                                     placeholder="Ej: Argentina, Modelo, Lucía..."
-                                    aria-label="Buscar perfiles del taller"
+                                    aria-label="Buscar perfiles de personaje"
                                     className="w-full rounded-2xl border border-cyan-200/30 bg-slate-950/70 px-5 py-3 text-sm text-slate-100 outline-none transition-all focus:border-cyan-300/70 focus:shadow-[0_0_20px_rgba(34,211,238,0.25)]"
                                 />
                             </div>
@@ -3923,7 +3923,7 @@ const saveProfile = (e) => {
                                                     <h3 className="taller-detail-title text-3xl md:text-4xl font-black uppercase mt-2">
                                                         {selectedTallerProfile.nombre || 'Sin nombre'}
                                                     </h3>
-                                                    <p className="text-sm text-slate-300 mt-3">Perfil destacado del Taller con identidad metalizada y luces neón.</p>
+                                                    <p className="text-sm text-slate-300 mt-3">Perfil destacado del sector Personaje con identidad metalizada y luces neón.</p>
                                                 </div>
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                     <article className="taller-data-chip"><span>Nacionalidad</span><strong>{selectedTallerProfile.nacionalidad || 'No definida'}</strong></article>
