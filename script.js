@@ -5525,7 +5525,8 @@ const saveProfile = (e) => {
                 ...(formData.galeria?.videos || []).map((item, index) => ({ ...normalizeGalleryItem(item, 'video'), sourceTag: 'videos', sourceIndex: index }))
             ],
             editingId,
-            battlePhotoPrefs: formData.batallaFotosPreferidas
+            battlePhotoPrefs: formData.batallaFotosPreferidas,
+            profilePhotoUrl: formData.fotos?.[0] || ''
         });
         nuevaVentana.focus();
     }}
