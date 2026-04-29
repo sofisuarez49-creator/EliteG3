@@ -3620,7 +3620,7 @@ const saveProfile = (e) => {
                             <LucideIcon name={isSidebarOpen ? 'panel-left-close' : 'panel-left-open'} size={12} />
                         </button>
 
-                        <div className="hud-section flex-1 overflow-y-auto p-12 relative z-10 stone-wall-surface">
+                        <div className={`hud-section flex-1 overflow-y-auto relative z-10 stone-wall-surface ${isSidebarOpen ? "p-6 md:p-10 lg:p-12" : "p-4 md:p-8 lg:p-10"}`}>
                             <div className="corner-ember-glow corner-ember-glow--left corner-ember-glow--top" aria-hidden="true"></div>
                             <div className="corner-ember-glow corner-ember-glow--right corner-ember-glow--top" aria-hidden="true"></div>
 
@@ -4910,8 +4910,9 @@ const saveProfile = (e) => {
 
     {/* 4. VISTA RANKING (SOLO TABLA) */}
     {activeTab === 'RANKING' && !selectedCategory && (
-        <div className="theme-surface-card rounded-2xl gothic-frame gothic-frame--ornate animate-in zoom-in-95 duration-500">
-            <table className="w-full text-left border-collapse">
+        <div className="theme-surface-card rounded-2xl gothic-frame gothic-frame--ornate animate-in zoom-in-95 duration-500 ranking-table-shell">
+            <div className="ranking-table-scroll">
+            <table className="w-full min-w-[980px] text-left border-collapse">
                 <thead className="theme-surface-soft">
                     <tr>
                         <th className="px-4 py-6 text-[9px] font-black uppercase tracking-widest text-center rock-carved-text">#</th>
@@ -5085,6 +5086,7 @@ const saveProfile = (e) => {
                     ))}
                 </tbody>
             </table>
+            </div>
 
             {scoreBreakdownModal.isOpen && scoreBreakdownModal.profile && scoreBreakdownModal.category && (() => {
                 const breakdown = getScoreBreakdownByCategory(scoreBreakdownModal.profile.firebaseId, scoreBreakdownModal.category);
