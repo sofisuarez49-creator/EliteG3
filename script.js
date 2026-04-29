@@ -286,8 +286,8 @@
                         sourceIndex
                     }))
                 : [];
-            const safeBattlePhotoPrefs = sanitizeBattlePhotoPreferences(profile?.galeria?.battlePhotoPreferences || {});
-            const normalizedProfilePhotoUrl = getSafeImageSrc(String(profile?.foto || '').trim(), '');
+            const safeBattlePhotoPrefs = sanitizeBattlePhotoPreferences(profile?.batallaFotosPreferidas || profile?.galeria?.battlePhotoPreferences || {});
+            const normalizedProfilePhotoUrl = getSafeImageSrc(String(profile?.fotos?.[0] || profile?.foto || '').trim(), '');
             const galleryImageByUrl = galleryItems
                 .filter((item) => item.type === 'image' && item.url)
                 .reduce((acc, item) => {
