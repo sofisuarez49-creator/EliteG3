@@ -743,9 +743,10 @@
             );
         };
 
-        const renderGalleryWindow = ({ targetWindow, profileName, profession, photos, editingId, battlePhotoPrefs = {} }) => {
+        const renderGalleryWindow = ({ targetWindow, profileName, profession, photos, editingId, battlePhotoPrefs = {}, profilePhotoUrl = '' }) => {
             if (!targetWindow || targetWindow.closed) return;
             const safeBattlePhotoPrefs = sanitizeBattlePhotoPreferences(battlePhotoPrefs);
+            const normalizedProfilePhotoUrl = getSafeImageSrc(String(profilePhotoUrl || '').trim(), '');
 
             const fotosGaleria = (photos || []).map((item, index) => {
                 const normalizedItem = normalizeGalleryItem(item);
@@ -1071,8 +1072,11 @@
                     </summary>
                     <div style="padding: 0 14px 14px; display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px;">
                     ${BATTLE_PHOTO_SLOTS.map((slot) => {
-                        const hasSelection = !!safeBattlePhotoPrefs[slot.id];
-                        const canPickFromGallery = slot.id !== 'perfil';
+                        const isProfileSlot = slot.id === 'perfil';
+                        const hasSelection = isProfileSlot
+                            ? !!normalizedProfilePhotoUrl
+                            : !!safeBattlePhotoPrefs[slot.id];
+                        const canPickFromGallery = !isProfileSlot;
                         return `
                             <div style="border:1px solid ${hasSelection ? 'rgba(34,197,94,0.9)' : 'rgba(239,68,68,0.95)'}; border-radius:10px; padding:10px; background: rgba(15,23,42,0.75); box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 0 0 1px ${hasSelection ? 'rgba(34,197,94,0.28)' : 'rgba(239,68,68,0.24)'};">
                                 <div style="font-size:10px; color:#f8fafc; font-weight:900; letter-spacing:0.12em; text-transform:uppercase;">${slot.label}</div>
@@ -1082,13 +1086,13 @@
                                 <div style="font-size:10px; color:${hasSelection ? '#86efac' : '#fca5a5'}; margin-top:4px;">
                                     ${hasSelection ? '✅ Foto asignada' : '❌ Sin foto asignada'}
                                 </div>
-                                <button
+                                ${isProfileSlot ? '' : `<button
                                     type="button"
                                     onclick="event.stopPropagation(); window.opener.postMessage({type: 'CLEAR_BATTLE_PHOTO_PREF', id: '${editingId}', slotId: '${slot.id}'}, '*');"
                                     style="margin-top:8px; width:100%; border:1px solid rgba(125,211,252,0.6); background: rgba(2,6,23,0.82); color:#e2e8f0; border-radius:8px; padding:6px 8px; font-size:10px; font-weight:800; letter-spacing:0.08em; text-transform:uppercase; cursor:pointer; box-shadow: 0 0 12px rgba(34,211,238,0.22);"
                                 >
                                     Quitar fija
-                                </button>
+                                </button>`}
                             </div>
                         `;
                     }).join('')}
@@ -1824,7 +1828,8 @@ const getInitialCatFormData = () => ({
                             ...(formData.galeria?.videos || []).map((item, index) => ({ ...normalizeGalleryItem(item, 'video'), sourceTag: 'videos', sourceIndex: index }))
                         ],
                         editingId,
-                        battlePhotoPrefs: formData.batallaFotosPreferidas
+                        battlePhotoPrefs: formData.batallaFotosPreferidas,
+                        profilePhotoUrl: formData.fotos?.[0] || ''
                     });
                 }
             }, [editingId, formData.nombre, formData.profesion, formData.galeria?.fotos, formData.galeria?.videos, formData.batallaFotosPreferidas]);
