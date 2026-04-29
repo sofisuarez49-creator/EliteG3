@@ -286,10 +286,13 @@
                         sourceIndex
                     }))
                 : [];
-            const topScores = Object.entries(profile?.puntuaciones || {})
-                .map(([label, value]) => ({ label, value: Number(value) || 0 }))
-                .sort((a, b) => b.value - a.value)
-                .slice(0, 5);
+            const safeBattlePhotoPrefs = sanitizeBattlePhotoPreferences(profile?.galeria?.battlePhotoPreferences || {});
+            const galleryImageByUrl = galleryItems
+                .filter((item) => item.type === 'image' && item.url)
+                .reduce((acc, item) => {
+                    acc[item.url] = item;
+                    return acc;
+                }, {});
             const galleryHtml = galleryItems.length
                 ? galleryItems.map((item, index) => `
                     <button
@@ -308,14 +311,24 @@
                     </button>
                 `).join('')
                 : '<p class="text-slate-300">Sin contenido en galería.</p>';
-            const scoreHtml = topScores.length
-                ? topScores.map((item) => `
-                    <div class="surface-panel rounded-xl px-3 py-2 flex items-center justify-between">
-                        <span class="text-sm text-slate-200 uppercase">${item.label}</span>
-                        <strong class="text-cyan-200">${item.value}</strong>
+            const slotHtml = BATTLE_PHOTO_SLOTS.map((slot) => {
+                const assignedUrl = safeBattlePhotoPrefs[slot.id] || '';
+                const assignedPhoto = assignedUrl ? galleryImageByUrl[assignedUrl] : null;
+                const isAssigned = !!assignedPhoto;
+                return `
+                    <div class="multimedia-slot-card ${isAssigned ? 'is-assigned' : 'is-missing'}">
+                        <div class="multimedia-slot-top">
+                            <span class="multimedia-slot-title">${slot.label}</span>
+                            <span class="multimedia-slot-state">${isAssigned ? 'VERDE' : 'ROJO'}</span>
+                        </div>
+                        <div class="multimedia-slot-preview">
+                            ${isAssigned
+                                ? `<img src="${assignedPhoto.url}" alt="${slot.label}" loading="lazy" />`
+                                : '<span class="multimedia-slot-empty">Sin foto designada</span>'}
+                        </div>
                     </div>
-                `).join('')
-                : '<p class="text-slate-300">Sin puntajes cargados.</p>';
+                `;
+            }).join('');
 
             tab.document.write(`
                 <!DOCTYPE html>
@@ -339,6 +352,18 @@
                                 text-transform: uppercase; color: #ecfeff; border: 1px solid rgba(34,211,238,.72);
                                 background: rgba(2,6,23,.82); backdrop-filter: blur(6px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
                             }
+                            .multimedia-slots-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; }
+                            .multimedia-slot-card { border-radius: 12px; padding: 10px; border: 1px solid rgba(148,163,184,0.45); background: rgba(2,6,23,0.72); box-shadow: inset 0 1px 0 rgba(255,255,255,0.08); }
+                            .multimedia-slot-card.is-assigned { border-color: rgba(34,197,94,0.95); box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 0 0 1px rgba(34,197,94,0.3); }
+                            .multimedia-slot-card.is-missing { border-color: rgba(239,68,68,0.95); box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 0 0 1px rgba(239,68,68,0.24); }
+                            .multimedia-slot-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+                            .multimedia-slot-title { font-size: 10px; font-weight: 900; letter-spacing: .12em; text-transform: uppercase; color: #f8fafc; }
+                            .multimedia-slot-state { font-size: 9px; font-weight: 900; letter-spacing: .12em; text-transform: uppercase; }
+                            .multimedia-slot-card.is-assigned .multimedia-slot-state { color: #86efac; }
+                            .multimedia-slot-card.is-missing .multimedia-slot-state { color: #fca5a5; }
+                            .multimedia-slot-preview { border-radius: 8px; overflow: hidden; aspect-ratio: 4/3; border: 1px dashed rgba(148,163,184,0.45); background: rgba(15,23,42,0.88); display: flex; align-items: center; justify-content: center; }
+                            .multimedia-slot-preview img { width: 100%; height: 100%; object-fit: cover; display:block; }
+                            .multimedia-slot-empty { color: #fca5a5; font-size: 10px; text-transform: uppercase; letter-spacing: .08em; font-weight: 700; text-align: center; padding: 0 8px; }
                         </style>
                     </head>
                     <body class="text-slate-200">
@@ -354,7 +379,7 @@
                                 </article>
                                 <article class="surface-panel rounded-2xl border border-cyan-200/20 mt-4 p-4">
                                     <h2 class="font-black uppercase tracking-wide mb-3">5 principales</h2>
-                                    <div class="space-y-2">${scoreHtml}</div>
+                                    <div class="multimedia-slots-grid">${slotHtml}</div>
                                 </article>
                             </section>
                         </main>
