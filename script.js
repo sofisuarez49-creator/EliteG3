@@ -289,10 +289,7 @@
                                     .join('')}
                             </select>
                             <button type="button" class="multimedia-slot-btn multimedia-slot-btn--gallery" data-slot-assign="${slot.id}">
-                                Asignar
-                            </button>
-                            <button type="button" class="multimedia-slot-btn" data-slot-clear="${slot.id}">
-                                Quitar fija
+                                Designar de galería
                             </button>
                         </div>`}
                     </div>
@@ -424,13 +421,6 @@
                                 });
                             });
 
-                            document.querySelectorAll('[data-slot-clear]').forEach((button) => {
-                                button.addEventListener('click', () => {
-                                    const slotId = button.dataset.slotClear || '';
-                                    if (!slotId || !window.opener) return;
-                                    window.opener.postMessage({ type: 'CLEAR_BATTLE_PHOTO_PREF', id: profileId, slotId }, '*');
-                                });
-                            });
                         </script>
                     </body>
                 </html>
@@ -1095,23 +1085,16 @@
                                         onclick="event.stopPropagation(); openSlotActionModal('${slot.id}', 'url');"
                                         style="width:100%; border:1px solid rgba(125,211,252,0.6); background: rgba(2,6,23,0.82); color:#e2e8f0; border-radius:8px; padding:6px 8px; font-size:10px; font-weight:800; letter-spacing:0.08em; text-transform:uppercase; cursor:pointer; box-shadow: 0 0 12px rgba(34,211,238,0.22);"
                                     >
-                                        URL / Archivo
+                                        Agregar URL/Archivo
                                     </button>
                                     ${canPickFromGallery ? `<button
                                         type="button"
                                         onclick="event.stopPropagation(); selectSlotFromGallery('${slot.id}');"
                                         style="width:100%; border:1px solid rgba(74,222,128,0.7); background: rgba(20,83,45,0.78); color:#dcfce7; border-radius:8px; padding:6px 8px; font-size:10px; font-weight:800; letter-spacing:0.08em; text-transform:uppercase; cursor:pointer; box-shadow: 0 0 12px rgba(74,222,128,0.22);"
                                     >
-                                        Elegir galería
+                                        Designar de galería
                                     </button>` : ''}
                                 </div>
-                                ${isProfileSlot ? '' : `<button
-                                    type="button"
-                                    onclick="event.stopPropagation(); window.opener.postMessage({type: 'CLEAR_BATTLE_PHOTO_PREF', id: '${editingId}', slotId: '${slot.id}'}, '*');"
-                                    style="margin-top:8px; width:100%; border:1px solid rgba(125,211,252,0.6); background: rgba(2,6,23,0.82); color:#e2e8f0; border-radius:8px; padding:6px 8px; font-size:10px; font-weight:800; letter-spacing:0.08em; text-transform:uppercase; cursor:pointer; box-shadow: 0 0 12px rgba(34,211,238,0.22);"
-                                >
-                                    Quitar fija
-                                </button>`}
                             </div>
                         `;
                     }).join('')}
