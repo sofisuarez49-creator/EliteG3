@@ -17,11 +17,10 @@
         const { useState, useEffect, useMemo, useRef } = React;
 
         const GALLERY_LABELS = ['C', 'P', 'B', 'N', 'S', 'E', 'X'];
-        const GALLERY_VIEW_MODES = ['PERSONAJE', 'ETIQUETA', 'CARPETA', 'GENERAL'];
+        const GALLERY_VIEW_MODES = ['PERSONAJE', 'ETIQUETA', 'GENERAL'];
         const GALLERY_VIEW_MODE_LABELS = {
             PERSONAJE: 'Personaje',
             ETIQUETA: 'Etiqueta',
-            CARPETA: 'Carpetas',
             GENERAL: 'General'
         };
         const BATTLE_PHOTO_SLOTS = [
@@ -1862,19 +1861,7 @@ const getInitialCatFormData = () => ({
                 });
 
                 // Escuchar Categorías en tiempo real desde Firebase
-                const categoriasRef = db.ref('categorias');
-                categoriasRef.on('value', (snapshot) => {
-                    const data = snapshot.val();
-                    if (data) {
-                        const listaCats = Object.keys(data).map(key => ({
-                            ...data[key],
-                            firebaseId: key
-                        }));
-                        setCategorias(listaCats);
-                    } else {
-                        setCategorias(INITIAL_CATEGORIES);
-                    }
-                });
+                setCategorias(INITIAL_CATEGORIES);
 
                 const arenasRef = db.ref('arenaBattleState');
                 arenasRef.on('value', (snapshot) => {
@@ -1888,7 +1875,6 @@ const getInitialCatFormData = () => ({
                 return () => {
                     window.removeEventListener('message', handleMessage);
                     perfilesRef.off();
-                    categoriasRef.off();
                     arenasRef.off();
                     arenaGlobalRef.off();
                 };
@@ -3596,7 +3582,6 @@ const saveProfile = (e) => {
                                 { id: 'EXPLORAR', icon: 'layout-grid', label: 'Explorar' },
                                 { id: 'RANKING', icon: 'trending-up', label: 'Ranking' },
                                 { id: 'BATALLAS', icon: 'swords', label: 'Batallas' },
-                                { id: 'CATEGORIAS', icon: 'folder-heart', label: 'Categorías' },
                                 { id: 'GALERIA', icon: 'images', label: 'Galería' },
                                 { id: 'TALLER', icon: 'hammer', label: 'Taller' }
                             ].map(item => (
