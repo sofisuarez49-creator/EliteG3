@@ -275,10 +275,16 @@
             if (!profile) return;
             const tab = window.open('', '_blank');
             if (!tab) return;
+            const profileId = profile?.firebaseId || profile?.id || '';
             const galleryItems = Array.isArray(profile?.galeria?.fotos)
                 ? profile.galeria.fotos
                     .map((item) => normalizeGalleryItem(item, 'image'))
                     .filter((item) => item.url)
+                    .map((item, sourceIndex) => ({
+                        ...item,
+                        sourceTag: 'fotos',
+                        sourceIndex
+                    }))
                 : [];
             const topScores = Object.entries(profile?.puntuaciones || {})
                 .map(([label, value]) => ({ label, value: Number(value) || 0 }))
@@ -286,9 +292,20 @@
                 .slice(0, 5);
             const galleryHtml = galleryItems.length
                 ? galleryItems.map((item, index) => `
-                    <figure class="surface-panel rounded-xl overflow-hidden border border-cyan-200/20">
-                        <img src="${item.url}" alt="Multimedia ${index + 1}" style="width:100%;height:190px;object-fit:cover;" loading="lazy" />
-                    </figure>
+                    <button
+                        type="button"
+                        class="surface-panel rounded-xl overflow-hidden border border-cyan-200/20 text-left multimedia-thumb-btn"
+                        data-url="${item.url}"
+                        data-label="${item.label || ''}"
+                        data-index="${item.sourceIndex}"
+                        data-tag="${item.sourceTag}"
+                        title="Editar URL o etiqueta"
+                    >
+                        <div class="multimedia-thumb-wrap">
+                            <img src="${item.url}" alt="Multimedia ${index + 1}" style="width:100%;height:100%;object-fit:contain;" loading="lazy" />
+                            <span class="multimedia-thumb-label">${item.label || 'SIN ETIQUETA'}</span>
+                        </div>
+                    </button>
                 `).join('')
                 : '<p class="text-slate-300">Sin contenido en galería.</p>';
             const scoreHtml = topScores.length
@@ -309,6 +326,20 @@
                         <title>Multimedia - ${profile?.nombre || 'Personaje'}</title>
                         <script src="https://cdn.tailwindcss.com"></script>
                         <link rel="stylesheet" href="styles.css" />
+                        <style>
+                            .multimedia-gallery-scroll { max-height: 52vh; overflow-y: auto; padding-right: 4px; }
+                            .multimedia-gallery-scroll::-webkit-scrollbar { width: 8px; }
+                            .multimedia-gallery-scroll::-webkit-scrollbar-thumb { background: rgba(34,211,238,0.45); border-radius: 99px; }
+                            .multimedia-thumb-btn { transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
+                            .multimedia-thumb-btn:hover { transform: translateY(-2px); border-color: rgba(34,211,238,0.55); box-shadow: 0 0 22px rgba(34,211,238,0.22); }
+                            .multimedia-thumb-wrap { position: relative; background: rgba(2,6,23,0.78); height: 170px; display: flex; align-items: center; justify-content: center; }
+                            .multimedia-thumb-label {
+                                position: absolute; right: 8px; bottom: 8px; z-index: 4; max-width: calc(100% - 16px);
+                                border-radius: 999px; padding: 4px 10px; font-size: 10px; font-weight: 800; letter-spacing: .12em;
+                                text-transform: uppercase; color: #ecfeff; border: 1px solid rgba(34,211,238,.72);
+                                background: rgba(2,6,23,.82); backdrop-filter: blur(6px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+                            }
+                        </style>
                     </head>
                     <body class="text-slate-200">
                         <main class="min-h-screen p-4 md:p-8">
@@ -317,7 +348,9 @@
                                 <p class="text-center text-cyan-100/80 text-xs uppercase tracking-[0.2em] mt-2">${profile?.nombre || 'Personaje'}</p>
                                 <article class="surface-panel rounded-2xl border border-cyan-200/20 mt-6 p-4">
                                     <h2 class="font-black uppercase tracking-wide mb-3">Galería</h2>
-                                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">${galleryHtml}</div>
+                                    <div class="multimedia-gallery-scroll">
+                                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">${galleryHtml}</div>
+                                    </div>
                                 </article>
                                 <article class="surface-panel rounded-2xl border border-cyan-200/20 mt-4 p-4">
                                     <h2 class="font-black uppercase tracking-wide mb-3">5 principales</h2>
@@ -325,6 +358,52 @@
                                 </article>
                             </section>
                         </main>
+                        <script>
+                            const profileId = ${JSON.stringify(profileId)};
+                            const validLabels = ${JSON.stringify(GALLERY_LABELS)};
+                            const dbRef = window.opener && window.opener.firebase && window.opener.firebase.database ? window.opener.firebase.database() : null;
+                            const normalizeLabel = (rawLabel = '') => validLabels.includes(rawLabel) ? rawLabel : '';
+                            const saveGalleryItem = async ({ sourceTag = 'fotos', sourceIndex = -1, url = '', label = '' }) => {
+                                if (!dbRef || !profileId || sourceIndex < 0) return false;
+                                const galleryRef = dbRef.ref(\`perfiles/\${profileId}/galeria/\${sourceTag}\`);
+                                const snapshot = await galleryRef.once('value');
+                                const currentItems = Array.isArray(snapshot.val()) ? snapshot.val() : [];
+                                if (!currentItems[sourceIndex]) return false;
+                                const rawItem = currentItems[sourceIndex];
+                                const nextItem = typeof rawItem === 'string'
+                                    ? { url: String(url || '').trim(), label: normalizeLabel(label), type: 'image' }
+                                    : { ...rawItem, url: String(url || '').trim(), label: normalizeLabel(label) };
+                                currentItems[sourceIndex] = nextItem;
+                                await galleryRef.set(currentItems);
+                                return true;
+                            };
+
+                            document.querySelectorAll('.multimedia-thumb-btn').forEach((button) => {
+                                button.addEventListener('click', async () => {
+                                    const sourceTag = button.dataset.tag || 'fotos';
+                                    const sourceIndex = Number(button.dataset.index);
+                                    const currentUrl = button.dataset.url || '';
+                                    const currentLabel = button.dataset.label || '';
+                                    const nextUrl = window.prompt('Nueva URL de la multimedia:', currentUrl);
+                                    if (nextUrl === null) return;
+                                    const nextLabel = window.prompt('Nueva etiqueta (C, P, B, N, S, E, X):', currentLabel || 'C');
+                                    if (nextLabel === null) return;
+                                    try {
+                                        const saved = await saveGalleryItem({ sourceTag, sourceIndex, url: nextUrl, label: nextLabel });
+                                        if (!saved) return;
+                                        button.dataset.url = nextUrl.trim();
+                                        button.dataset.label = normalizeLabel((nextLabel || '').trim().toUpperCase());
+                                        const img = button.querySelector('img');
+                                        const badge = button.querySelector('.multimedia-thumb-label');
+                                        if (img) img.src = nextUrl.trim();
+                                        if (badge) badge.textContent = button.dataset.label || 'SIN ETIQUETA';
+                                    } catch (error) {
+                                        console.error('No se pudo guardar multimedia:', error);
+                                        window.alert('No se pudo actualizar esta multimedia.');
+                                    }
+                                });
+                            });
+                        </script>
                     </body>
                 </html>
             `);
