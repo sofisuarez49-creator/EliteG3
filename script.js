@@ -1606,6 +1606,7 @@
             const [isGalleryPlaying, setIsGalleryPlaying] = useState(false);
             const [isGalleryRandom, setIsGalleryRandom] = useState(false);
             const [galleryPlaybackSeconds, setGalleryPlaybackSeconds] = useState(5);
+            const [galleryVisibleLimit, setGalleryVisibleLimit] = useState(40);
             const [isSidebarOpen, setIsSidebarOpen] = useState(true);
             const [isEditingGalleryLabel, setIsEditingGalleryLabel] = useState(false);
             const [galleryLabelDraft, setGalleryLabelDraft] = useState('');
@@ -2327,6 +2328,10 @@ const getInitialCatFormData = () => ({
                                 : photo.label === galleryFilterLabel
                 ));
             }, [sourceGalleryPhotos, galleryFilterLabel, galleryViewMode]);
+            const visibleGalleryPhotos = useMemo(() => {
+                return filteredGalleryPhotos.slice(0, galleryVisibleLimit);
+            }, [filteredGalleryPhotos, galleryVisibleLimit]);
+            const hasMoreGalleryPhotos = visibleGalleryPhotos.length < filteredGalleryPhotos.length;
             const currentGalleryModeLabel = GALLERY_VIEW_MODE_LABELS[galleryViewMode] || galleryViewMode;
             const isGalleryBucketMode = galleryViewMode !== 'GENERAL' && galleryViewMode !== 'ETIQUETA';
             const availableCharacterBuckets = useMemo(() => {
@@ -2383,6 +2388,11 @@ const getInitialCatFormData = () => ({
                     setSelectedGalleryIndex(null);
                 }
             }, [activeTab]);
+
+            useEffect(() => {
+                setGalleryVisibleLimit(40);
+                setSelectedGalleryIndex(null);
+            }, [galleryViewMode, galleryFilterLabel, selectedTagLabels, selectedCharacterBucketIds, selectedGalleryBucket, perfiles.length]);
 
             useEffect(() => {
                 setSelectedGalleryBucket(null);
@@ -4475,8 +4485,9 @@ const saveProfile = (e) => {
                             </p>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-8">
-                            {filteredGalleryPhotos.map((photo, index) => {
+                        <>
+                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-8">
+                                {visibleGalleryPhotos.map((photo, index) => {
                                 const labelStyle = getGalleryLabelStyle(photo.label);
 
                                 return (
@@ -4500,8 +4511,8 @@ const saveProfile = (e) => {
                                                         </div>
                                                     );
                                                 }
-                                                return <video src={photo.url} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" muted playsInline preload="metadata" />;
-                                            })() : <img src={getSafeImageSrc(photo.url, CRYING_EMOJI_FALLBACK)} alt={`${photo.nombre} - ${photo.label || 'galería'}`} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" onError={applyCryingEmojiFallback} />}
+                                                return <video src={photo.url} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" muted playsInline preload="none" />;
+                                            })() : <img src={getSafeImageSrc(photo.url, CRYING_EMOJI_FALLBACK)} alt={`${photo.nombre} - ${photo.label || 'galería'}`} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" onError={applyCryingEmojiFallback} loading="lazy" decoding="async" />}
                                             <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-t from-cyan-950/40 via-transparent to-transparent" />
                                             <div className="absolute inset-x-0 bottom-0 p-5 bg-gradient-to-t from-[#020617] via-[#020617]/60 to-transparent">
                                                 <div className="flex items-end justify-between gap-3">
@@ -4534,7 +4545,19 @@ const saveProfile = (e) => {
                                     </button>
                                 );
                             })}
-                        </div>
+                            </div>
+                            {hasMoreGalleryPhotos && (
+                                <div className="flex justify-center mt-8">
+                                    <button
+                                        type="button"
+                                        onClick={() => setGalleryVisibleLimit((prev) => prev + 40)}
+                                        className="btn-metal btn-metal--silver inline-flex items-center gap-2 px-6 py-3 rounded-full text-[10px] text-slate-900"
+                                    >
+                                        Cargar más ({visibleGalleryPhotos.length}/{filteredGalleryPhotos.length})
+                                    </button>
+                                </div>
+                            )}
+                        </>
                     )}
                 </>
             )}
