@@ -291,7 +291,7 @@
                     : null;
                 const isAssigned = !!assignedPhoto;
                 return `
-                    <div class="multimedia-slot-card ${isAssigned ? 'is-assigned' : 'is-missing'}">
+                    <div class="multimedia-slot-card ${isAssigned ? 'is-assigned' : 'is-missing'}" data-slot-id="${slot.id}">
                         <div class="multimedia-slot-top">
                             <span class="multimedia-slot-title">${slot.label}</span>
                             <span class="multimedia-slot-state">${isAssigned ? 'VERDE' : 'ROJO'}</span>
@@ -301,6 +301,21 @@
                                 ? `<img src="${assignedPhoto.url}" alt="${slot.label}" loading="lazy" />`
                                 : '<span class="multimedia-slot-empty">Sin foto designada</span>'}
                         </div>
+                        ${isProfileSlot ? '' : `<div class="multimedia-slot-actions">
+                            <select class="multimedia-slot-picker" data-slot-picker="${slot.id}">
+                                <option value="">Elegir galería…</option>
+                                ${galleryItems
+                                    .filter((item) => item.type === 'image' && slot.labels.includes(item.label))
+                                    .map((item) => `<option value="${item.sourceIndex}" ${safeBattlePhotoPrefs[slot.id] === item.url ? 'selected' : ''}>${slot.label} · ${item.label || 'SIN ETIQUETA'} · #${item.sourceIndex + 1}</option>`)
+                                    .join('')}
+                            </select>
+                            <button type="button" class="multimedia-slot-btn multimedia-slot-btn--gallery" data-slot-assign="${slot.id}">
+                                Asignar
+                            </button>
+                            <button type="button" class="multimedia-slot-btn" data-slot-clear="${slot.id}">
+                                Quitar fija
+                            </button>
+                        </div>`}
                     </div>
                 `;
             }).join('');
@@ -354,6 +369,24 @@
                             .multimedia-slot-preview { border-radius: 8px; overflow: hidden; aspect-ratio: 4/3; border: 1px dashed rgba(148,163,184,0.45); background: rgba(15,23,42,0.88); display: flex; align-items: center; justify-content: center; }
                             .multimedia-slot-preview img { width: 100%; height: 100%; object-fit: cover; display:block; }
                             .multimedia-slot-empty { color: #fca5a5; font-size: 10px; text-transform: uppercase; letter-spacing: .08em; font-weight: 700; text-align: center; padding: 0 8px; }
+                            .multimedia-slot-actions { display: grid; gap: 6px; margin-top: 8px; }
+                            .multimedia-slot-btn {
+                                width: 100%; border: 1px solid rgba(125,211,252,0.65); background: rgba(2,6,23,0.82);
+                                color: #e2e8f0; border-radius: 8px; padding: 6px 8px; font-size: 10px;
+                                font-weight: 800; letter-spacing: .08em; text-transform: uppercase; cursor: pointer;
+                                box-shadow: 0 0 12px rgba(34,211,238,0.22);
+                            }
+                            .multimedia-slot-btn--gallery {
+                                border-color: rgba(74,222,128,0.7);
+                                background: rgba(20,83,45,0.78);
+                                color: #dcfce7;
+                                box-shadow: 0 0 12px rgba(74,222,128,0.22);
+                            }
+                            .multimedia-slot-picker {
+                                width: 100%; border: 1px solid rgba(74,222,128,0.72); background: rgba(2,6,23,0.85);
+                                color: #dcfce7; border-radius: 8px; padding: 6px 8px; font-size: 10px; font-weight: 700;
+                                letter-spacing: .04em; outline: none;
+                            }
                         </style>
                     </head>
                     <body class="text-slate-200">
@@ -446,7 +479,24 @@
                                     }
                                 });
                             });
-                            syncBrokenEmptyState();
+
+                            document.querySelectorAll('[data-slot-assign]').forEach((button) => {
+                                button.addEventListener('click', () => {
+                                    const slotId = button.dataset.slotAssign || '';
+                                    const picker = document.querySelector('[data-slot-picker="' + slotId + '"]');
+                                    const index = Number(picker?.value ?? -1);
+                                    if (!slotId || !window.opener || Number.isNaN(index) || index < 0) return;
+                                    window.opener.postMessage({ type: 'SET_BATTLE_PHOTO_PREF', id: profileId, slotId, index, mediaType: 'image' }, '*');
+                                });
+                            });
+
+                            document.querySelectorAll('[data-slot-clear]').forEach((button) => {
+                                button.addEventListener('click', () => {
+                                    const slotId = button.dataset.slotClear || '';
+                                    if (!slotId || !window.opener) return;
+                                    window.opener.postMessage({ type: 'CLEAR_BATTLE_PHOTO_PREF', id: profileId, slotId }, '*');
+                                });
+                            });
                         </script>
                     </body>
                 </html>
