@@ -1455,6 +1455,7 @@
 
                 <script>
                     const viewer = document.getElementById('fullscreenViewer');
+                    const viewerStage = document.getElementById('viewerStage');
                     const galleryGrid = document.getElementById('galleryGrid');
                     const viewerSlides = Array.from(document.querySelectorAll('.viewer-slide'));
                     const viewerPrevButton = document.getElementById('viewerPrev');
@@ -1472,6 +1473,21 @@
                     const LONG_PRESS_MS = 280;
                     let longPressTimer = null;
                     let touchPayload = null;
+                    const SWIPE_DISTANCE_THRESHOLD = 72;
+                    const SWIPE_VELOCITY_THRESHOLD = 0.35;
+                    const SWIPE_FEEDBACK_MAX_TRANSLATE = 52;
+                    const SWIPE_VERTICAL_LOCK_RATIO = 1.2;
+                    let viewerSwipeState = {
+                        active: false,
+                        pointerId: null,
+                        startX: 0,
+                        startY: 0,
+                        currentX: 0,
+                        startTime: 0,
+                        isHorizontal: false,
+                        isVertical: false,
+                        blockedByMediaControl: false
+                    };
 
                     function isAllowedFileType(file) {
                         if (!file) return false;
@@ -1765,6 +1781,94 @@
                         scheduleViewerAutoplay();
                     }
 
+                    function resetViewerStageTransform(withTransition = false) {
+                        if (!viewerStage) return;
+                        viewerStage.style.transition = withTransition ? 'transform 160ms ease-out' : '';
+                        viewerStage.style.transform = 'translateX(0px)';
+                        if (withTransition) {
+                            window.setTimeout(function() {
+                                if (viewerStage) viewerStage.style.transition = '';
+                            }, 180);
+                        }
+                    }
+
+                    function updateViewerSwipeFeedback(deltaX) {
+                        if (!viewerStage) return;
+                        const clampedDelta = Math.max(-SWIPE_FEEDBACK_MAX_TRANSLATE, Math.min(SWIPE_FEEDBACK_MAX_TRANSLATE, deltaX * 0.28));
+                        viewerStage.style.transition = '';
+                        viewerStage.style.transform = 'translateX(' + clampedDelta + 'px)';
+                    }
+
+                    function targetHasDirectMediaControls(target) {
+                        if (!target || typeof target.closest !== 'function') return false;
+                        return Boolean(target.closest('iframe, video'));
+                    }
+
+                    function onViewerStagePointerDown(event) {
+                        if (!viewer.classList.contains('open') || viewerSlides.length <= 1) return;
+                        const blockedByMediaControl = targetHasDirectMediaControls(event.target);
+                        viewerSwipeState = {
+                            active: true,
+                            pointerId: event.pointerId,
+                            startX: event.clientX,
+                            startY: event.clientY,
+                            currentX: event.clientX,
+                            startTime: performance.now(),
+                            isHorizontal: false,
+                            isVertical: false,
+                            blockedByMediaControl
+                        };
+                        if (blockedByMediaControl) return;
+                        if (viewerStage?.setPointerCapture) {
+                            try { viewerStage.setPointerCapture(event.pointerId); } catch {}
+                        }
+                    }
+
+                    function onViewerStagePointerMove(event) {
+                        if (!viewerSwipeState.active || viewerSwipeState.pointerId !== event.pointerId || viewerSwipeState.blockedByMediaControl) return;
+                        const deltaX = event.clientX - viewerSwipeState.startX;
+                        const deltaY = event.clientY - viewerSwipeState.startY;
+                        viewerSwipeState.currentX = event.clientX;
+
+                        if (!viewerSwipeState.isHorizontal && !viewerSwipeState.isVertical) {
+                            if (Math.abs(deltaY) > Math.abs(deltaX) * SWIPE_VERTICAL_LOCK_RATIO) {
+                                viewerSwipeState.isVertical = true;
+                                resetViewerStageTransform(false);
+                                return;
+                            }
+                            if (Math.abs(deltaX) > Math.abs(deltaY)) {
+                                viewerSwipeState.isHorizontal = true;
+                            }
+                        }
+
+                        if (viewerSwipeState.isHorizontal) {
+                            event.preventDefault();
+                            updateViewerSwipeFeedback(deltaX);
+                        }
+                    }
+
+                    function onViewerStagePointerEnd(event) {
+                        if (!viewerSwipeState.active || viewerSwipeState.pointerId !== event.pointerId) return;
+                        const elapsedMs = Math.max(1, performance.now() - viewerSwipeState.startTime);
+                        const deltaX = viewerSwipeState.currentX - viewerSwipeState.startX;
+                        const velocityX = Math.abs(deltaX) / elapsedMs;
+                        const shouldNavigate = !viewerSwipeState.blockedByMediaControl
+                            && viewerSwipeState.isHorizontal
+                            && !viewerSwipeState.isVertical
+                            && (Math.abs(deltaX) >= SWIPE_DISTANCE_THRESHOLD || velocityX >= SWIPE_VELOCITY_THRESHOLD);
+
+                        resetViewerStageTransform(true);
+                        if (shouldNavigate) {
+                            if (deltaX < 0) showNextViewerPhoto();
+                            else showPreviousViewerPhoto();
+                        }
+
+                        if (viewerStage?.releasePointerCapture) {
+                            try { viewerStage.releasePointerCapture(event.pointerId); } catch {}
+                        }
+                        viewerSwipeState.active = false;
+                    }
+
                     function openFullscreenViewer(index) {
                         if (!viewerSlides.length) return;
                         const parsedIndex = Number(index);
@@ -1827,6 +1931,10 @@
                             closeFullscreenViewer();
                         }
                     });
+                    viewerStage?.addEventListener('pointerdown', onViewerStagePointerDown, { passive: true });
+                    viewerStage?.addEventListener('pointermove', onViewerStagePointerMove, { passive: false });
+                    viewerStage?.addEventListener('pointerup', onViewerStagePointerEnd);
+                    viewerStage?.addEventListener('pointercancel', onViewerStagePointerEnd);
                     window.addEventListener('keydown', function(event) {
                         if (!viewer.classList.contains('open')) return;
 
