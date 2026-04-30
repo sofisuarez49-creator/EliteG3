@@ -54,7 +54,7 @@ import{jsxDEV as Q,Fragment as wJ}from"react/jsx-dev-runtime";const Z0={apiKey:"
                     <head>
                         <meta charset="UTF-8" />
                         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-                        <title>Multimedia - ${_?.nombre||"Personaje"}</title>
+                        <title>Multimedia - ${q?.nombre||"Personaje"}</title>
                         <script src="https://cdn.tailwindcss.com"></script>
                         <link rel="stylesheet" href="styles.css" />
                         <style>
@@ -112,10 +112,10 @@ import{jsxDEV as Q,Fragment as wJ}from"react/jsx-dev-runtime";const Z0={apiKey:"
                         <main class="min-h-screen p-4 md:p-8">
                             <section class="gothic-frame surface-panel surface-panel--neon rounded-[2rem] p-6 md:p-8 w-full max-w-6xl mx-auto">
                                 <h1 class="font-title text-center text-3xl md:text-4xl text-white uppercase tracking-wide">Multimedia</h1>
-                                <p class="text-center text-cyan-100/80 text-xs uppercase tracking-[0.2em] mt-2">${_?.nombre||"Personaje"}</p>
+                                <p class="text-center text-cyan-100/80 text-xs uppercase tracking-[0.2em] mt-2">${q?.nombre||"Personaje"}</p>
                                 <article class="surface-panel rounded-2xl border border-cyan-200/20 mt-6 p-4">
                                     <h2 class="font-black uppercase tracking-wide mb-3">Galería</h2>
-                                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">${c}</div>
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">${s}</div>
                                 </article>
                                 <article class="surface-panel rounded-2xl border border-cyan-200/20 mt-4 p-4">
                                     <h2 class="font-black uppercase tracking-wide mb-3">5 principales</h2>
@@ -124,13 +124,13 @@ import{jsxDEV as Q,Fragment as wJ}from"react/jsx-dev-runtime";const Z0={apiKey:"
                                 <article class="surface-panel rounded-2xl border border-rose-300/25 mt-4 p-4">
                                     <h2 class="font-black uppercase tracking-wide mb-2">Imágenes rotas</h2>
                                     <p class="text-xs text-rose-100/80 uppercase tracking-[0.12em] mb-3">Solo fotos que ya no cargan. Tocá una para corregir URL y etiqueta.</p>
-                                    <div id="brokenGalleryGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">${P}</div>
+                                    <div id="brokenGalleryGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">${G}</div>
                                     <p id="brokenGalleryEmpty" class="text-sm text-slate-300">No hay imágenes rotas detectadas.</p>
                                 </article>
                             </section>
                         </main>
                         <script>
-                            const profileId = ${JSON.stringify(B)};
+                            const profileId = ${JSON.stringify(C)};
                             const validLabels = ${JSON.stringify(JJ)};
                             const dbRef = window.opener && window.opener.firebase && window.opener.firebase.database ? window.opener.firebase.database() : null;
                             const normalizeLabel = (rawLabel = '') => validLabels.includes(rawLabel) ? rawLabel : '';
@@ -144,7 +144,7 @@ import{jsxDEV as Q,Fragment as wJ}from"react/jsx-dev-runtime";const Z0={apiKey:"
                                 if (!window.opener || !slotId || !isImagePayload(payload)) return false;
                                 const sourceIndex = Number(payload.sourceIndex);
                                 if (!Number.isInteger(sourceIndex) || sourceIndex < 0) return false;
-                                window.opener.postMessage({ type: 'SET_BATTLE_PHOTO_PREF', id: '${B}', slotId, index: sourceIndex, mediaType: 'image' }, '*');
+                                window.opener.postMessage({ type: 'SET_BATTLE_PHOTO_PREF', id: '${C}', slotId, index: sourceIndex, mediaType: 'image' }, '*');
                                 return true;
                             };
                             const syncBrokenEmptyState = () => {
@@ -720,11 +720,11 @@ import{jsxDEV as Q,Fragment as wJ}from"react/jsx-dev-runtime";const Z0={apiKey:"
                             <div class="gallery-slot-card" data-slot-id="${U.id}" style="border:1px solid ${G?"rgba(74,222,128,0.95)":"rgba(248,113,113,0.95)"}; border-radius:10px; padding:10px; background:${G?"linear-gradient(155deg, rgba(20,83,45,0.95) 0%, rgba(21,128,61,0.82) 45%, rgba(5,46,22,0.96) 100%)":"linear-gradient(155deg, rgba(127,29,29,0.96) 0%, rgba(185,28,28,0.84) 45%, rgba(69,10,10,0.96) 100%)"}; box-shadow: inset 0 2px 0 rgba(255,255,255,0.24), inset 0 -2px 0 rgba(2,6,23,0.45), inset 0 0 0 1px ${G?"rgba(187,247,208,0.25)":"rgba(254,202,202,0.22)"}, 0 8px 16px rgba(2,6,23,0.45), 0 0 18px ${G?"rgba(74,222,128,0.35)":"rgba(248,113,113,0.3)"}; position: relative;">
                                 <div style="position:absolute; inset:1px; border-radius:9px; pointer-events:none; background: linear-gradient(145deg, rgba(255,255,255,0.24) 0%, rgba(255,255,255,0.05) 22%, rgba(255,255,255,0) 42%, rgba(2,6,23,0.22) 78%, rgba(2,6,23,0.42) 100%);"></div>
                                 <div style="font-size:10px; color:#f8fafc; font-weight:900; letter-spacing:0.12em; text-transform:uppercase; position:relative;">${U.label}</div>
-                                <div style="font-size:11px; color:${G?"#dcfce7":"#fee2e2"}; margin-top:6px; font-weight:800; position:relative; text-shadow: 0 1px 0 rgba(15,23,42,0.65);">
-                                    Estado: ${G?"Asignada":"No asignada"}
+                                <div style="font-size:11px; color:${S?"#dcfce7":"#fee2e2"}; margin-top:6px; font-weight:800; position:relative; text-shadow: 0 1px 0 rgba(15,23,42,0.65);">
+                                    Estado: ${S?"Asignada":"No asignada"}
                                 </div>
                                 <div style="margin-top:8px; border-radius:8px; overflow:hidden; aspect-ratio:4/3; border:1px dashed rgba(148,163,184,0.45); background: rgba(2,6,23,0.86); display:flex; align-items:center; justify-content:center;">
-                                    ${G?`<img src="${N}" alt="Vista previa ${U.label}" onerror="${PX}" style="width:100%; height:100%; object-fit:cover; display:block;" />`:'<span style="font-size:10px; color:#fca5a5; text-transform:uppercase; letter-spacing:0.08em; font-weight:700; text-align:center; padding:0 8px;">Sin foto designada</span>'}
+                                    ${S?`<img src="${k}" alt="Vista previa ${U.label}" onerror="${PX}" style="width:100%; height:100%; object-fit:cover; display:block;" />`:'<span style="font-size:10px; color:#fca5a5; text-transform:uppercase; letter-spacing:0.08em; font-weight:700; text-align:center; padding:0 8px;">Sin foto designada</span>'}
                                 </div>
                                 <div style="display:grid; gap:6px; margin-top:8px;">
                                     <button
@@ -756,8 +756,8 @@ import{jsxDEV as Q,Fragment as wJ}from"react/jsx-dev-runtime";const Z0={apiKey:"
                             data-gallery-index="${C}"
                             data-source-index="${U.sourceIndex}"
                             data-media-type="${sJ(U)}"
-                            data-url="${N}"
-                            data-compatible-slots="${G}"
+                            data-url="${k}"
+                            data-compatible-slots="${S}"
                             draggable="${sJ(U)==="image"?"true":"false"}"
                             title="Abrir visor de pantalla completa"
                             style="
@@ -800,8 +800,8 @@ import{jsxDEV as Q,Fragment as wJ}from"react/jsx-dev-runtime";const Z0={apiKey:"
                         >✕</button>
                         ${sJ(U)==="video"?(()=>{const CJ=rJ(N);if(CJ)return`<div style="width: 100%; height: 100%; background: radial-gradient(circle at top, rgba(34,211,238,0.35), rgba(15,23,42,0.96)); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; padding: 18px; box-sizing:border-box; text-align:center;"><div style="width:64px; height:64px; border-radius:999px; border:1px solid rgba(34,211,238,0.5); background:rgba(15,23,42,0.75); display:flex; align-items:center; justify-content:center; color:#22d3ee; font-size:28px;">▶</div><div style="font-size:12px; font-weight:800; letter-spacing:0.12em; text-transform:uppercase; color:#e2e8f0;">Video embebido</div><div style="font-size:11px; color:#94a3b8; max-width:100%; word-break:break-word;">${CJ.provider.toUpperCase()}</div></div>`;return`<video src="${N}" style="width: 100%; height: 100%; object-fit: cover;" muted playsinline preload="metadata"></video>`})():`<img src="${N}" alt="Imagen de la galería" onerror="${PX}" style="width: 100%; height: 100%; object-fit: cover;" />`}
                         <div style="position:absolute; left: 12px; top: 12px; z-index: 15; padding: 6px 10px; border-radius: 999px; background: rgba(2,6,23,0.72); border: 1px solid rgba(148,163,184,0.24); color: #e2e8f0; display:flex; align-items:center; justify-content:center; font-size: 10px; font-weight: 900; letter-spacing: 0.2em; text-transform: uppercase; backdrop-filter: blur(8px);">${sJ(U)==="video"?"VIDEO":"IMG"}</div>
-                        ${G?`<div style="position:absolute; left: 50%; bottom: 10px; transform: translateX(-50%); z-index: 15; min-width: 52px; height: 30px; padding: 0 14px; border-radius: 999px; background: ${z.bg}; border: 1px solid ${z.border}; color: ${z.text}; display:flex; align-items:center; justify-content:center; font-size: 12px; font-weight: 900; letter-spacing: 0.24em; box-shadow: 0 0 14px ${z.glow}, 0 0 24px ${z.glow}; text-shadow: 0 0 10px ${z.glow}; backdrop-filter: blur(8px);">${G}</div>`:""}
-                        ${U.autor?`<div style="position:absolute; left:10px; right:10px; bottom:${G?"48px":"10px"}; z-index:15; padding:6px 8px; border-radius:10px; background:rgba(2,6,23,0.74); border:1px solid rgba(148,163,184,0.3); color:#e2e8f0; font-size:10px; line-height:1.2; font-weight:700; letter-spacing:0.04em; text-align:left; backdrop-filter:blur(6px);">Autor: ${U.autor}</div>`:""}
+                        ${S?`<div style="position:absolute; left: 50%; bottom: 10px; transform: translateX(-50%); z-index: 15; min-width: 52px; height: 30px; padding: 0 14px; border-radius: 999px; background: ${z.bg}; border: 1px solid ${z.border}; color: ${z.text}; display:flex; align-items:center; justify-content:center; font-size: 12px; font-weight: 900; letter-spacing: 0.24em; box-shadow: 0 0 14px ${z.glow}, 0 0 24px ${z.glow}; text-shadow: 0 0 10px ${z.glow}; backdrop-filter: blur(8px);">${S}</div>`:""}
+                        ${U.autor?`<div style="position:absolute; left:10px; right:10px; bottom:${S?"48px":"10px"}; z-index:15; padding:6px 8px; border-radius:10px; background:rgba(2,6,23,0.74); border:1px solid rgba(148,163,184,0.3); color:#e2e8f0; font-size:10px; line-height:1.2; font-weight:700; letter-spacing:0.04em; text-align:left; backdrop-filter:blur(6px);">Autor: ${U.autor}</div>`:""}
                         </div>
                     `}).join(""):'<p style="text-align:center; grid-column: 1/-1; color: #64748b;">No hay archivos cargados.</p>'}
                 </div>

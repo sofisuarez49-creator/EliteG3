@@ -772,6 +772,22 @@
                             </article>
                         </div>
                     </section>
+
+                    {isTeamModalOpen && (
+                        <div className="fixed inset-0 z-[150] flex items-center justify-center p-6 bg-slate-950/80 backdrop-blur-sm">
+                            <div className="theme-surface-card border theme-border-secondary w-full max-w-2xl rounded-3xl p-8">
+                                <h3 className="text-xl font-black italic text-white mb-6">Agregar equipo</h3>
+                                <form onSubmit={saveTeam} className="space-y-4">
+                                    <input required placeholder="Nombre del equipo" className="w-full theme-surface-soft border theme-border-secondary p-4 rounded-xl outline-none text-white font-bold" value={teamFormData.nombre} onChange={(e) => setTeamFormData(prev => ({ ...prev, nombre: e.target.value }))} />
+                                    <input required placeholder="URL del equipo" className="w-full theme-surface-soft border theme-border-secondary p-4 rounded-xl outline-none text-white font-bold" value={teamFormData.url} onChange={(e) => setTeamFormData(prev => ({ ...prev, url: e.target.value }))} />
+                                    <div className="flex justify-end gap-3 pt-2">
+                                        <button type="button" onClick={() => setIsTeamModalOpen(false)} className="btn-metal btn-metal--silver px-6 py-3 rounded-xl text-[10px]">Cancelar</button>
+                                        <button type="submit" className="btn-metal btn-metal--gold px-6 py-3 rounded-xl text-[10px]">Guardar equipo</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
                 </div>
             );
         };
@@ -2169,6 +2185,9 @@
             const [contextMenuPosition, setContextMenuPosition] = useState({ x: 0, y: 0 });
             const [sortBy, setSortBy] = useState('promedio');
             const [sortDirection, setSortDirection] = useState('desc');
+            const [equipos, setEquipos] = useState([]);
+            const [isTeamModalOpen, setIsTeamModalOpen] = useState(false);
+            const [teamFormData, setTeamFormData] = useState({ nombre: '', url: '' });
             const [scoreBreakdownModal, setScoreBreakdownModal] = useState({ isOpen: false, profile: null, category: null });
             const [scorePanelModal, setScorePanelModal] = useState({ isOpen: false, profile: null });
             const [galleryFilterLabel, setGalleryFilterLabel] = useState('INICIAL');
@@ -2213,6 +2232,7 @@ const getInitialCatFormData = () => ({
     label: '',
     emoji: '📁',
     coverImg: '',
+    equipoId: '',
     reglas: {
         nacionalidades: [],
         profesiones: [],
@@ -2707,6 +2727,7 @@ const getInitialCatFormData = () => ({
                 window.addEventListener('message', handleMessage);
                 const perfilesRef = db.ref('perfiles');
                 const anonGalleryRef = db.ref(ANON_GALLERY_NODE_PATH);
+                const teamsRef = db.ref('equipos');
                 let perfilesData = {};
                 let anonGalleryData = {};
                 const refreshPerfilesState = () => {
@@ -2726,6 +2747,15 @@ const getInitialCatFormData = () => ({
                     anonGalleryData = snapshot.val() || {};
                     refreshPerfilesState();
                 });
+                teamsRef.on('value', (snapshot) => {
+                    const rawTeams = snapshot.val() || {};
+                    const teamList = Object.entries(rawTeams).map(([firebaseId, team]) => ({
+                        firebaseId,
+                        nombre: String(team?.nombre || '').trim(),
+                        url: String(team?.url || '').trim()
+                    })).filter((team) => team.nombre);
+                    setEquipos(teamList.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' })));
+                });
 
                 // Escuchar Categorías en tiempo real desde Firebase
                 setCategorias(INITIAL_CATEGORIES);
@@ -2743,11 +2773,22 @@ const getInitialCatFormData = () => ({
                     window.removeEventListener('message', handleMessage);
                     perfilesRef.off();
                     anonGalleryRef.off();
+                    teamsRef.off();
                     arenasRef.off();
                     arenaGlobalRef.off();
                 };
             }, []);
 
+
+            const saveTeam = async (event) => {
+                event.preventDefault();
+                const nombre = String(teamFormData.nombre || '').trim();
+                const url = String(teamFormData.url || '').trim();
+                if (!nombre || !url) return;
+                await db.ref('equipos').push({ nombre, url });
+                setTeamFormData({ nombre: '', url: '' });
+                setIsTeamModalOpen(false);
+            };
             const calcularEdad = (fecha) => {
                 if (!fecha) return '?';
                 const hoy = new Date();
@@ -4538,6 +4579,7 @@ const saveProfile = (e) => {
                                 { id: 'RANKING', icon: 'trending-up', label: 'Ranking' },
                                 { id: 'BATALLAS', icon: 'swords', label: 'Batallas' },
                                 { id: 'GALERIA', icon: 'images', label: 'Galería' },
+                                { id: 'EQUIPOS', icon: 'shield', label: 'Equipos' },
                                 { id: 'anonimo', icon: 'user-round-x', label: 'ánonimo' },
                                 { id: 'TALLER', icon: 'hammer', label: 'Taller' }
                             ].map(item => (
@@ -6746,6 +6788,13 @@ const saveProfile = (e) => {
                                             </div>
                                             <div className="space-y-4">
                                                 <input required placeholder="Nombre de la Carpeta" className="w-full theme-surface-soft border theme-border-secondary p-5 rounded-xl outline-none font-bold text-lg text-white" value={catFormData.label} onChange={e => setCatFormData({...catFormData, label: e.target.value})} />
+                                                <div className="space-y-1">
+                                                    <label className="text-[9px] font-black text-slate-500 ml-4 uppercase">Equipo</label>
+                                                    <select className="w-full theme-surface-soft border theme-border-secondary p-5 rounded-xl outline-none font-bold text-white" value={catFormData.equipoId || ''} onChange={e => setCatFormData({...catFormData, equipoId: e.target.value})}>
+                                                        <option value="">Seleccionar equipo...</option>
+                                                        {equipos.map(team => <option key={team.firebaseId} value={team.firebaseId}>{team.nombre}</option>)}
+                                                    </select>
+                                                </div>
                                                 <div className="w-full">
                                                     <div className="space-y-1 w-full">
                                                         <label className="text-[9px] font-black text-slate-500 ml-4 uppercase">URL de Portada</label>
