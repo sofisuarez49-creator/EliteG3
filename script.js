@@ -1651,6 +1651,8 @@
             const [brokenGallerySavingMap, setBrokenGallerySavingMap] = useState({});
             const [brokenGalleryEditingMap, setBrokenGalleryEditingMap] = useState({});
             const [showIncompleteMainPhotosOnly, setShowIncompleteMainPhotosOnly] = useState(false);
+            const [incompletePhotosMenuProfileId, setIncompletePhotosMenuProfileId] = useState('');
+            const longPressTimerRef = useRef(null);
             const galleryPlaybackTimeoutRef = useRef(null);
 
 const getInitialCatFormData = () => ({
@@ -2804,6 +2806,15 @@ const saveProfile = (e) => {
                 setContextMenuOpen(true);
                 setContextMenuPosition({ x: event.clientX, y: event.clientY });
                 setContextProfile(profile);
+            };
+            const clearIncompletePhotosLongPress = () => {
+                if (!longPressTimerRef.current) return;
+                clearTimeout(longPressTimerRef.current);
+                longPressTimerRef.current = null;
+            };
+            const openIncompletePhotosMenu = (profileId = '') => {
+                if (!profileId) return;
+                setIncompletePhotosMenuProfileId((prev) => prev === profileId ? '' : profileId);
             };
 
             const handleContextEdit = () => {
@@ -4015,7 +4026,23 @@ const saveProfile = (e) => {
                                         <button
                                             key={p.firebaseId || p.nombre}
                                             type="button"
+                                            onContextMenu={(event) => {
+                                                if (!showMissingTooltip) return;
+                                                event.preventDefault();
+                                                openIncompletePhotosMenu(p.firebaseId || p.nombre || '');
+                                            }}
+                                            onTouchStart={() => {
+                                                if (!showMissingTooltip) return;
+                                                clearIncompletePhotosLongPress();
+                                                longPressTimerRef.current = setTimeout(() => {
+                                                    openIncompletePhotosMenu(p.firebaseId || p.nombre || '');
+                                                }, 550);
+                                            }}
+                                            onTouchEnd={clearIncompletePhotosLongPress}
+                                            onTouchCancel={clearIncompletePhotosLongPress}
                                             onClick={() => {
+                                                clearIncompletePhotosLongPress();
+                                                setIncompletePhotosMenuProfileId('');
                                                 setSelectedTallerProfileId('');
                                                 openProfileEditor(p);
                                             }}
@@ -4037,7 +4064,7 @@ const saveProfile = (e) => {
                                             >
                                                 {p.profesion || 'Profesión no definida'}
                                             </p>
-                                            {showMissingTooltip && (
+                                            {showMissingTooltip && incompletePhotosMenuProfileId === (p.firebaseId || p.nombre || '') && (
                                                 <div className="incomplete-photo-tooltip" role="tooltip" aria-label="Casilleros de fotos faltantes">
                                                     <ul>
                                                         {missingMainPhotos.map((message) => (
