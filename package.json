@@ -1,0 +1,9 @@
+{
+  "name": "eliteg3",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "bun build script.js --target=browser --format=esm --outfile=dist/app.bundle.js --no-bundle --minify",
+    "build:dev": "bun build script.js --target=browser --format=esm --outfile=dist/app.bundle.js --no-bundle --sourcemap"
+  }
+}
