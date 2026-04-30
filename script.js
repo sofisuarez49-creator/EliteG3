@@ -1679,7 +1679,7 @@
             const [isGalleryPlaying, setIsGalleryPlaying] = useState(false);
             const [isGalleryRandom, setIsGalleryRandom] = useState(false);
             const [galleryPlaybackSeconds, setGalleryPlaybackSeconds] = useState(5);
-            const [galleryVisibleLimit, setGalleryVisibleLimit] = useState(40);
+            const [galleryVisibleLimit, setGalleryVisibleLimit] = useState(20);
             const [isSidebarOpen, setIsSidebarOpen] = useState(true);
             const [isEditingGalleryLabel, setIsEditingGalleryLabel] = useState(false);
             const [galleryLabelDraft, setGalleryLabelDraft] = useState('');
@@ -4464,7 +4464,7 @@ const saveProfile = (e) => {
                                 setSelectedGalleryBucket(bucket);
                                 setSelectedGalleryIndex(null);
                             }}
-                            className="group text-left theme-surface-card border theme-border-secondary rounded-[2.4rem] overflow-hidden hover:border-[color:color-mix(in_srgb,var(--metal-gold)_40%,transparent)] hover:shadow-[0_0_30px_rgba(34,211,238,0.12)] transition-all duration-500"
+                            className="group text-left theme-surface-card border theme-border-secondary rounded-[1.4rem] overflow-hidden hover:border-[color:color-mix(in_srgb,var(--metal-gold)_40%,transparent)] hover:shadow-[0_0_30px_rgba(34,211,238,0.12)] transition-all duration-500"
                         >
                             <div className="aspect-[4/5] bg-slate-950 relative overflow-hidden">
                                 {bucket.fotoPerfil ? (
@@ -4636,7 +4636,7 @@ const saveProfile = (e) => {
                         </div>
                     ) : (
                         <>
-                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-8">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                                 {visibleGalleryPhotos.map((photo, index) => {
                                 const labelStyle = getGalleryLabelStyle(photo.label);
 
@@ -4645,9 +4645,9 @@ const saveProfile = (e) => {
                                         key={photo.id}
                                         type="button"
                                         onClick={() => openGalleryViewer(index)}
-                                        className="group text-left theme-surface-card border theme-border-secondary rounded-[2.4rem] overflow-hidden hover:border-[color:color-mix(in_srgb,var(--metal-gold)_40%,transparent)] hover:shadow-[0_0_30px_rgba(34,211,238,0.12)] transition-all duration-500 focus:outline-none focus:ring-2 focus:ring-[var(--glow-gold)] focus:ring-offset-2 focus:ring-offset-[#020617]"
+                                        className="group text-left theme-surface-card border theme-border-secondary rounded-[1.4rem] overflow-hidden hover:border-[color:color-mix(in_srgb,var(--metal-gold)_40%,transparent)] hover:shadow-[0_0_30px_rgba(34,211,238,0.12)] transition-all duration-500 focus:outline-none focus:ring-2 focus:ring-[var(--glow-gold)] focus:ring-offset-2 focus:ring-offset-[#020617]"
                                     >
-                                        <div className="aspect-[4/5] relative overflow-hidden bg-slate-950">
+                                        <div className="aspect-[3/4] relative overflow-hidden bg-slate-950">
                                             {photo.type === 'video' ? (() => {
                                                 const embedInfo = getVideoEmbedInfo(photo.url);
                                                 if (embedInfo) {
@@ -4700,7 +4700,7 @@ const saveProfile = (e) => {
                                 <div className="flex justify-center mt-8">
                                     <button
                                         type="button"
-                                        onClick={() => setGalleryVisibleLimit((prev) => prev + 40)}
+                                        onClick={() => setGalleryVisibleLimit((prev) => prev + 20)}
                                         className="btn-metal btn-metal--silver inline-flex items-center gap-2 px-6 py-3 rounded-full text-[10px] text-slate-900"
                                     >
                                         Cargar más ({visibleGalleryPhotos.length}/{filteredGalleryPhotos.length})
