@@ -56,9 +56,6 @@
         };
         const getBattleSlotById = (slotId = '') => BATTLE_PHOTO_SLOTS.find((slot) => slot.id === slotId);
         const getBattleSlotForArena = (arenaName = '') => BATTLE_ARENA_TO_SLOT[(arenaName || '').trim().toLowerCase()] || '';
-        const MAIN_BATTLE_PHOTO_SLOTS = BATTLE_PHOTO_SLOTS.filter((slot) => slot.id !== 'perfil');
-        const PROFILE_BATTLE_PHOTO_SLOT = BATTLE_PHOTO_SLOTS.find((slot) => slot.id === 'perfil') || null;
-        const getCompatibleBattleSlotsForLabel = (label = '') => MAIN_BATTLE_PHOTO_SLOTS.filter((slot) => slot.labels.includes(label));
         const GALLERY_LABEL_STYLES = {
             C: {
                 bg: 'linear-gradient(135deg, rgba(34,211,238,0.92), rgba(14,116,144,0.95))',
@@ -280,6 +277,8 @@
                         data-label="${item.label || ''}"
                         data-index="${item.sourceIndex}"
                         data-tag="${item.sourceTag}"
+                        data-media-type="${item.type || 'image'}"
+                        draggable="true"
                         title="Editar URL o etiqueta"
                     >
                         <div class="multimedia-thumb-wrap">
@@ -298,6 +297,8 @@
                         data-label="${item.label || ''}"
                         data-index="${item.sourceIndex}"
                         data-tag="${item.sourceTag}"
+                        data-media-type="${item.type || 'image'}"
+                        draggable="true"
                         data-broken-card="true"
                         style="display:none;"
                         title="Imagen rota: tocar para editar URL o etiqueta"
@@ -328,6 +329,10 @@
                             ${isAssigned
                                 ? `<img src="${assignedPhoto.url}" alt="${slot.label}" loading="lazy" />`
                                 : '<span class="multimedia-slot-empty">Sin foto designada</span>'}
+                        </div>
+                        <div class="multimedia-slot-actions">
+                            ${!isProfileSlot ? `<button type="button" class="multimedia-slot-assign-btn" data-slot-assign="${slot.id}">DESIGNAR FOTO</button>` : ''}
+                            <button type="button" class="multimedia-slot-add-btn" data-slot-add="${slot.id}">Agregar URL/Archivo</button>
                         </div>
                     </div>
                 `;
@@ -371,7 +376,9 @@
                                 background: rgba(2,6,23,.82); backdrop-filter: blur(6px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
                             }
                             .multimedia-slots-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; }
-                            .multimedia-slot-card { border-radius: 12px; padding: 10px; border: 1px solid rgba(148,163,184,0.45); background: rgba(2,6,23,0.72); box-shadow: inset 0 1px 0 rgba(255,255,255,0.08); }
+                            .multimedia-slot-card { border-radius: 12px; padding: 10px; border: 1px solid rgba(148,163,184,0.45); background: rgba(2,6,23,0.72); box-shadow: inset 0 1px 0 rgba(255,255,255,0.08); transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease; }
+                            .multimedia-slot-card.drop-hover { border-color: rgba(56,189,248,0.95); box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 0 0 1px rgba(56,189,248,0.35), 0 0 22px rgba(34,211,238,0.35); transform: translateY(-1px); }
+                            .multimedia-slot-card.drop-active { border-color: rgba(14,165,233,1); box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 0 0 1px rgba(14,165,233,0.4), 0 0 30px rgba(14,165,233,0.44); transform: translateY(-2px); }
                             .multimedia-slot-card.is-assigned { border-color: rgba(34,197,94,0.95); box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 0 0 1px rgba(34,197,94,0.3); }
                             .multimedia-slot-card.is-missing { border-color: rgba(239,68,68,0.95); box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 0 0 1px rgba(239,68,68,0.24); }
                             .multimedia-slot-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
@@ -382,6 +389,12 @@
                             .multimedia-slot-preview { border-radius: 8px; overflow: hidden; aspect-ratio: 4/3; border: 1px dashed rgba(148,163,184,0.45); background: rgba(15,23,42,0.88); display: flex; align-items: center; justify-content: center; }
                             .multimedia-slot-preview img { width: 100%; height: 100%; object-fit: cover; display:block; }
                             .multimedia-slot-empty { color: #fca5a5; font-size: 10px; text-transform: uppercase; letter-spacing: .08em; font-weight: 700; text-align: center; padding: 0 8px; }
+                            .multimedia-slot-card.is-active { border-color: rgba(251,191,36,0.96); box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 0 0 1px rgba(251,191,36,0.32), 0 0 20px rgba(251,191,36,0.22); }
+                            .multimedia-slot-actions { display:grid; gap:6px; margin-top:8px; }
+                            .multimedia-slot-assign-btn, .multimedia-slot-add-btn { width:100%; border-radius:8px; padding:6px 8px; font-size:10px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; cursor:pointer; transition:filter .16s ease, transform .16s ease; }
+                            .multimedia-slot-assign-btn { border:1px solid rgba(74,222,128,0.7); background: rgba(20,83,45,0.78); color:#dcfce7; box-shadow:0 0 12px rgba(74,222,128,0.22); }
+                            .multimedia-slot-add-btn { border:1px solid rgba(125,211,252,0.6); background: rgba(2,6,23,0.82); color:#e2e8f0; box-shadow:0 0 12px rgba(34,211,238,0.22); }
+                            .multimedia-slot-assign-btn:hover, .multimedia-slot-add-btn:hover { transform: translateY(-1px); filter: brightness(1.08); }
                         </style>
                     </head>
                     <body class="text-slate-200">
@@ -411,6 +424,15 @@
                             const dbRef = window.opener && window.opener.firebase && window.opener.firebase.database ? window.opener.firebase.database() : null;
                             const normalizeLabel = (rawLabel = '') => validLabels.includes(rawLabel) ? rawLabel : '';
                             const brokenCards = new Set();
+                            const DND_PAYLOAD_TYPE = 'application/x-battle-slot-item';
+                            const isImagePayload = (payload) => String(payload?.mediaType || '').trim() === 'image';
+                            const assignToSlot = (payload = {}, slotId = '') => {
+                                if (!window.opener || !slotId || !isImagePayload(payload)) return false;
+                                const sourceIndex = Number(payload.sourceIndex);
+                                if (!Number.isInteger(sourceIndex) || sourceIndex < 0) return false;
+                                window.opener.postMessage({ type: 'SET_BATTLE_PHOTO_PREF', id: '${profileId}', slotId, index: sourceIndex, mediaType: 'image' }, '*');
+                                return true;
+                            };
                             const syncBrokenEmptyState = () => {
                                 const grid = document.getElementById('brokenGalleryGrid');
                                 const empty = document.getElementById('brokenGalleryEmpty');
@@ -433,8 +455,75 @@
                                 await galleryRef.set(currentItems);
                                 return true;
                             };
+                            let activeSlotSelectionId = '';
+                            const slotCards = Array.from(document.querySelectorAll('.multimedia-slot-card'));
+                            const setActiveSlotSelection = (slotId = '') => {
+                                activeSlotSelectionId = slotId || '';
+                                slotCards.forEach((card) => {
+                                    const isActive = activeSlotSelectionId && card.dataset.slotId === activeSlotSelectionId;
+                                    card.classList.toggle('is-active', Boolean(isActive));
+                                });
+                            };
+                            const slotConfigById = ${JSON.stringify(BATTLE_PHOTO_SLOTS.reduce((acc, slot) => {
+                acc[slot.id] = slot;
+                return acc;
+            }, {}))};
+                            const assignBattlePhotoFromGallery = async ({ slotId = '', sourceIndex = -1, mediaType = 'image', cardButton = null }) => {
+                                if (!slotId || sourceIndex < 0 || mediaType !== 'image') return false;
+                                if (slotId === 'perfil') {
+                                    window.alert('El casillero Perfil usa la foto principal del personaje.');
+                                    return false;
+                                }
+                                const slotConfig = slotConfigById[slotId];
+                                if (!slotConfig) return false;
+                                const photoLabel = (cardButton?.dataset.label || '').trim().toUpperCase();
+                                if (Array.isArray(slotConfig.labels) && slotConfig.labels.length && !slotConfig.labels.includes(photoLabel)) {
+                                    window.alert('Esa imagen no es compatible con el casillero seleccionado por su etiqueta.');
+                                    return false;
+                                }
+                                try {
+                                    if (dbRef && profileId) {
+                                        await dbRef.ref(\`perfiles/\${profileId}/batallaFotosPreferidas/\${slotId}\`).set(String(cardButton?.dataset.url || '').trim());
+                                    } else if (window.opener) {
+                                        window.opener.postMessage({ type: 'SET_BATTLE_PHOTO_PREF', id: profileId, slotId, index: sourceIndex, mediaType: 'image' }, '*');
+                                    } else {
+                                        return false;
+                                    }
+                                    window.alert('Imagen asignada al casillero seleccionado.');
+                                    setActiveSlotSelection('');
+                                    return true;
+                                } catch (error) {
+                                    console.error('No se pudo asignar la imagen del casillero:', error);
+                                    window.alert('No se pudo asignar la imagen al casillero.');
+                                    return false;
+                                }
+                            };
+                            document.querySelectorAll('[data-slot-assign]').forEach((button) => {
+                                button.addEventListener('click', () => {
+                                    const slotId = button.dataset.slotAssign || '';
+                                    setActiveSlotSelection(slotId);
+                                    window.alert('Listo. Ahora hacé click en una imagen de la galería para asignarla al casillero seleccionado.');
+                                });
+                            });
+                            document.querySelectorAll('[data-slot-add]').forEach((button) => {
+                                button.addEventListener('click', () => {
+                                    const slotId = button.dataset.slotAdd || '';
+                                    window.alert(\`Usá la edición de miniatura de Galería para cargar o actualizar la URL/archivo del casillero \${slotId}.\`);
+                                });
+                            });
 
                             document.querySelectorAll('.multimedia-thumb-btn').forEach((button) => {
+                                button.addEventListener('dragstart', (event) => {
+                                    const payload = {
+                                        sourceIndex: Number(button.dataset.index),
+                                        mediaType: button.dataset.mediaType || 'image',
+                                        url: button.dataset.url || ''
+                                    };
+                                    if (!isImagePayload(payload)) return;
+                                    event.dataTransfer.effectAllowed = 'copy';
+                                    event.dataTransfer.setData(DND_PAYLOAD_TYPE, JSON.stringify(payload));
+                                    event.dataTransfer.setData('text/plain', payload.url || '');
+                                });
                                 const isBrokenCard = button.dataset.brokenCard === 'true';
                                 const img = button.querySelector('img');
                                 if (isBrokenCard && img) {
@@ -452,6 +541,10 @@
                                 button.addEventListener('click', async () => {
                                     const sourceTag = button.dataset.tag || 'fotos';
                                     const sourceIndex = Number(button.dataset.index);
+                                    if (activeSlotSelectionId) {
+                                        const assigned = await assignBattlePhotoFromGallery({ slotId: activeSlotSelectionId, sourceIndex, mediaType: 'image', cardButton: button });
+                                        if (assigned) return;
+                                    }
                                     const currentUrl = button.dataset.url || '';
                                     const currentLabel = button.dataset.label || '';
                                     const nextUrl = window.prompt('Nueva URL de la multimedia:', currentUrl);
@@ -472,6 +565,30 @@
                                         console.error('No se pudo guardar multimedia:', error);
                                         window.alert('No se pudo actualizar esta multimedia.');
                                     }
+                                });
+                            });
+                            document.querySelectorAll('.multimedia-slot-card').forEach((slotCard) => {
+                                const slotId = slotCard.dataset.slotId || '';
+                                if (!slotId || slotId === 'perfil') return;
+                                slotCard.addEventListener('dragover', (event) => {
+                                    let payload = null;
+                                    try { payload = JSON.parse(event.dataTransfer.getData(DND_PAYLOAD_TYPE) || '{}'); } catch {}
+                                    if (!isImagePayload(payload)) return;
+                                    event.preventDefault();
+                                    event.dataTransfer.dropEffect = 'copy';
+                                    slotCard.classList.add('drop-hover');
+                                });
+                                slotCard.addEventListener('dragleave', () => {
+                                    slotCard.classList.remove('drop-hover', 'drop-active');
+                                });
+                                slotCard.addEventListener('drop', (event) => {
+                                    event.preventDefault();
+                                    slotCard.classList.remove('drop-hover');
+                                    slotCard.classList.add('drop-active');
+                                    let payload = null;
+                                    try { payload = JSON.parse(event.dataTransfer.getData(DND_PAYLOAD_TYPE) || '{}'); } catch {}
+                                    assignToSlot(payload, slotId);
+                                    setTimeout(() => slotCard.classList.remove('drop-active'), 160);
                                 });
                             });
 
@@ -1106,7 +1223,7 @@
                         ${GALLERY_LABELS.map(label => `<option value="${label}">Etiqueta ${label}</option>`).join('')}
                     </select>
                     <input type="hidden" id="slotSelectionId" value="">
-                    <p id="slotGalleryHint" style="display:none; margin:10px 0 0; font-size:11px; color:#93c5fd;">Tip: para “Elegir desde galería” también podés tocar los chips de slot sobre cada imagen.</p>
+                    <p id="slotGalleryHint" style="display:none; margin:10px 0 0; font-size:11px; color:#93c5fd;">Tip: para “Elegir desde galería” tocá una imagen compatible para asignarla.</p>
                     <button onclick="addMediaFromModal()"
                         style="margin-top: 15px; width: 100%; padding: 10px; background: linear-gradient(180deg, rgba(14,116,144,0.95), rgba(8,47,73,0.95)); color: #ecfeff; border: 1px solid rgba(103,232,249,0.9); border-radius: 8px; font-weight: 800; cursor: pointer; text-transform: uppercase; letter-spacing: 0.08em; box-shadow: 0 0 14px rgba(34,211,238,0.4);">
                         Guardar
@@ -1122,7 +1239,7 @@
                         const hasSelection = !!safeBattlePhotoPrefs[slot.id];
                         const canPickFromGallery = true;
                         return `
-                            <div style="border:1px solid ${hasSelection ? 'rgba(34,197,94,0.9)' : 'rgba(239,68,68,0.95)'}; border-radius:10px; padding:10px; background: rgba(15,23,42,0.75); box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 0 0 1px ${hasSelection ? 'rgba(34,197,94,0.28)' : 'rgba(239,68,68,0.24)'};">
+                            <div class="gallery-slot-card" data-slot-id="${slot.id}" style="border:1px solid ${hasSelection ? 'rgba(34,197,94,0.9)' : 'rgba(239,68,68,0.95)'}; border-radius:10px; padding:10px; background: rgba(15,23,42,0.75); box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 0 0 1px ${hasSelection ? 'rgba(34,197,94,0.28)' : 'rgba(239,68,68,0.24)'};">
                                 <div style="font-size:10px; color:#f8fafc; font-weight:900; letter-spacing:0.12em; text-transform:uppercase;">${slot.label}</div>
                                 <div style="font-size:11px; color:${hasSelection ? '#86efac' : '#fca5a5'}; margin-top:6px; font-weight:700;">
                                     Estado: ${hasSelection ? 'Asignada' : 'No asignada'}
@@ -1170,27 +1287,12 @@
                         "DEFAULT": { color: "#334155", sombra: "transparent" }
                     };
                     const estilo = config[profession?.toUpperCase()] || config["DEFAULT"];
-                    const compatibleSlots = getGalleryItemType(foto) === 'image' ? getCompatibleBattleSlotsForLabel(fotoLabel) : [];
-                    const battleButtons = compatibleSlots.length
-                        ? `<div style="position:absolute; left: 8px; right: 8px; bottom: 48px; z-index: 16; display:flex; flex-wrap:wrap; justify-content:center; gap:6px;">
-                            ${compatibleSlots.map((slot) => {
-                                const isSelected = safeBattlePhotoPrefs[slot.id] === fotoUrl;
-                                return `<button
-                                    onclick="event.stopPropagation(); window.opener.postMessage({type: 'SET_BATTLE_PHOTO_PREF', id: '${editingId}', slotId: '${slot.id}', index: ${foto.sourceIndex}, mediaType: '${getGalleryItemType(foto)}'}, '*');"
-                                    title="Usar en ${slot.label}"
-                                    style="border: 1px solid ${isSelected ? '#fbbf24' : 'rgba(148,163,184,0.45)'}; background: ${isSelected ? 'rgba(120,53,15,0.88)' : 'rgba(2,6,23,0.75)'}; color: ${isSelected ? '#fde68a' : '#e2e8f0'}; border-radius: 999px; padding: 4px 8px; font-size: 9px; font-weight: 900; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer;">
-                                    ${slot.label}${isSelected ? ' ✓' : ''}
-                                </button>`;
-                            }).join('')}
-                        </div>`
-                        : '';
                     return `
                         <div
                             class="gallery-card"
                             data-gallery-index="${index}"
                             data-source-index="${foto.sourceIndex}"
                             data-media-type="${getGalleryItemType(foto)}"
-                            data-compatible-slots="${compatibleSlots.map((slot) => slot.id).join(',')}"
                             title="Abrir visor de pantalla completa"
                             style="
                                 aspect-ratio: 1/1;
@@ -1241,7 +1343,6 @@
                             : `<img src="${fotoUrl}" alt="Imagen de la galería" onerror="${BROKEN_IMAGE_INLINE_HANDLER}" style="width: 100%; height: 100%; object-fit: cover;" />`
                         }
                         <div style="position:absolute; left: 12px; top: 12px; z-index: 15; padding: 6px 10px; border-radius: 999px; background: rgba(2,6,23,0.72); border: 1px solid rgba(148,163,184,0.24); color: #e2e8f0; display:flex; align-items:center; justify-content:center; font-size: 10px; font-weight: 900; letter-spacing: 0.2em; text-transform: uppercase; backdrop-filter: blur(8px);">${getGalleryItemType(foto) === 'video' ? 'VIDEO' : 'IMG'}</div>
-                        ${battleButtons}
                         ${fotoLabel ? `<div style="position:absolute; left: 50%; bottom: 10px; transform: translateX(-50%); z-index: 15; min-width: 52px; height: 30px; padding: 0 14px; border-radius: 999px; background: ${labelStyle.bg}; border: 1px solid ${labelStyle.border}; color: ${labelStyle.text}; display:flex; align-items:center; justify-content:center; font-size: 12px; font-weight: 900; letter-spacing: 0.24em; box-shadow: 0 0 14px ${labelStyle.glow}, 0 0 24px ${labelStyle.glow}; text-shadow: 0 0 10px ${labelStyle.glow}; backdrop-filter: blur(8px);">${fotoLabel}</div>` : ""}
                         </div>
                     `;
@@ -1291,6 +1392,7 @@
                     let viewerRandom = false;
                     let viewerAutoplayTimeout = null;
                     let activeSlotSelectionId = '';
+                    const DND_PAYLOAD_TYPE = 'application/x-battle-slot-item';
 
                     function isAllowedFileType(file) {
                         if (!file) return false;
@@ -1318,21 +1420,14 @@
                         alert('Listo. Ahora hacé click en una imagen de la galería para asignarla al casillero seleccionado (o tocá su chip de slot).');
                     }
 
-                    function tryAssignGalleryCardToActiveSlot(cardElement) {
-                        const slotId = activeSlotSelectionId || document.getElementById('slotSelectionId')?.value || '';
-                        if (!slotId || !cardElement || !window.opener) return false;
-                        const mediaType = cardElement.dataset.mediaType || 'image';
-                        if (mediaType !== 'image') {
-                            alert('Solo podés asignar imágenes en los casilleros principales.');
-                            return false;
-                        }
-                        const sourceIndex = Number(cardElement.dataset.sourceIndex);
+                    function isImagePayload(payload = {}) {
+                        return String(payload.mediaType || '').trim() === 'image';
+                    }
+
+                    function assignToSlot(payload = {}, slotId = '') {
+                        if (!slotId || !window.opener || !isImagePayload(payload)) return false;
+                        const sourceIndex = Number(payload.sourceIndex);
                         if (!Number.isInteger(sourceIndex) || sourceIndex < 0) return false;
-                        const compatibleSlots = (cardElement.dataset.compatibleSlots || '').split(',').map((value) => value.trim()).filter(Boolean);
-                        if (!compatibleSlots.includes(slotId)) {
-                            alert('Esa imagen no es compatible con el casillero seleccionado por su etiqueta.');
-                            return false;
-                        }
                         window.opener.postMessage({ type: 'SET_BATTLE_PHOTO_PREF', id: '${editingId}', slotId, index: sourceIndex, mediaType }, '*');
                         alert('Imagen asignada al casillero seleccionado.');
                         activeSlotSelectionId = '';
@@ -1402,6 +1497,44 @@
                             event.stopPropagation();
                             return;
                         }
+                    });
+                    galleryGrid?.addEventListener('dragstart', (event) => {
+                        const card = event.target.closest('.gallery-card');
+                        if (!card) return;
+                        const payload = {
+                            sourceIndex: Number(card.dataset.sourceIndex),
+                            mediaType: card.dataset.mediaType || 'image',
+                            url: card.dataset.url || '',
+                            compatibleSlots: card.dataset.compatibleSlots || ''
+                        };
+                        if (!isImagePayload(payload)) return;
+                        event.dataTransfer.effectAllowed = 'copy';
+                        event.dataTransfer.setData(DND_PAYLOAD_TYPE, JSON.stringify(payload));
+                        event.dataTransfer.setData('text/plain', payload.url || '');
+                    });
+                    document.querySelectorAll('.gallery-slot-card').forEach((slotCard) => {
+                        const slotId = slotCard.dataset.slotId || '';
+                        if (!slotId || slotId === 'perfil') return;
+                        slotCard.addEventListener('dragover', (event) => {
+                            let payload = null;
+                            try { payload = JSON.parse(event.dataTransfer.getData(DND_PAYLOAD_TYPE) || '{}'); } catch {}
+                            if (!isImagePayload(payload)) return;
+                            event.preventDefault();
+                            slotCard.style.filter = 'brightness(1.1)';
+                            slotCard.style.outline = '2px solid rgba(34,211,238,0.8)';
+                        });
+                        slotCard.addEventListener('dragleave', () => {
+                            slotCard.style.filter = '';
+                            slotCard.style.outline = '';
+                        });
+                        slotCard.addEventListener('drop', (event) => {
+                            event.preventDefault();
+                            slotCard.style.filter = '';
+                            slotCard.style.outline = '';
+                            let payload = null;
+                            try { payload = JSON.parse(event.dataTransfer.getData(DND_PAYLOAD_TYPE) || '{}'); } catch {}
+                            assignToSlot(payload, slotId);
+                        });
                     });
 
                     function getNextViewerIndex() {
@@ -1636,7 +1769,7 @@
             const [isGalleryPlaying, setIsGalleryPlaying] = useState(false);
             const [isGalleryRandom, setIsGalleryRandom] = useState(false);
             const [galleryPlaybackSeconds, setGalleryPlaybackSeconds] = useState(5);
-            const [galleryVisibleLimit, setGalleryVisibleLimit] = useState(40);
+            const [galleryVisibleLimit, setGalleryVisibleLimit] = useState(20);
             const [isSidebarOpen, setIsSidebarOpen] = useState(true);
             const [isEditingGalleryLabel, setIsEditingGalleryLabel] = useState(false);
             const [galleryLabelDraft, setGalleryLabelDraft] = useState('');
@@ -2057,8 +2190,6 @@ const getInitialCatFormData = () => ({
                         const currentItems = snapshot.val() || [];
                         const selectedItem = normalizeGalleryItem(currentItems[index], mediaType);
                         if (!selectedItem.url || selectedItem.type !== 'image') return;
-                        if (!slotConfig.labels.includes(selectedItem.label)) return;
-
                         const prefsRef = db.ref(`perfiles/${id}/batallaFotosPreferidas/${slotId}`);
                         await prefsRef.set(selectedItem.url);
                         setFormData(prev => ({
@@ -2076,7 +2207,6 @@ const getInitialCatFormData = () => ({
                         const normalizedUrl = String(url || '').trim();
                         if (!id || !slotConfig || !normalizedUrl) return;
                         if (mediaType === 'video') return;
-                        if (!slotConfig.labels.includes(label)) return;
                         const prefsRef = db.ref(`perfiles/${id}/batallaFotosPreferidas/${slotId}`);
                         await prefsRef.set(normalizedUrl);
                         setFormData(prev => ({
@@ -3679,8 +3809,8 @@ const saveProfile = (e) => {
                     .sort((a, b) => String(a?.nombre || '').localeCompare(String(b?.nombre || ''), 'es', { sensitivity: 'base' }));
             }, [perfiles, tallerSearchTerm, showIncompleteMainPhotosOnly]);
             const selectedTallerProfile = useMemo(
-                () => tallerProfiles.find((profile) => profile?.firebaseId === selectedTallerProfileId) || null,
-                [tallerProfiles, selectedTallerProfileId]
+                () => (perfiles || []).find((profile) => profile?.firebaseId === selectedTallerProfileId) || null,
+                [perfiles, selectedTallerProfileId]
             );
             useEffect(() => {
                 const closeTooltip = () => setTallerMissingPhotosTooltipProfileId('');
@@ -4421,7 +4551,7 @@ const saveProfile = (e) => {
                                 setSelectedGalleryBucket(bucket);
                                 setSelectedGalleryIndex(null);
                             }}
-                            className="group text-left theme-surface-card border theme-border-secondary rounded-[2.4rem] overflow-hidden hover:border-[color:color-mix(in_srgb,var(--metal-gold)_40%,transparent)] hover:shadow-[0_0_30px_rgba(34,211,238,0.12)] transition-all duration-500"
+                            className="group text-left theme-surface-card border theme-border-secondary rounded-[1.4rem] overflow-hidden hover:border-[color:color-mix(in_srgb,var(--metal-gold)_40%,transparent)] hover:shadow-[0_0_30px_rgba(34,211,238,0.12)] transition-all duration-500"
                         >
                             <div className="aspect-[4/5] bg-slate-950 relative overflow-hidden">
                                 {bucket.fotoPerfil ? (
@@ -4593,7 +4723,7 @@ const saveProfile = (e) => {
                         </div>
                     ) : (
                         <>
-                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-8">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                                 {visibleGalleryPhotos.map((photo, index) => {
                                 const labelStyle = getGalleryLabelStyle(photo.label);
 
@@ -4602,9 +4732,9 @@ const saveProfile = (e) => {
                                         key={photo.id}
                                         type="button"
                                         onClick={() => openGalleryViewer(index)}
-                                        className="group text-left theme-surface-card border theme-border-secondary rounded-[2.4rem] overflow-hidden hover:border-[color:color-mix(in_srgb,var(--metal-gold)_40%,transparent)] hover:shadow-[0_0_30px_rgba(34,211,238,0.12)] transition-all duration-500 focus:outline-none focus:ring-2 focus:ring-[var(--glow-gold)] focus:ring-offset-2 focus:ring-offset-[#020617]"
+                                        className="group text-left theme-surface-card border theme-border-secondary rounded-[1.4rem] overflow-hidden hover:border-[color:color-mix(in_srgb,var(--metal-gold)_40%,transparent)] hover:shadow-[0_0_30px_rgba(34,211,238,0.12)] transition-all duration-500 focus:outline-none focus:ring-2 focus:ring-[var(--glow-gold)] focus:ring-offset-2 focus:ring-offset-[#020617]"
                                     >
-                                        <div className="aspect-[4/5] relative overflow-hidden bg-slate-950">
+                                        <div className="aspect-[3/4] relative overflow-hidden bg-slate-950">
                                             {photo.type === 'video' ? (() => {
                                                 const embedInfo = getVideoEmbedInfo(photo.url);
                                                 if (embedInfo) {
@@ -4657,7 +4787,7 @@ const saveProfile = (e) => {
                                 <div className="flex justify-center mt-8">
                                     <button
                                         type="button"
-                                        onClick={() => setGalleryVisibleLimit((prev) => prev + 40)}
+                                        onClick={() => setGalleryVisibleLimit((prev) => prev + 20)}
                                         className="btn-metal btn-metal--silver inline-flex items-center gap-2 px-6 py-3 rounded-full text-[10px] text-slate-900"
                                     >
                                         Cargar más ({visibleGalleryPhotos.length}/{filteredGalleryPhotos.length})
