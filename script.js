@@ -147,6 +147,7 @@
             };
         };
         const VIDEO_FILE_REGEX = /\.(mp4|webm|ogg|mov|m4v)(\?.*)?$/i;
+        const AUDIO_FILE_REGEX = /\.(mp3|wav|ogg|m4a|aac|flac)(\?.*)?$/i;
         const GIF_FILE_REGEX = /\.gif(\?.*)?$/i;
         const YOUTUBE_REGEX = /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]{6,})/i;
         const VIMEO_REGEX = /vimeo\.com\/(?:video\/)?(\d+)/i;
@@ -2194,6 +2195,13 @@
             const [anonMediaLabel, setAnonMediaLabel] = useState(GALLERY_LABELS[0]);
             const [anonMediaAuthor, setAnonMediaAuthor] = useState('');
             const [anonMediaError, setAnonMediaError] = useState('');
+            const [galleryAudioTracks, setGalleryAudioTracks] = useState([]);
+            const [galleryAudioName, setGalleryAudioName] = useState('');
+            const [galleryAudioUrl, setGalleryAudioUrl] = useState('');
+            const [galleryAudioError, setGalleryAudioError] = useState('');
+            const [isGalleryMusicEnabled, setIsGalleryMusicEnabled] = useState(false);
+            const [selectedGalleryAudioA, setSelectedGalleryAudioA] = useState('');
+            const [selectedGalleryAudioB, setSelectedGalleryAudioB] = useState('');
             const [selectedTallerProfileId, setSelectedTallerProfileId] = useState('');
             const [isMultimediaModalOpen, setIsMultimediaModalOpen] = useState(false);
             const [isBrokenGalleryModalOpen, setIsBrokenGalleryModalOpen] = useState(false);
@@ -2206,6 +2214,8 @@
             const galleryPlaybackTimeoutRef = useRef(null);
             const galleryViewerOverlayRef = useRef(null);
             const galleryViewerMediaRef = useRef(null);
+            const galleryAudioARef = useRef(null);
+            const galleryAudioBRef = useRef(null);
             const pendingFullscreenRequestRef = useRef(false);
             const tallerLongPressTimeoutRef = useRef(null);
 
@@ -2544,6 +2554,30 @@ const getInitialCatFormData = () => ({
                     setAnonMediaError(error?.message || 'No se pudo guardar en galería anónima.');
                 }
             };
+            const addGalleryAudioTrack = async () => {
+                const normalizedName = String(galleryAudioName || '').trim();
+                const normalizedUrl = String(galleryAudioUrl || '').trim();
+                setGalleryAudioError('');
+                if (!normalizedName || !normalizedUrl) {
+                    setGalleryAudioError('Completá nombre y URL del audio.');
+                    return;
+                }
+                if (!AUDIO_FILE_REGEX.test(normalizedUrl)) {
+                    setGalleryAudioError('La URL debe apuntar a un archivo de audio válido.');
+                    return;
+                }
+                try {
+                    const audioRef = db.ref(`${ANON_GALLERY_NODE_PATH}/audios`);
+                    const snapshot = await audioRef.once('value');
+                    const currentAudios = Array.isArray(snapshot.val()) ? snapshot.val() : [];
+                    const updatedAudios = [...currentAudios, { nombre: normalizedName, url: normalizedUrl }];
+                    await audioRef.set(updatedAudios);
+                    setGalleryAudioName('');
+                    setGalleryAudioUrl('');
+                } catch (error) {
+                    setGalleryAudioError('No se pudo guardar el audio en Firebase.');
+                }
+            };
             const handleDelete = async (id, e) => {
                 e.stopPropagation(); // Esto es para que no se abra la foto cuando hacés click en la cruz
                 if(confirm('¿Estás seguro de que querés eliminar esto, corazón?')) {
@@ -2724,6 +2758,15 @@ const getInitialCatFormData = () => ({
                 });
                 anonGalleryRef.on('value', (snapshot) => {
                     anonGalleryData = snapshot.val() || {};
+                    const audios = Array.isArray(anonGalleryData?.audios)
+                        ? anonGalleryData.audios
+                            .map((audio) => ({
+                                nombre: String(audio?.nombre || '').trim(),
+                                url: String(audio?.url || '').trim()
+                            }))
+                            .filter((audio) => audio.nombre && audio.url)
+                        : [];
+                    setGalleryAudioTracks(audios);
                     refreshPerfilesState();
                 });
 
@@ -2747,6 +2790,24 @@ const getInitialCatFormData = () => ({
                     arenaGlobalRef.off();
                 };
             }, []);
+            useEffect(() => {
+                const primaryTrack = galleryAudioTracks.find((track) => track.url === selectedGalleryAudioA);
+                const secondaryTrack = galleryAudioTracks.find((track) => track.url === selectedGalleryAudioB);
+                [galleryAudioARef.current, galleryAudioBRef.current].forEach((audio) => {
+                    if (!audio) return;
+                    audio.pause();
+                    audio.currentTime = 0;
+                });
+                if (!isGalleryMusicEnabled) return;
+                if (primaryTrack && galleryAudioARef.current) {
+                    galleryAudioARef.current.src = primaryTrack.url;
+                    galleryAudioARef.current.play().catch(() => {});
+                }
+                if (secondaryTrack && galleryAudioBRef.current && secondaryTrack.url !== primaryTrack?.url) {
+                    galleryAudioBRef.current.src = secondaryTrack.url;
+                    galleryAudioBRef.current.play().catch(() => {});
+                }
+            }, [isGalleryMusicEnabled, selectedGalleryAudioA, selectedGalleryAudioB, galleryAudioTracks]);
 
             const calcularEdad = (fecha) => {
                 if (!fecha) return '?';
@@ -4877,6 +4938,29 @@ const saveProfile = (e) => {
                                     {anonMediaError && (
                                         <p className="md:col-span-2 text-xs font-black uppercase tracking-[0.12em] text-rose-300">{anonMediaError}</p>
                                     )}
+                                    <div className="md:col-span-2 border-t border-cyan-300/25 pt-4 mt-2 space-y-3">
+                                        <p className="text-[11px] uppercase tracking-[0.25em] text-cyan-200/80 font-black">Audio para botón 🎵</p>
+                                        <input
+                                            placeholder="Nombre del audio"
+                                            className="theme-surface-soft border theme-border-secondary p-3 rounded-xl outline-none text-white font-bold w-full"
+                                            value={galleryAudioName}
+                                            onChange={(event) => setGalleryAudioName(event.target.value)}
+                                        />
+                                        <input
+                                            placeholder="https://ejemplo.com/audio.mp3"
+                                            className="theme-surface-soft border theme-border-secondary p-3 rounded-xl outline-none text-white font-bold w-full"
+                                            value={galleryAudioUrl}
+                                            onChange={(event) => setGalleryAudioUrl(event.target.value)}
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={addGalleryAudioTrack}
+                                            className="px-5 py-3 rounded-xl font-black uppercase tracking-[0.14em] text-cyan-100 border border-cyan-300/50 bg-cyan-500/20 hover:bg-cyan-500/35 transition-all"
+                                        >
+                                            Guardar audio en Firebase
+                                        </button>
+                                        {galleryAudioError ? <p className="text-xs font-black uppercase tracking-[0.12em] text-rose-300">{galleryAudioError}</p> : null}
+                                    </div>
                                 </div>
                             </section>
                         </div>
@@ -5324,6 +5408,26 @@ const saveProfile = (e) => {
                             <LucideIcon name="play" size={14} />
                             Play {activeGalleryBucket?.nombre || currentGalleryModeLabel}
                         </button>
+                        <button
+                            type="button"
+                            onClick={() => setIsGalleryMusicEnabled((prev) => !prev)}
+                            className={`w-12 h-12 rounded-full border flex items-center justify-center text-2xl transition-all shadow-lg shadow-black/40 ${isGalleryMusicEnabled ? 'border-[var(--metal-gold)] bg-[color:color-mix(in_srgb,var(--metal-gold)_35%,rgba(2,6,23,0.9))] brightness-110' : 'theme-border-secondary bg-slate-900/85 opacity-80'}`}
+                            title="Música de galería"
+                        >
+                            🎵
+                        </button>
+                        {galleryAudioTracks.length > 0 && (
+                            <>
+                                <select className="filter-select min-w-[180px]" value={selectedGalleryAudioA} onChange={(event) => setSelectedGalleryAudioA(event.target.value)}>
+                                    <option value="">Audio principal</option>
+                                    {galleryAudioTracks.map((track, index) => <option key={`${track.url}-${index}`} value={track.url}>{track.nombre}</option>)}
+                                </select>
+                                <select className="filter-select min-w-[180px]" value={selectedGalleryAudioB} onChange={(event) => setSelectedGalleryAudioB(event.target.value)}>
+                                    <option value="">Audio secundario (opcional)</option>
+                                    {galleryAudioTracks.map((track, index) => <option key={`${track.url}-b-${index}`} value={track.url}>{track.nombre}</option>)}
+                                </select>
+                            </>
+                        )}
                         <div className="inline-flex items-center gap-2 rounded-full border theme-border-secondary bg-slate-950/80 px-3 py-2">
                             <label htmlFor="galleryPlaybackSeconds" className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-300">
                                 Duración
@@ -5445,6 +5549,8 @@ const saveProfile = (e) => {
                     )}
                 </>
             )}
+            <audio ref={galleryAudioARef} loop preload="none" />
+            <audio ref={galleryAudioBRef} loop preload="none" />
 
             {selectedGalleryPhoto && (
                 <div
