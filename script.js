@@ -56,7 +56,6 @@
         };
         const getBattleSlotById = (slotId = '') => BATTLE_PHOTO_SLOTS.find((slot) => slot.id === slotId);
         const getBattleSlotForArena = (arenaName = '') => BATTLE_ARENA_TO_SLOT[(arenaName || '').trim().toLowerCase()] || '';
-        const getCompatibleBattleSlotsForLabel = (label = '') => BATTLE_PHOTO_SLOTS.filter((slot) => slot.labels.includes(label));
         const GALLERY_LABEL_STYLES = {
             C: {
                 bg: 'linear-gradient(135deg, rgba(34,211,238,0.92), rgba(14,116,144,0.95))',
@@ -1173,14 +1172,12 @@
                         "DEFAULT": { color: "#334155", sombra: "transparent" }
                     };
                     const estilo = config[profession?.toUpperCase()] || config["DEFAULT"];
-                    const compatibleSlots = getGalleryItemType(foto) === 'image' ? getCompatibleBattleSlotsForLabel(fotoLabel) : [];
                     return `
                         <div
                             class="gallery-card"
                             data-gallery-index="${index}"
                             data-source-index="${foto.sourceIndex}"
                             data-media-type="${getGalleryItemType(foto)}"
-                            data-compatible-slots="${compatibleSlots.map((slot) => slot.id).join(',')}"
                             title="Abrir visor de pantalla completa"
                             style="
                                 aspect-ratio: 1/1;
@@ -1317,11 +1314,6 @@
                         }
                         const sourceIndex = Number(cardElement.dataset.sourceIndex);
                         if (!Number.isInteger(sourceIndex) || sourceIndex < 0) return false;
-                        const compatibleSlots = (cardElement.dataset.compatibleSlots || '').split(',').map((value) => value.trim()).filter(Boolean);
-                        if (!compatibleSlots.includes(slotId)) {
-                            alert('Esa imagen no es compatible con el casillero seleccionado por su etiqueta.');
-                            return false;
-                        }
                         window.opener.postMessage({ type: 'SET_BATTLE_PHOTO_PREF', id: '${editingId}', slotId, index: sourceIndex, mediaType }, '*');
                         alert('Imagen asignada al casillero seleccionado.');
                         activeSlotSelectionId = '';
@@ -1625,7 +1617,7 @@
             const [isGalleryPlaying, setIsGalleryPlaying] = useState(false);
             const [isGalleryRandom, setIsGalleryRandom] = useState(false);
             const [galleryPlaybackSeconds, setGalleryPlaybackSeconds] = useState(5);
-            const [galleryVisibleLimit, setGalleryVisibleLimit] = useState(40);
+            const [galleryVisibleLimit, setGalleryVisibleLimit] = useState(20);
             const [isSidebarOpen, setIsSidebarOpen] = useState(true);
             const [isEditingGalleryLabel, setIsEditingGalleryLabel] = useState(false);
             const [galleryLabelDraft, setGalleryLabelDraft] = useState('');
@@ -2046,8 +2038,6 @@ const getInitialCatFormData = () => ({
                         const currentItems = snapshot.val() || [];
                         const selectedItem = normalizeGalleryItem(currentItems[index], mediaType);
                         if (!selectedItem.url || selectedItem.type !== 'image') return;
-                        if (!slotConfig.labels.includes(selectedItem.label)) return;
-
                         const prefsRef = db.ref(`perfiles/${id}/batallaFotosPreferidas/${slotId}`);
                         await prefsRef.set(selectedItem.url);
                         setFormData(prev => ({
@@ -2065,7 +2055,6 @@ const getInitialCatFormData = () => ({
                         const normalizedUrl = String(url || '').trim();
                         if (!id || !slotConfig || !normalizedUrl) return;
                         if (mediaType === 'video') return;
-                        if (!slotConfig.labels.includes(label)) return;
                         const prefsRef = db.ref(`perfiles/${id}/batallaFotosPreferidas/${slotId}`);
                         await prefsRef.set(normalizedUrl);
                         setFormData(prev => ({
@@ -4410,7 +4399,7 @@ const saveProfile = (e) => {
                                 setSelectedGalleryBucket(bucket);
                                 setSelectedGalleryIndex(null);
                             }}
-                            className="group text-left theme-surface-card border theme-border-secondary rounded-[2.4rem] overflow-hidden hover:border-[color:color-mix(in_srgb,var(--metal-gold)_40%,transparent)] hover:shadow-[0_0_30px_rgba(34,211,238,0.12)] transition-all duration-500"
+                            className="group text-left theme-surface-card border theme-border-secondary rounded-[1.4rem] overflow-hidden hover:border-[color:color-mix(in_srgb,var(--metal-gold)_40%,transparent)] hover:shadow-[0_0_30px_rgba(34,211,238,0.12)] transition-all duration-500"
                         >
                             <div className="aspect-[4/5] bg-slate-950 relative overflow-hidden">
                                 {bucket.fotoPerfil ? (
@@ -4582,7 +4571,7 @@ const saveProfile = (e) => {
                         </div>
                     ) : (
                         <>
-                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-8">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                                 {visibleGalleryPhotos.map((photo, index) => {
                                 const labelStyle = getGalleryLabelStyle(photo.label);
 
@@ -4591,9 +4580,9 @@ const saveProfile = (e) => {
                                         key={photo.id}
                                         type="button"
                                         onClick={() => openGalleryViewer(index)}
-                                        className="group text-left theme-surface-card border theme-border-secondary rounded-[2.4rem] overflow-hidden hover:border-[color:color-mix(in_srgb,var(--metal-gold)_40%,transparent)] hover:shadow-[0_0_30px_rgba(34,211,238,0.12)] transition-all duration-500 focus:outline-none focus:ring-2 focus:ring-[var(--glow-gold)] focus:ring-offset-2 focus:ring-offset-[#020617]"
+                                        className="group text-left theme-surface-card border theme-border-secondary rounded-[1.4rem] overflow-hidden hover:border-[color:color-mix(in_srgb,var(--metal-gold)_40%,transparent)] hover:shadow-[0_0_30px_rgba(34,211,238,0.12)] transition-all duration-500 focus:outline-none focus:ring-2 focus:ring-[var(--glow-gold)] focus:ring-offset-2 focus:ring-offset-[#020617]"
                                     >
-                                        <div className="aspect-[4/5] relative overflow-hidden bg-slate-950">
+                                        <div className="aspect-[3/4] relative overflow-hidden bg-slate-950">
                                             {photo.type === 'video' ? (() => {
                                                 const embedInfo = getVideoEmbedInfo(photo.url);
                                                 if (embedInfo) {
@@ -4646,7 +4635,7 @@ const saveProfile = (e) => {
                                 <div className="flex justify-center mt-8">
                                     <button
                                         type="button"
-                                        onClick={() => setGalleryVisibleLimit((prev) => prev + 40)}
+                                        onClick={() => setGalleryVisibleLimit((prev) => prev + 20)}
                                         className="btn-metal btn-metal--silver inline-flex items-center gap-2 px-6 py-3 rounded-full text-[10px] text-slate-900"
                                     >
                                         Cargar más ({visibleGalleryPhotos.length}/{filteredGalleryPhotos.length})
