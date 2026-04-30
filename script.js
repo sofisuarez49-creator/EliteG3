@@ -219,6 +219,18 @@
         const getGalleryItemUrl = (item) => normalizeGalleryItem(item).url;
         const getGalleryItemLabel = (item) => normalizeGalleryItem(item).label;
         const getGalleryItemType = (item) => normalizeGalleryItem(item).type;
+
+        const getMissingMainPhotoMessages = (profile = {}) => {
+            const missing = [];
+            const profilePhotoUrl = getSafeImageSrc(String(profile?.fotos?.[0] || '').trim(), '');
+            const prefs = sanitizeBattlePhotoPreferences(profile?.batallaFotosPreferidas || profile?.galeria?.battlePhotoPreferences || {});
+            if (!profilePhotoUrl) missing.push('Falta Perfil');
+            if (!String(prefs?.colaPiernas || '').trim()) missing.push('Falta Cola/Pierna');
+            if (!String(prefs?.cuerpoCintura || '').trim()) missing.push('Falta Cintura/Cuerpo');
+            if (!String(prefs?.sensualidad || '').trim()) missing.push('Falta Sensualidad');
+            if (!String(prefs?.pechos || '').trim()) missing.push('Falta Pecho');
+            return missing;
+        };
         const hasAllMainPhotosAssigned = (profile = {}) => {
             const profilePhotoUrl = getSafeImageSrc(String(profile?.fotos?.[0] || '').trim(), '');
             const prefs = sanitizeBattlePhotoPreferences(profile?.batallaFotosPreferidas || profile?.galeria?.battlePhotoPreferences || {});
@@ -3997,6 +4009,8 @@ const saveProfile = (e) => {
                                 {tallerProfiles.map((p) => {
                                     const neonClass = getNeonClassByProfession(p.profesion);
                                     const isSelected = selectedTallerProfileId && selectedTallerProfileId === p.firebaseId;
+                                    const missingMainPhotos = getMissingMainPhotoMessages(p);
+                                    const showMissingTooltip = showIncompleteMainPhotosOnly && missingMainPhotos.length > 0;
                                     return (
                                         <button
                                             key={p.firebaseId || p.nombre}
@@ -4023,6 +4037,15 @@ const saveProfile = (e) => {
                                             >
                                                 {p.profesion || 'Profesión no definida'}
                                             </p>
+                                            {showMissingTooltip && (
+                                                <div className="incomplete-photo-tooltip" role="tooltip" aria-label="Casilleros de fotos faltantes">
+                                                    <ul>
+                                                        {missingMainPhotos.map((message) => (
+                                                            <li key={`${p.firebaseId || p.nombre}-${message}`}>{message}</li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            )}
                                         </button>
                                     );
                                 })}
