@@ -4859,9 +4859,18 @@ const saveProfile = (e) => {
                                         key={photo.id}
                                         type="button"
                                         onClick={() => openGalleryViewer(index)}
-                                        className="group text-left theme-surface-card border theme-border-secondary rounded-[1.4rem] overflow-hidden hover:border-[color:color-mix(in_srgb,var(--metal-gold)_40%,transparent)] hover:shadow-[0_0_30px_rgba(34,211,238,0.12)] transition-all duration-500 focus:outline-none focus:ring-2 focus:ring-[var(--glow-gold)] focus:ring-offset-2 focus:ring-offset-[#020617]"
+                                        className="group text-left theme-surface-card border rounded-[1.4rem] overflow-hidden transition-all duration-500 focus:outline-none focus:ring-2 focus:ring-[var(--glow-gold)] focus:ring-offset-2 focus:ring-offset-[#020617]"
                                         style={{
-                                            boxShadow: `inset 0 -30px 70px color-mix(in srgb, ${professionVisual.baseColor} 18%, transparent), 0 0 14px color-mix(in srgb, ${professionVisual.glowColor} 45%, transparent)`
+                                            borderColor: `color-mix(in srgb, ${professionVisual.glowColor} 72%, rgba(148,163,184,0.48) 28%)`,
+                                            boxShadow: `inset 0 -30px 70px color-mix(in srgb, ${professionVisual.baseColor} 18%, transparent), 0 0 16px color-mix(in srgb, ${professionVisual.glowColor} 58%, transparent), 0 0 34px color-mix(in srgb, ${professionVisual.glowColor} 35%, transparent)`
+                                        }}
+                                        onMouseEnter={(event) => {
+                                            event.currentTarget.style.transform = 'translateY(-2px) scale(1.01)';
+                                            event.currentTarget.style.boxShadow = `inset 0 -30px 70px color-mix(in srgb, ${professionVisual.baseColor} 20%, transparent), 0 0 26px color-mix(in srgb, ${professionVisual.glowColor} 76%, transparent), 0 0 58px color-mix(in srgb, ${professionVisual.glowColor} 52%, transparent)`;
+                                        }}
+                                        onMouseLeave={(event) => {
+                                            event.currentTarget.style.transform = 'translateY(0) scale(1)';
+                                            event.currentTarget.style.boxShadow = `inset 0 -30px 70px color-mix(in srgb, ${professionVisual.baseColor} 18%, transparent), 0 0 16px color-mix(in srgb, ${professionVisual.glowColor} 58%, transparent), 0 0 34px color-mix(in srgb, ${professionVisual.glowColor} 35%, transparent)`;
                                         }}
                                     >
                                         <div className="aspect-[3/4] relative overflow-hidden bg-slate-950">
@@ -4881,28 +4890,27 @@ const saveProfile = (e) => {
                                                 return <video src={photo.url} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" muted playsInline preload="none" />;
                                             })() : <img src={getSafeImageSrc(photo.url, CRYING_EMOJI_FALLBACK)} alt={`${photo.nombre} - ${photo.label || 'galería'}`} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" onError={applyCryingEmojiFallback} loading="lazy" decoding="async" />}
                                             <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-t from-cyan-950/40 via-transparent to-transparent" />
+                                            <div
+                                                className="absolute top-3 right-3 min-w-[32px] h-[32px] px-2 rounded-xl border flex items-center justify-center text-[10px] font-black uppercase shadow-xl z-20"
+                                                style={{
+                                                    background: labelStyle.bg,
+                                                    borderColor: labelStyle.border,
+                                                    color: labelStyle.text,
+                                                    boxShadow: `0 0 10px ${labelStyle.glow}, 0 0 24px color-mix(in srgb, ${labelStyle.glow} 48%, transparent)`
+                                                }}
+                                                title={`Etiqueta ${photo.label || 'sin etiqueta'}`}
+                                            >
+                                                {photo.label || '—'}
+                                            </div>
                                             <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-[#020617] via-[#020617]/60 to-transparent">
                                                 <div className="flex items-end justify-between gap-3">
-                                                    <div>
-                                                        <p className="text-xs sm:text-sm font-black italic text-white tracking-tight leading-none truncate whitespace-nowrap max-w-[130px] sm:max-w-[170px]" title={photo.nombre}>
+                                                    <div className="min-w-0 flex-1">
+                                                        <p className="text-xs sm:text-sm font-black italic text-white tracking-tight leading-none truncate" title={photo.nombre}>
                                                             {photo.nombre}
                                                         </p>
                                                     </div>
-                                                    <div className="flex flex-col items-end gap-2">
-                                                        <div className="px-2 py-[2px] rounded-full border theme-border-secondary bg-slate-950/85 text-[7px] font-black uppercase tracking-[0.18em] text-slate-200">
-                                                            {photo.type === 'video' ? 'VIDEO' : (photo.isGif ? 'GIF' : 'IMG')}
-                                                        </div>
-                                                        <div
-                                                            className="min-w-[32px] h-[32px] rounded-xl border flex items-center justify-center text-[10px] font-black uppercase shadow-xl"
-                                                            style={{
-                                                                background: labelStyle.bg,
-                                                                borderColor: labelStyle.border,
-                                                                color: labelStyle.text,
-                                                                boxShadow: `0 0 10px ${labelStyle.glow}`
-                                                            }}
-                                                        >
-                                                            {photo.label || '—'}
-                                                        </div>
+                                                    <div className="px-2 py-[2px] rounded-full border theme-border-secondary bg-slate-950/85 text-[7px] font-black uppercase tracking-[0.18em] text-slate-200 shrink-0">
+                                                        {photo.type === 'video' ? 'VIDEO' : (photo.isGif ? 'GIF' : 'IMG')}
                                                     </div>
                                                 </div>
                                             </div>
