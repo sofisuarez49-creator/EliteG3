@@ -478,11 +478,6 @@
                                 }
                                 const slotConfig = slotConfigById[slotId];
                                 if (!slotConfig) return false;
-                                const photoLabel = (cardButton?.dataset.label || '').trim().toUpperCase();
-                                if (Array.isArray(slotConfig.labels) && slotConfig.labels.length && !slotConfig.labels.includes(photoLabel)) {
-                                    window.alert('Esa imagen no es compatible con el casillero seleccionado por su etiqueta.');
-                                    return false;
-                                }
                                 try {
                                     if (dbRef && profileId) {
                                         await dbRef.ref(\`perfiles/\${profileId}/batallaFotosPreferidas/\${slotId}\`).set(String(cardButton?.dataset.url || '').trim());
@@ -751,7 +746,7 @@
             const preferences = sanitizeBattlePhotoPreferences(profile?.batallaFotosPreferidas);
             const preferredUrl = preferences[slotId];
             if (preferredUrl) {
-                const preferredExists = galleryImages.some((item) => item.url === preferredUrl && slotConfig.labels.includes(getGalleryItemLabel(item)));
+                const preferredExists = galleryImages.some((item) => item.url === preferredUrl);
                 if (preferredExists) {
                     return preferredUrl;
                 }
@@ -1225,7 +1220,7 @@
                         ${GALLERY_LABELS.map(label => `<option value="${label}">Etiqueta ${label}</option>`).join('')}
                     </select>
                     <input type="hidden" id="slotSelectionId" value="">
-                    <p id="slotGalleryHint" style="display:none; margin:10px 0 0; font-size:11px; color:#93c5fd;">Tip: para “Elegir desde galería” tocá una imagen compatible para asignarla.</p>
+                    <p id="slotGalleryHint" style="display:none; margin:10px 0 0; font-size:11px; color:#93c5fd;">Tip: para “Elegir desde galería” tocá cualquier imagen para asignarla.</p>
                     <button onclick="addMediaFromModal()"
                         style="margin-top: 15px; width: 100%; padding: 10px; background: linear-gradient(180deg, rgba(14,116,144,0.95), rgba(8,47,73,0.95)); color: #ecfeff; border: 1px solid rgba(103,232,249,0.9); border-radius: 8px; font-weight: 800; cursor: pointer; text-transform: uppercase; letter-spacing: 0.08em; box-shadow: 0 0 14px rgba(34,211,238,0.4);">
                         Guardar
