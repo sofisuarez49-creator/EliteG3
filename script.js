@@ -2223,55 +2223,43 @@ const getInitialCatFormData = () => ({
                     return acc;
                 }, {});
             }, [perfiles, categorias]);
-            const allGalleryPhotos = useMemo(() => {
+            const allGalleryMediaEntries = useMemo(() => {
                 return (perfiles || []).flatMap((perfil) => {
                     const galleryItems = [
                         ...(Array.isArray(perfil?.galeria?.fotos)
-                            ? perfil.galeria.fotos.map((item, sourceIndex) => ({
-                                ...normalizeGalleryItem(item, 'image'),
-                                sourceTag: 'fotos',
-                                sourceIndex
-                            }))
+                            ? perfil.galeria.fotos.map((item, sourceIndex) => ({ item, sourceTag: 'fotos', sourceIndex, fallbackType: 'image' }))
                             : []),
                         ...(Array.isArray(perfil?.galeria?.gifs)
-                            ? perfil.galeria.gifs.map((item, sourceIndex) => ({
-                                ...normalizeGalleryItem(item, 'image'),
-                                sourceTag: 'gifs',
-                                sourceIndex
-                            }))
+                            ? perfil.galeria.gifs.map((item, sourceIndex) => ({ item, sourceTag: 'gifs', sourceIndex, fallbackType: 'image' }))
                             : []),
                         ...(Array.isArray(perfil?.galeria?.videos)
-                            ? perfil.galeria.videos.map((item, sourceIndex) => ({
-                                ...normalizeGalleryItem(item, 'video'),
-                                sourceTag: 'videos',
-                                sourceIndex
-                            }))
+                            ? perfil.galeria.videos.map((item, sourceIndex) => ({ item, sourceTag: 'videos', sourceIndex, fallbackType: 'video' }))
                             : [])
                     ];
 
-                    return galleryItems
-                        .map((item, index) => {
-                            const normalizedItem = normalizeGalleryItem(item);
-                            if (!normalizedItem.url) return null;
-
-                            return {
-                                id: `${perfil.firebaseId || perfil.nombre || 'perfil'}-${index}-${normalizedItem.url}`,
-                                url: normalizedItem.url,
-                                label: normalizedItem.label,
-                                type: normalizedItem.type,
-                                isGif: normalizedItem.type === 'image' && isGifUrl(normalizedItem.url),
-                                nombre: perfil.nombre || 'Sin nombre',
-                                profesion: perfil.profesion || 'Perfil',
-                                nacionalidad: perfil.nacionalidad || '',
-                                fotoPerfil: perfil.fotos?.[0] || normalizedItem.url,
-                                profileId: perfil.firebaseId,
-                                sourceTag: item.sourceTag || (normalizedItem.type === 'video' ? 'videos' : 'fotos'),
-                                sourceIndex: Number.isInteger(item.sourceIndex) ? item.sourceIndex : index
-                            };
-                        })
-                        .filter(Boolean);
+                    return galleryItems.map(({ item, sourceTag, sourceIndex, fallbackType }) => {
+                        const normalizedItem = normalizeGalleryItem(item, fallbackType);
+                        const entryId = `${perfil.firebaseId || perfil.nombre || 'perfil'}-${sourceTag}-${sourceIndex}`;
+                        return {
+                            id: entryId,
+                            url: normalizedItem.url,
+                            label: normalizedItem.label,
+                            type: normalizedItem.type,
+                            isGif: normalizedItem.type === 'image' && isGifUrl(normalizedItem.url),
+                            nombre: perfil.nombre || 'Sin nombre',
+                            profesion: perfil.profesion || 'Perfil',
+                            nacionalidad: perfil.nacionalidad || '',
+                            fotoPerfil: perfil.fotos?.[0] || normalizedItem.url,
+                            profileId: perfil.firebaseId,
+                            sourceTag,
+                            sourceIndex
+                        };
+                    });
                 });
             }, [perfiles]);
+            const allGalleryPhotos = useMemo(() => {
+                return allGalleryMediaEntries.filter((item) => Boolean(item.url));
+            }, [allGalleryMediaEntries]);
             const galleryBuckets = useMemo(() => {
                 if (galleryViewMode === 'GENERAL') {
                     return [{
@@ -2393,8 +2381,12 @@ const getInitialCatFormData = () => ({
                 ? null
                 : filteredGalleryPhotos[clampIndex(selectedGalleryIndex, filteredGalleryPhotos.length)] || null;
             const brokenGalleryPhotos = useMemo(() => {
-                return allGalleryPhotos.filter((photo) => photo.type === 'image' && brokenGalleryMap[photo.id]);
-            }, [allGalleryPhotos, brokenGalleryMap]);
+                return allGalleryMediaEntries.filter((photo) => {
+                    if (photo.type !== 'image') return false;
+                    if (!photo.url) return true;
+                    return Boolean(brokenGalleryMap[photo.id]);
+                });
+            }, [allGalleryMediaEntries, brokenGalleryMap]);
             const brokenGalleryGroups = useMemo(() => {
                 const grouped = brokenGalleryPhotos.reduce((acc, photo) => {
                     const key = photo.profileId || photo.nombre || 'sin-perfil';
@@ -2520,7 +2512,7 @@ const getInitialCatFormData = () => ({
             }, [contextMenuOpen]);
             useEffect(() => {
                 let isCancelled = false;
-                const imagePhotos = allGalleryPhotos.filter((photo) => photo.type === 'image' && photo.url);
+                const imagePhotos = allGalleryMediaEntries.filter((photo) => photo.type === 'image' && photo.url);
 
                 if (!imagePhotos.length) {
                     setBrokenGalleryMap({});
@@ -2553,7 +2545,7 @@ const getInitialCatFormData = () => ({
 
                 run();
                 return () => { isCancelled = true; };
-            }, [allGalleryPhotos]);
+            }, [allGalleryMediaEntries]);
             useEffect(() => {
                 if (!isBrokenGalleryModalOpen) return;
                 const nextDrafts = brokenGalleryPhotos.reduce((acc, photo) => {
