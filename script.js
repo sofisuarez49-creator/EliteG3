@@ -332,6 +332,10 @@
                                 ? `<img src="${assignedPhoto.url}" alt="${slot.label}" loading="lazy" />`
                                 : '<span class="multimedia-slot-empty">Sin foto designada</span>'}
                         </div>
+                        <div class="multimedia-slot-actions">
+                            ${!isProfileSlot ? `<button type="button" class="multimedia-slot-assign-btn" data-slot-assign="${slot.id}">DESIGNAR FOTO</button>` : ''}
+                            <button type="button" class="multimedia-slot-add-btn" data-slot-add="${slot.id}">Agregar URL/Archivo</button>
+                        </div>
                     </div>
                 `;
             }).join('');
@@ -387,6 +391,12 @@
                             .multimedia-slot-preview { border-radius: 8px; overflow: hidden; aspect-ratio: 4/3; border: 1px dashed rgba(148,163,184,0.45); background: rgba(15,23,42,0.88); display: flex; align-items: center; justify-content: center; }
                             .multimedia-slot-preview img { width: 100%; height: 100%; object-fit: cover; display:block; }
                             .multimedia-slot-empty { color: #fca5a5; font-size: 10px; text-transform: uppercase; letter-spacing: .08em; font-weight: 700; text-align: center; padding: 0 8px; }
+                            .multimedia-slot-card.is-active { border-color: rgba(251,191,36,0.96); box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 0 0 1px rgba(251,191,36,0.32), 0 0 20px rgba(251,191,36,0.22); }
+                            .multimedia-slot-actions { display:grid; gap:6px; margin-top:8px; }
+                            .multimedia-slot-assign-btn, .multimedia-slot-add-btn { width:100%; border-radius:8px; padding:6px 8px; font-size:10px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; cursor:pointer; transition:filter .16s ease, transform .16s ease; }
+                            .multimedia-slot-assign-btn { border:1px solid rgba(74,222,128,0.7); background: rgba(20,83,45,0.78); color:#dcfce7; box-shadow:0 0 12px rgba(74,222,128,0.22); }
+                            .multimedia-slot-add-btn { border:1px solid rgba(125,211,252,0.6); background: rgba(2,6,23,0.82); color:#e2e8f0; box-shadow:0 0 12px rgba(34,211,238,0.22); }
+                            .multimedia-slot-assign-btn:hover, .multimedia-slot-add-btn:hover { transform: translateY(-1px); filter: brightness(1.08); }
                         </style>
                     </head>
                     <body class="text-slate-200">
@@ -447,6 +457,62 @@
                                 await galleryRef.set(currentItems);
                                 return true;
                             };
+                            let activeSlotSelectionId = '';
+                            const slotCards = Array.from(document.querySelectorAll('.multimedia-slot-card'));
+                            const setActiveSlotSelection = (slotId = '') => {
+                                activeSlotSelectionId = slotId || '';
+                                slotCards.forEach((card) => {
+                                    const isActive = activeSlotSelectionId && card.dataset.slotId === activeSlotSelectionId;
+                                    card.classList.toggle('is-active', Boolean(isActive));
+                                });
+                            };
+                            const slotConfigById = ${JSON.stringify(BATTLE_PHOTO_SLOTS.reduce((acc, slot) => {
+                acc[slot.id] = slot;
+                return acc;
+            }, {}))};
+                            const assignBattlePhotoFromGallery = async ({ slotId = '', sourceIndex = -1, mediaType = 'image', cardButton = null }) => {
+                                if (!slotId || sourceIndex < 0 || mediaType !== 'image') return false;
+                                if (slotId === 'perfil') {
+                                    window.alert('El casillero Perfil usa la foto principal del personaje.');
+                                    return false;
+                                }
+                                const slotConfig = slotConfigById[slotId];
+                                if (!slotConfig) return false;
+                                const photoLabel = (cardButton?.dataset.label || '').trim().toUpperCase();
+                                if (Array.isArray(slotConfig.labels) && slotConfig.labels.length && !slotConfig.labels.includes(photoLabel)) {
+                                    window.alert('Esa imagen no es compatible con el casillero seleccionado por su etiqueta.');
+                                    return false;
+                                }
+                                try {
+                                    if (dbRef && profileId) {
+                                        await dbRef.ref(\`perfiles/\${profileId}/batallaFotosPreferidas/\${slotId}\`).set(String(cardButton?.dataset.url || '').trim());
+                                    } else if (window.opener) {
+                                        window.opener.postMessage({ type: 'SET_BATTLE_PHOTO_PREF', id: profileId, slotId, index: sourceIndex, mediaType: 'image' }, '*');
+                                    } else {
+                                        return false;
+                                    }
+                                    window.alert('Imagen asignada al casillero seleccionado.');
+                                    setActiveSlotSelection('');
+                                    return true;
+                                } catch (error) {
+                                    console.error('No se pudo asignar la imagen del casillero:', error);
+                                    window.alert('No se pudo asignar la imagen al casillero.');
+                                    return false;
+                                }
+                            };
+                            document.querySelectorAll('[data-slot-assign]').forEach((button) => {
+                                button.addEventListener('click', () => {
+                                    const slotId = button.dataset.slotAssign || '';
+                                    setActiveSlotSelection(slotId);
+                                    window.alert('Listo. Ahora hacé click en una imagen de la galería para asignarla al casillero seleccionado.');
+                                });
+                            });
+                            document.querySelectorAll('[data-slot-add]').forEach((button) => {
+                                button.addEventListener('click', () => {
+                                    const slotId = button.dataset.slotAdd || '';
+                                    window.alert(\`Usá la edición de miniatura de Galería para cargar o actualizar la URL/archivo del casillero \${slotId}.\`);
+                                });
+                            });
 
                             document.querySelectorAll('.multimedia-thumb-btn').forEach((button) => {
                                 button.addEventListener('dragstart', (event) => {
@@ -477,6 +543,10 @@
                                 button.addEventListener('click', async () => {
                                     const sourceTag = button.dataset.tag || 'fotos';
                                     const sourceIndex = Number(button.dataset.index);
+                                    if (activeSlotSelectionId) {
+                                        const assigned = await assignBattlePhotoFromGallery({ slotId: activeSlotSelectionId, sourceIndex, mediaType: 'image', cardButton: button });
+                                        if (assigned) return;
+                                    }
                                     const currentUrl = button.dataset.url || '';
                                     const currentLabel = button.dataset.label || '';
                                     const nextUrl = window.prompt('Nueva URL de la multimedia:', currentUrl);
