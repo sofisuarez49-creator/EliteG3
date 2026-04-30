@@ -220,17 +220,6 @@
         const getGalleryItemLabel = (item) => normalizeGalleryItem(item).label;
         const getGalleryItemType = (item) => normalizeGalleryItem(item).type;
 
-        const getMissingMainPhotoMessages = (profile = {}) => {
-            const missing = [];
-            const profilePhotoUrl = getSafeImageSrc(String(profile?.fotos?.[0] || '').trim(), '');
-            const prefs = sanitizeBattlePhotoPreferences(profile?.batallaFotosPreferidas || profile?.galeria?.battlePhotoPreferences || {});
-            if (!profilePhotoUrl) missing.push('Falta Perfil');
-            if (!String(prefs?.colaPiernas || '').trim()) missing.push('Falta Cola/Pierna');
-            if (!String(prefs?.cuerpoCintura || '').trim()) missing.push('Falta Cintura/Cuerpo');
-            if (!String(prefs?.sensualidad || '').trim()) missing.push('Falta Sensualidad');
-            if (!String(prefs?.pechos || '').trim()) missing.push('Falta Pecho');
-            return missing;
-        };
         const hasAllMainPhotosAssigned = (profile = {}) => {
             const profilePhotoUrl = getSafeImageSrc(String(profile?.fotos?.[0] || '').trim(), '');
             const prefs = sanitizeBattlePhotoPreferences(profile?.batallaFotosPreferidas || profile?.galeria?.battlePhotoPreferences || {});
@@ -1651,8 +1640,6 @@
             const [brokenGallerySavingMap, setBrokenGallerySavingMap] = useState({});
             const [brokenGalleryEditingMap, setBrokenGalleryEditingMap] = useState({});
             const [showIncompleteMainPhotosOnly, setShowIncompleteMainPhotosOnly] = useState(false);
-            const [incompletePhotosMenuProfileId, setIncompletePhotosMenuProfileId] = useState('');
-            const longPressTimerRef = useRef(null);
             const galleryPlaybackTimeoutRef = useRef(null);
 
 const getInitialCatFormData = () => ({
@@ -2807,16 +2794,6 @@ const saveProfile = (e) => {
                 setContextMenuPosition({ x: event.clientX, y: event.clientY });
                 setContextProfile(profile);
             };
-            const clearIncompletePhotosLongPress = () => {
-                if (!longPressTimerRef.current) return;
-                clearTimeout(longPressTimerRef.current);
-                longPressTimerRef.current = null;
-            };
-            const openIncompletePhotosMenu = (profileId = '') => {
-                if (!profileId) return;
-                setIncompletePhotosMenuProfileId((prev) => prev === profileId ? '' : profileId);
-            };
-
             const handleContextEdit = () => {
                 if (!contextProfile) return;
                 setFormData(mapProfileToFormData(contextProfile));
@@ -4020,29 +3997,11 @@ const saveProfile = (e) => {
                                 {tallerProfiles.map((p) => {
                                     const neonClass = getNeonClassByProfession(p.profesion);
                                     const isSelected = selectedTallerProfileId && selectedTallerProfileId === p.firebaseId;
-                                    const missingMainPhotos = getMissingMainPhotoMessages(p);
-                                    const showMissingTooltip = showIncompleteMainPhotosOnly && missingMainPhotos.length > 0;
                                     return (
                                         <button
                                             key={p.firebaseId || p.nombre}
                                             type="button"
-                                            onContextMenu={(event) => {
-                                                if (!showMissingTooltip) return;
-                                                event.preventDefault();
-                                                openIncompletePhotosMenu(p.firebaseId || p.nombre || '');
-                                            }}
-                                            onTouchStart={() => {
-                                                if (!showMissingTooltip) return;
-                                                clearIncompletePhotosLongPress();
-                                                longPressTimerRef.current = setTimeout(() => {
-                                                    openIncompletePhotosMenu(p.firebaseId || p.nombre || '');
-                                                }, 550);
-                                            }}
-                                            onTouchEnd={clearIncompletePhotosLongPress}
-                                            onTouchCancel={clearIncompletePhotosLongPress}
                                             onClick={() => {
-                                                clearIncompletePhotosLongPress();
-                                                setIncompletePhotosMenuProfileId('');
                                                 setSelectedTallerProfileId('');
                                                 openProfileEditor(p);
                                             }}
@@ -4064,15 +4023,6 @@ const saveProfile = (e) => {
                                             >
                                                 {p.profesion || 'Profesión no definida'}
                                             </p>
-                                            {showMissingTooltip && incompletePhotosMenuProfileId === (p.firebaseId || p.nombre || '') && (
-                                                <div className="incomplete-photo-tooltip" role="tooltip" aria-label="Casilleros de fotos faltantes">
-                                                    <ul>
-                                                        {missingMainPhotos.map((message) => (
-                                                            <li key={`${p.firebaseId || p.nombre}-${message}`}>{message}</li>
-                                                        ))}
-                                                    </ul>
-                                                </div>
-                                            )}
                                         </button>
                                     );
                                 })}
