@@ -1239,9 +1239,10 @@
                     <div style="padding: 0 14px 14px; display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px;">
                     ${BATTLE_PHOTO_SLOTS.map((slot) => {
                         const isProfileSlot = slot.id === 'perfil';
-                        const hasSelection = isProfileSlot
-                            ? !!normalizedProfilePhotoUrl
-                            : !!safeBattlePhotoPrefs[slot.id];
+                        const assignedUrl = isProfileSlot
+                            ? normalizedProfilePhotoUrl
+                            : (safeBattlePhotoPrefs[slot.id] || '');
+                        const hasSelection = Boolean(assignedUrl);
                         const canPickFromGallery = !isProfileSlot;
                         return `
                             <div class="gallery-slot-card" data-slot-id="${slot.id}" style="border:1px solid ${hasSelection ? 'rgba(34,197,94,0.9)' : 'rgba(239,68,68,0.95)'}; border-radius:10px; padding:10px; background: rgba(15,23,42,0.75); box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 0 0 1px ${hasSelection ? 'rgba(34,197,94,0.28)' : 'rgba(239,68,68,0.24)'};">
@@ -1251,6 +1252,11 @@
                                 </div>
                                 <div style="font-size:10px; color:${hasSelection ? '#86efac' : '#fca5a5'}; margin-top:4px;">
                                     ${hasSelection ? '✅ Foto asignada' : '❌ Sin foto asignada'}
+                                </div>
+                                <div style="margin-top:8px; border-radius:8px; overflow:hidden; aspect-ratio:4/3; border:1px dashed rgba(148,163,184,0.45); background: rgba(2,6,23,0.86); display:flex; align-items:center; justify-content:center;">
+                                    ${hasSelection
+                                        ? `<img src="${assignedUrl}" alt="Vista previa ${slot.label}" onerror="${BROKEN_IMAGE_INLINE_HANDLER}" style="width:100%; height:100%; object-fit:cover; display:block;" />`
+                                        : '<span style="font-size:10px; color:#fca5a5; text-transform:uppercase; letter-spacing:0.08em; font-weight:700; text-align:center; padding:0 8px;">Sin foto designada</span>'}
                                 </div>
                                 <div style="display:grid; gap:6px; margin-top:8px;">
                                     <button
