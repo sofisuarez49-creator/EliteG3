@@ -199,12 +199,16 @@
             }
             return 'image';
         };
+        const normalizeGalleryAuthor = (author = '') => {
+            return typeof author === 'string' ? author.trim() : '';
+        };
         const normalizeGalleryItem = (item, fallbackType = '') => {
             if (typeof item === 'string') {
                 return {
                     url: getSafeImageSrc(item.trim(), ''),
                     label: '',
-                    type: detectGalleryItemType(item, fallbackType)
+                    type: detectGalleryItemType(item, fallbackType),
+                    autor: ''
                 };
             }
             if (item && typeof item === 'object') {
@@ -212,10 +216,11 @@
                 return {
                     url,
                     label: GALLERY_LABELS.includes(item.label) ? item.label : '',
-                    type: detectGalleryItemType(url, item.type || fallbackType)
+                    type: detectGalleryItemType(url, item.type || fallbackType),
+                    autor: normalizeGalleryAuthor(item.autor)
                 };
             }
-            return { url: '', label: '', type: detectGalleryItemType('', fallbackType) };
+            return { url: '', label: '', type: detectGalleryItemType('', fallbackType), autor: '' };
         };
         const getGalleryItemUrl = (item) => normalizeGalleryItem(item).url;
         const getGalleryItemLabel = (item) => normalizeGalleryItem(item).label;
@@ -480,8 +485,8 @@
                                 if (!currentItems[sourceIndex]) return false;
                                 const rawItem = currentItems[sourceIndex];
                                 const nextItem = typeof rawItem === 'string'
-                                    ? { url: String(url || '').trim(), label: normalizeLabel(label), type: 'image' }
-                                    : { ...rawItem, url: String(url || '').trim(), label: normalizeLabel(label) };
+                                    ? { url: String(url || '').trim(), label: normalizeLabel(label), type: 'image', autor: '' }
+                                    : { ...rawItem, url: String(url || '').trim(), label: normalizeLabel(label), autor: normalizeGalleryAuthor(rawItem?.autor) };
                                 currentItems[sourceIndex] = nextItem;
                                 await galleryRef.set(currentItems);
                                 return true;
@@ -1345,6 +1350,7 @@
                     <select id="nuevaFotoEtiqueta" style="width: 100%; padding: 12px; margin-top: 15px; background: #020617; border: 1px solid rgba(71,85,105,0.92); color: #e2e8f0; border-radius: 8px; outline: none; box-shadow: inset 0 1px 0 rgba(148,163,184,0.18);">
                         ${GALLERY_LABELS.map(label => `<option value="${label}">Etiqueta ${label}</option>`).join('')}
                     </select>
+                    <input type="text" id="nuevaFotoAutor" placeholder="Autor (opcional)" style="width: 100%; padding: 12px; margin-top: 15px; background: #020617; border: 1px solid rgba(71,85,105,0.92); color: #e2e8f0; border-radius: 8px; outline: none; box-shadow: inset 0 1px 0 rgba(148,163,184,0.18);">
                     <input type="hidden" id="slotSelectionId" value="">
                     <p id="slotGalleryHint" style="display:none; margin:10px 0 0; font-size:11px; color:#93c5fd;">Tip: para “Elegir desde galería” tocá cualquier imagen para asignarla.</p>
                     <button onclick="addMediaFromModal()"
@@ -1479,6 +1485,7 @@
                         }
                         <div style="position:absolute; left: 12px; top: 12px; z-index: 15; padding: 6px 10px; border-radius: 999px; background: rgba(2,6,23,0.72); border: 1px solid rgba(148,163,184,0.24); color: #e2e8f0; display:flex; align-items:center; justify-content:center; font-size: 10px; font-weight: 900; letter-spacing: 0.2em; text-transform: uppercase; backdrop-filter: blur(8px);">${getGalleryItemType(foto) === 'video' ? 'VIDEO' : 'IMG'}</div>
                         ${fotoLabel ? `<div style="position:absolute; left: 50%; bottom: 10px; transform: translateX(-50%); z-index: 15; min-width: 52px; height: 30px; padding: 0 14px; border-radius: 999px; background: ${labelStyle.bg}; border: 1px solid ${labelStyle.border}; color: ${labelStyle.text}; display:flex; align-items:center; justify-content:center; font-size: 12px; font-weight: 900; letter-spacing: 0.24em; box-shadow: 0 0 14px ${labelStyle.glow}, 0 0 24px ${labelStyle.glow}; text-shadow: 0 0 10px ${labelStyle.glow}; backdrop-filter: blur(8px);">${fotoLabel}</div>` : ""}
+                        ${foto.autor ? `<div style="position:absolute; left:10px; right:10px; bottom:${fotoLabel ? '48px' : '10px'}; z-index:15; padding:6px 8px; border-radius:10px; background:rgba(2,6,23,0.74); border:1px solid rgba(148,163,184,0.3); color:#e2e8f0; font-size:10px; line-height:1.2; font-weight:700; letter-spacing:0.04em; text-align:left; backdrop-filter:blur(6px);">Autor: ${foto.autor}</div>` : ""}
                         </div>
                     `;
                 }).join('') : '<p style="text-align:center; grid-column: 1/-1; color: #64748b;">No hay archivos cargados.</p>'}
@@ -1641,11 +1648,13 @@
                         const urlInput = document.getElementById('nuevaFotoUrl');
                         const localInput = document.getElementById('nuevoArchivoLocal');
                         const labelInput = document.getElementById('nuevaFotoEtiqueta');
+                        const authorInput = document.getElementById('nuevaFotoAutor');
                         const mediaTypeInput = document.getElementById('nuevoArchivoTipo');
                         const slotInput = document.getElementById('slotSelectionId');
                         if (urlInput) urlInput.value = '';
                         if (localInput) localInput.value = '';
                         if (labelInput) labelInput.value = '${GALLERY_LABELS[0]}';
+                        if (authorInput) authorInput.value = '';
                         if (mediaTypeInput) mediaTypeInput.value = 'image';
                         if (slotInput) slotInput.value = '';
                         const galleryHint = document.getElementById('slotGalleryHint');
@@ -1658,16 +1667,18 @@
                         const urlInput = document.getElementById('nuevaFotoUrl');
                         const localInput = document.getElementById('nuevoArchivoLocal');
                         const labelInput = document.getElementById('nuevaFotoEtiqueta');
+                        const authorInput = document.getElementById('nuevaFotoAutor');
                         const mediaTypeInput = document.getElementById('nuevoArchivoTipo');
                         const normalizedUrl = (urlInput?.value || '').trim();
                         const selectedFile = localInput?.files?.[0];
                         const mediaType = mediaTypeInput?.value || 'image';
                         const label = labelInput?.value || '${GALLERY_LABELS[0]}';
+                        const autor = (authorInput?.value || '').trim();
                         const slotSelectionId = activeSlotSelectionId || document.getElementById('slotSelectionId')?.value || '';
 
                         const postMedia = (finalUrl, finalType) => {
                             if (!finalUrl) return;
-                            window.opener.postMessage({ type: 'ADD_IMAGE', url: finalUrl, label, mediaType: finalType, id: '${editingId}' }, '*');
+                            window.opener.postMessage({ type: 'ADD_IMAGE', url: finalUrl, label, autor, mediaType: finalType, id: '${editingId}' }, '*');
                             if (slotSelectionId) {
                                 window.opener.postMessage({ type: 'SET_BATTLE_PHOTO_PREF_BY_URL', id: '${editingId}', slotId: slotSelectionId, url: finalUrl, mediaType: finalType, label }, '*');
                             }
@@ -2305,7 +2316,7 @@ const getInitialCatFormData = () => ({
                     missing: withStatus.filter((row) => !row.isComplete)
                 };
             }, [formData]);
-            const addGalleryImage = async ({ profileId, url, tag = 'fotos', label = '', type = 'image' }) => {
+            const addGalleryImage = async ({ profileId, url, tag = 'fotos', label = '', type = 'image', autor = '' }) => {
                 const normalizedUrl = (url || '').trim();
                 const normalizedLabel = GALLERY_LABELS.includes(label) ? label : '';
                 const normalizedType = detectGalleryItemType(normalizedUrl, type);
@@ -2314,7 +2325,7 @@ const getInitialCatFormData = () => ({
                 const galleryRef = db.ref(`perfiles/${profileId}/galeria/${tag}`);
                 const snapshot = await galleryRef.once('value');
                 const currentItems = snapshot.val() || [];
-                const updatedItems = [...currentItems, { url: normalizedUrl, label: normalizedLabel, type: normalizedType }];
+                const updatedItems = [...currentItems, { url: normalizedUrl, label: normalizedLabel, type: normalizedType, autor: normalizeGalleryAuthor(autor) }];
 
                 await galleryRef.set(updatedItems);
 
@@ -2514,14 +2525,14 @@ const getInitialCatFormData = () => ({
             useEffect(() => {
                 const handleMessage = async (event) => {
                     if (event.data.type === 'ADD_IMAGE') {
-                        const { url, id, label, mediaType } = event.data;
+                        const { url, id, label, mediaType, autor } = event.data;
                         const tag = mediaType === 'video' ? 'videos' : 'fotos';
                         const galleryRef = db.ref(`perfiles/${id}/galeria/${tag}`);
                         const snapshot = await galleryRef.once('value');
                         const currentPhotos = snapshot.val() || [];
                         const normalizedUrl = (url || '').trim();
                         if (!normalizedUrl) return;
-                        const updatedPhotos = [...currentPhotos, { url: normalizedUrl, label: GALLERY_LABELS.includes(label) ? label : '', type: detectGalleryItemType(normalizedUrl, mediaType) }];
+                        const updatedPhotos = [...currentPhotos, { url: normalizedUrl, label: GALLERY_LABELS.includes(label) ? label : '', type: detectGalleryItemType(normalizedUrl, mediaType), autor: normalizeGalleryAuthor(autor) }];
 
                         await galleryRef.set(updatedPhotos);
                         setFormData(prev => ({
@@ -5228,6 +5239,11 @@ const saveProfile = (e) => {
                                                         <p className="text-xs sm:text-sm font-black italic text-white tracking-tight leading-none truncate" title={photo.nombre}>
                                                             {photo.nombre}
                                                         </p>
+                                                        {photo.autor ? (
+                                                            <p className="text-[10px] font-semibold text-slate-300 mt-1 truncate" title={photo.autor}>
+                                                                Autor: {photo.autor}
+                                                            </p>
+                                                        ) : null}
                                                     </div>
                                                     <div className="px-2 py-[2px] rounded-full border theme-border-secondary bg-slate-950/85 text-[7px] font-black uppercase tracking-[0.18em] text-slate-200 shrink-0">
                                                         {photo.type === 'video' ? 'VIDEO' : (photo.isGif ? 'GIF' : 'IMG')}
@@ -5276,6 +5292,7 @@ const saveProfile = (e) => {
                             <div>
                                 <p className="text-2xl sm:text-3xl font-black italic text-white tracking-tighter">{selectedGalleryPhoto.nombre}</p>
                                 <p className="text-[10px] sm:text-xs font-black uppercase tracking-[0.3em] text-[var(--metal-gold)] mt-2">{selectedGalleryPhoto.profesion}{selectedGalleryPhoto.nacionalidad ? ` · ${selectedGalleryPhoto.nacionalidad}` : ''}</p>
+                                {selectedGalleryPhoto.autor ? <p className="text-[11px] sm:text-xs font-semibold text-slate-300 mt-2">Autor: {selectedGalleryPhoto.autor}</p> : null}
                             </div>
                             <div className="flex items-center gap-3">
                                 {filteredGalleryPhotos.length > 1 && (
