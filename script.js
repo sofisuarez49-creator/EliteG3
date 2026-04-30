@@ -5169,7 +5169,7 @@ const saveProfile = (e) => {
                                 setSelectedBattleGroupKey(scope.id === 'GENERAL' ? 'all' : '');
                                 setSelectedArena(null);
                             }}
-                            className="solid-metal-ui battle-mode-card border rounded-2xl p-6 text-left transition-all"
+                            className="solid-metal-ui battle-mode-card battle-mode-card--mode border rounded-2xl p-4 text-left transition-all"
                         >
                             <p className="text-[10px] font-black uppercase tracking-[0.28em] text-slate-500">Modo</p>
                             <h3 className="font-black italic text-white mt-2">{scope.label}</h3>
@@ -5237,7 +5237,7 @@ const saveProfile = (e) => {
                             setSelectedArena(arenaName);
                             if (!arenaBattleState[arenaKey]) initArenaBattle(arenaName, selectedBattleScope, selectedBattleGroupKey);
                         }}
-                        className={`solid-metal-ui battle-mode-card border rounded-2xl p-6 text-left transition-all disabled:opacity-45 disabled:cursor-not-allowed ${isArenaCompleted ? 'battle-mode-card--completed' : ''}`}
+                        className={`solid-metal-ui battle-mode-card battle-mode-card--arena border rounded-2xl p-4 text-left transition-all disabled:opacity-45 disabled:cursor-not-allowed ${isArenaCompleted ? 'battle-mode-card--completed' : ''}`}
                     >
                         <p className={`text-[10px] font-black uppercase tracking-[0.28em] ${isArenaCompleted ? 'text-emerald-100/90' : 'text-slate-500'}`}>Item</p>
                         <h3 className="font-black italic text-white mt-2">{arenaName}</h3>
