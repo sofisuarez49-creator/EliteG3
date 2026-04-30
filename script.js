@@ -204,7 +204,8 @@
                 return {
                     url: getSafeImageSrc(item.trim(), ''),
                     label: '',
-                    type: detectGalleryItemType(item, fallbackType)
+                    type: detectGalleryItemType(item, fallbackType),
+                    autor: ''
                 };
             }
             if (item && typeof item === 'object') {
@@ -212,10 +213,11 @@
                 return {
                     url,
                     label: GALLERY_LABELS.includes(item.label) ? item.label : '',
-                    type: detectGalleryItemType(url, item.type || fallbackType)
+                    type: detectGalleryItemType(url, item.type || fallbackType),
+                    autor: typeof item.autor === 'string' ? item.autor.trim() : ''
                 };
             }
-            return { url: '', label: '', type: detectGalleryItemType('', fallbackType) };
+            return { url: '', label: '', type: detectGalleryItemType('', fallbackType), autor: '' };
         };
         const getGalleryItemUrl = (item) => normalizeGalleryItem(item).url;
         const getGalleryItemLabel = (item) => normalizeGalleryItem(item).label;
@@ -2169,6 +2171,12 @@
             const [galleryEditorError, setGalleryEditorError] = useState('');
             const [isSavingGalleryEditor, setIsSavingGalleryEditor] = useState(false);
             const [tallerSearchTerm, setTallerSearchTerm] = useState('');
+            const [anonMediaSource, setAnonMediaSource] = useState('url');
+            const [anonMediaUrl, setAnonMediaUrl] = useState('');
+            const [anonMediaFile, setAnonMediaFile] = useState(null);
+            const [anonMediaLabel, setAnonMediaLabel] = useState(GALLERY_LABELS[0]);
+            const [anonMediaAuthor, setAnonMediaAuthor] = useState('');
+            const [anonMediaError, setAnonMediaError] = useState('');
             const [selectedTallerProfileId, setSelectedTallerProfileId] = useState('');
             const [isMultimediaModalOpen, setIsMultimediaModalOpen] = useState(false);
             const [isBrokenGalleryModalOpen, setIsBrokenGalleryModalOpen] = useState(false);
@@ -2472,6 +2480,46 @@ const getInitialCatFormData = () => ({
                     console.error('Error al cargar foto de perfil local:', error);
                 } finally {
                     event.target.value = '';
+                }
+            };
+            const addAnonymousGalleryItem = async ({ url, label, autor = '' }) => {
+                const normalizedUrl = String(url || '').trim();
+                if (!normalizedUrl) throw new Error('Ingresá una URL o seleccioná un archivo.');
+                const normalizedLabel = GALLERY_LABELS.includes(label) ? label : '';
+                const inferredType = detectGalleryItemType(normalizedUrl);
+                const isValidMedia = inferredType === 'image'
+                    || VIDEO_FILE_REGEX.test(normalizedUrl)
+                    || Boolean(getVideoEmbedInfo(normalizedUrl));
+                if (!isValidMedia) {
+                    throw new Error('Formato no válido. Usá imagen, video archivo o URL de YouTube/Vimeo.');
+                }
+                const tag = inferredType === 'video' ? 'videos' : 'fotos';
+                const galleryRef = db.ref(`${ANON_GALLERY_NODE_PATH}/${tag}`);
+                const snapshot = await galleryRef.once('value');
+                const currentItems = Array.isArray(snapshot.val()) ? snapshot.val() : [];
+                const updatedItems = [...currentItems, {
+                    url: normalizedUrl,
+                    label: normalizedLabel,
+                    type: inferredType,
+                    autor: String(autor || '').trim()
+                }];
+                await galleryRef.set(updatedItems);
+            };
+            const handleAnonMediaSubmit = async () => {
+                setAnonMediaError('');
+                try {
+                    let finalUrl = String(anonMediaUrl || '').trim();
+                    if (anonMediaSource === 'file') {
+                        if (!anonMediaFile) throw new Error('Seleccioná un archivo local.');
+                        finalUrl = await readFileAsDataUrl(anonMediaFile);
+                    }
+                    await addAnonymousGalleryItem({ url: finalUrl, label: anonMediaLabel, autor: anonMediaAuthor });
+                    setAnonMediaUrl('');
+                    setAnonMediaFile(null);
+                    setAnonMediaAuthor('');
+                    setAnonMediaSource('url');
+                } catch (error) {
+                    setAnonMediaError(error?.message || 'No se pudo guardar en galería anónima.');
                 }
             };
             const handleDelete = async (id, e) => {
@@ -4692,6 +4740,57 @@ const saveProfile = (e) => {
                                 <p className="text-sm md:text-base text-slate-200/85 mt-4 max-w-3xl">
                                     Este panel reutiliza el estilo visual del sistema y no abre la ficha de personaje para mantener una navegación discreta.
                                 </p>
+                                <div className="mt-8 grid gap-4 md:grid-cols-2">
+                                    <select
+                                        className="theme-surface-soft border theme-border-secondary p-3 rounded-xl outline-none text-white font-bold"
+                                        value={anonMediaSource}
+                                        onChange={(event) => {
+                                            setAnonMediaSource(event.target.value);
+                                            setAnonMediaError('');
+                                        }}
+                                    >
+                                        <option value="url">Origen: URL</option>
+                                        <option value="file">Origen: Archivo local</option>
+                                    </select>
+                                    <select
+                                        className="theme-surface-soft border theme-border-secondary p-3 rounded-xl outline-none text-white font-bold"
+                                        value={anonMediaLabel}
+                                        onChange={(event) => setAnonMediaLabel(event.target.value)}
+                                    >
+                                        {GALLERY_LABELS.map((label) => <option key={label} value={label}>{label}</option>)}
+                                    </select>
+                                    {anonMediaSource === 'url' ? (
+                                        <input
+                                            placeholder="https://ejemplo.com/media.jpg o YouTube/Vimeo"
+                                            className="md:col-span-2 theme-surface-soft border theme-border-secondary p-3 rounded-xl outline-none text-white font-bold"
+                                            value={anonMediaUrl}
+                                            onChange={(event) => setAnonMediaUrl(event.target.value)}
+                                        />
+                                    ) : (
+                                        <input
+                                            type="file"
+                                            accept="image/*,video/*,.gif"
+                                            className="md:col-span-2 theme-surface-soft border theme-border-secondary p-3 rounded-xl outline-none text-white font-bold"
+                                            onChange={(event) => setAnonMediaFile(event.target.files?.[0] || null)}
+                                        />
+                                    )}
+                                    <input
+                                        placeholder="Autor (opcional)"
+                                        className="md:col-span-2 theme-surface-soft border theme-border-secondary p-3 rounded-xl outline-none text-white font-bold"
+                                        value={anonMediaAuthor}
+                                        onChange={(event) => setAnonMediaAuthor(event.target.value)}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={handleAnonMediaSubmit}
+                                        className="md:col-span-2 px-5 py-3 rounded-xl font-black uppercase tracking-[0.14em] text-cyan-100 border border-cyan-300/50 bg-cyan-500/20 hover:bg-cyan-500/35 transition-all"
+                                    >
+                                        Guardar en anónimo
+                                    </button>
+                                    {anonMediaError && (
+                                        <p className="md:col-span-2 text-xs font-black uppercase tracking-[0.12em] text-rose-300">{anonMediaError}</p>
+                                    )}
+                                </div>
                             </section>
                         </div>
                     )}
