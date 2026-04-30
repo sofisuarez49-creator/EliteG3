@@ -394,7 +394,8 @@
                             .multimedia-slot-card.is-active { border-color: rgba(251,191,36,0.96); box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 0 0 1px rgba(251,191,36,0.32), 0 0 20px rgba(251,191,36,0.22); }
                             .multimedia-slot-actions { display:grid; gap:6px; margin-top:8px; }
                             .multimedia-slot-assign-btn, .multimedia-slot-add-btn { width:100%; border-radius:8px; padding:6px 8px; font-size:10px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; cursor:pointer; transition:filter .16s ease, transform .16s ease; }
-                            .multimedia-slot-assign-btn { border:1px solid rgba(74,222,128,0.7); background: rgba(20,83,45,0.78); color:#dcfce7; box-shadow:0 0 12px rgba(74,222,128,0.22); }
+                            .multimedia-slot-assign-btn { border:1px solid rgba(203,213,225,0.9); background: linear-gradient(165deg, rgba(148,163,184,0.5) 0%, rgba(71,85,105,0.82) 45%, rgba(30,41,59,0.94) 100%); color:#f8fafc; box-shadow: inset 0 1px 0 rgba(255,255,255,0.42), inset 0 -1px 0 rgba(15,23,42,0.55), 0 6px 12px rgba(2,6,23,0.45); }
+                            .multimedia-slot-assign-btn.is-selected { border-color: rgba(74,222,128,0.98); background: linear-gradient(160deg, rgba(22,163,74,0.98) 0%, rgba(34,197,94,0.94) 45%, rgba(20,83,45,0.98) 100%); color:#ecfdf5; box-shadow: inset 0 1px 0 rgba(220,252,231,0.55), inset 0 -1px 0 rgba(5,46,22,0.62), 0 0 16px rgba(74,222,128,0.95), 0 0 34px rgba(34,197,94,0.82); filter: brightness(1.24) saturate(1.2); }
                             .multimedia-slot-add-btn { border:1px solid rgba(125,211,252,0.6); background: rgba(2,6,23,0.82); color:#e2e8f0; box-shadow:0 0 12px rgba(34,211,238,0.22); }
                             .multimedia-slot-assign-btn:hover, .multimedia-slot-add-btn:hover { transform: translateY(-1px); filter: brightness(1.08); }
                         </style>
@@ -462,11 +463,16 @@
                             };
                             let activeSlotSelectionId = '';
                             const slotCards = Array.from(document.querySelectorAll('.multimedia-slot-card'));
+                            const slotAssignButtons = Array.from(document.querySelectorAll('[data-slot-assign]'));
                             const setActiveSlotSelection = (slotId = '') => {
                                 activeSlotSelectionId = slotId || '';
                                 slotCards.forEach((card) => {
                                     const isActive = activeSlotSelectionId && card.dataset.slotId === activeSlotSelectionId;
                                     card.classList.toggle('is-active', Boolean(isActive));
+                                });
+                                slotAssignButtons.forEach((button) => {
+                                    const isSelected = activeSlotSelectionId && button.dataset.slotAssign === activeSlotSelectionId;
+                                    button.classList.toggle('is-selected', Boolean(isSelected));
                                 });
                             };
                             const slotConfigById = ${JSON.stringify(BATTLE_PHOTO_SLOTS.reduce((acc, slot) => {
@@ -489,7 +495,6 @@
                                     } else {
                                         return false;
                                     }
-                                    window.alert('Imagen asignada al casillero seleccionado.');
                                     setActiveSlotSelection('');
                                     return true;
                                 } catch (error) {
@@ -502,7 +507,7 @@
                                 button.addEventListener('click', () => {
                                     const slotId = button.dataset.slotAssign || '';
                                     setActiveSlotSelection(slotId);
-                                    window.alert('Listo. Ahora hacé click en una imagen de la galería para asignarla al casillero seleccionado.');
+                                    
                                 });
                             });
                             document.querySelectorAll('[data-slot-add]').forEach((button) => {
@@ -1293,8 +1298,10 @@
                                     </button>
                                     ${canPickFromGallery ? `<button
                                         type="button"
+                                        class="slot-gallery-select-btn"
+                                        data-slot-id="${slot.id}"
                                         onclick="event.stopPropagation(); selectSlotFromGallery('${slot.id}');"
-                                        style="width:100%; border:1px solid rgba(74,222,128,0.7); background: rgba(20,83,45,0.78); color:#dcfce7; border-radius:8px; padding:6px 8px; font-size:10px; font-weight:800; letter-spacing:0.08em; text-transform:uppercase; cursor:pointer; box-shadow: 0 0 12px rgba(74,222,128,0.22);"
+                                        style="width:100%; border:1px solid rgba(203,213,225,0.92); background: linear-gradient(165deg, rgba(148,163,184,0.5) 0%, rgba(71,85,105,0.82) 45%, rgba(30,41,59,0.94) 100%); color:#f8fafc; border-radius:8px; padding:6px 8px; font-size:10px; font-weight:800; letter-spacing:0.08em; text-transform:uppercase; cursor:pointer; box-shadow: inset 0 1px 0 rgba(255,255,255,0.42), inset 0 -1px 0 rgba(15,23,42,0.55), 0 6px 12px rgba(2,6,23,0.45); transition: box-shadow 180ms ease, border-color 180ms ease, filter 180ms ease, background 180ms ease;"
                                     >
                                         Designar de galería
                                     </button>` : ''}
@@ -1452,11 +1459,32 @@
                         if (modal) modal.style.display = 'block';
                     }
 
+                    function updateSlotGalleryButtons() {
+                        const buttons = document.querySelectorAll('.slot-gallery-select-btn');
+                        buttons.forEach((button) => {
+                            const buttonSlotId = button.getAttribute('data-slot-id') || '';
+                            const isActive = Boolean(activeSlotSelectionId) && buttonSlotId === activeSlotSelectionId;
+                            if (isActive) {
+                                button.style.borderColor = 'rgba(74,222,128,0.98)';
+                                button.style.background = 'linear-gradient(160deg, rgba(22,163,74,0.98) 0%, rgba(34,197,94,0.94) 45%, rgba(20,83,45,0.98) 100%)';
+                                button.style.color = '#ecfdf5';
+                                button.style.boxShadow = 'inset 0 1px 0 rgba(220,252,231,0.55), inset 0 -1px 0 rgba(5,46,22,0.62), 0 0 16px rgba(74,222,128,0.95), 0 0 34px rgba(34,197,94,0.82)';
+                                button.style.filter = 'brightness(1.24) saturate(1.2)';
+                            } else {
+                                button.style.borderColor = 'rgba(203,213,225,0.92)';
+                                button.style.background = 'linear-gradient(165deg, rgba(148,163,184,0.5) 0%, rgba(71,85,105,0.82) 45%, rgba(30,41,59,0.94) 100%)';
+                                button.style.color = '#f8fafc';
+                                button.style.boxShadow = 'inset 0 1px 0 rgba(255,255,255,0.42), inset 0 -1px 0 rgba(15,23,42,0.55), 0 6px 12px rgba(2,6,23,0.45)';
+                                button.style.filter = 'brightness(1) saturate(1)';
+                            }
+                        });
+                    }
+
                     function selectSlotFromGallery(slotId) {
                         activeSlotSelectionId = slotId || '';
                         const slotInput = document.getElementById('slotSelectionId');
                         if (slotInput) slotInput.value = activeSlotSelectionId;
-                        alert('Listo. Ahora hacé click en una imagen de la galería para asignarla al casillero seleccionado (o tocá su chip de slot).');
+                        updateSlotGalleryButtons();
                     }
 
                     function isImagePayload(payload = {}) {
@@ -1468,10 +1496,10 @@
                         const sourceIndex = Number(payload.sourceIndex);
                         if (!Number.isInteger(sourceIndex) || sourceIndex < 0) return false;
                         window.opener.postMessage({ type: 'SET_BATTLE_PHOTO_PREF', id: '${editingId}', slotId, index: sourceIndex, mediaType }, '*');
-                        alert('Imagen asignada al casillero seleccionado.');
                         activeSlotSelectionId = '';
                         const slotInput = document.getElementById('slotSelectionId');
                         if (slotInput) slotInput.value = '';
+                        updateSlotGalleryButtons();
                         return true;
                     }
 
@@ -1489,6 +1517,7 @@
                         const galleryHint = document.getElementById('slotGalleryHint');
                         if (galleryHint) galleryHint.style.display = 'none';
                         activeSlotSelectionId = '';
+                        updateSlotGalleryButtons();
                     }
 
                     function addMediaFromModal() {
