@@ -1106,7 +1106,7 @@
                         ${GALLERY_LABELS.map(label => `<option value="${label}">Etiqueta ${label}</option>`).join('')}
                     </select>
                     <input type="hidden" id="slotSelectionId" value="">
-                    <p id="slotGalleryHint" style="display:none; margin:10px 0 0; font-size:11px; color:#93c5fd;">Tip: para “Elegir desde galería” también podés tocar los chips de slot sobre cada imagen.</p>
+                    <p id="slotGalleryHint" style="display:none; margin:10px 0 0; font-size:11px; color:#93c5fd;">Tip: para “Elegir desde galería” tocá una imagen compatible para asignarla.</p>
                     <button onclick="addMediaFromModal()"
                         style="margin-top: 15px; width: 100%; padding: 10px; background: linear-gradient(180deg, rgba(14,116,144,0.95), rgba(8,47,73,0.95)); color: #ecfeff; border: 1px solid rgba(103,232,249,0.9); border-radius: 8px; font-weight: 800; cursor: pointer; text-transform: uppercase; letter-spacing: 0.08em; box-shadow: 0 0 14px rgba(34,211,238,0.4);">
                         Guardar
@@ -1174,19 +1174,6 @@
                     };
                     const estilo = config[profession?.toUpperCase()] || config["DEFAULT"];
                     const compatibleSlots = getGalleryItemType(foto) === 'image' ? getCompatibleBattleSlotsForLabel(fotoLabel) : [];
-                    const battleButtons = compatibleSlots.length
-                        ? `<div style="position:absolute; left: 8px; right: 8px; bottom: 48px; z-index: 16; display:flex; flex-wrap:wrap; justify-content:center; gap:6px;">
-                            ${compatibleSlots.map((slot) => {
-                                const isSelected = safeBattlePhotoPrefs[slot.id] === fotoUrl;
-                                return `<button
-                                    onclick="event.stopPropagation(); window.opener.postMessage({type: 'SET_BATTLE_PHOTO_PREF', id: '${editingId}', slotId: '${slot.id}', index: ${foto.sourceIndex}, mediaType: '${getGalleryItemType(foto)}'}, '*');"
-                                    title="Usar en ${slot.label}"
-                                    style="border: 1px solid ${isSelected ? '#fbbf24' : 'rgba(148,163,184,0.45)'}; background: ${isSelected ? 'rgba(120,53,15,0.88)' : 'rgba(2,6,23,0.75)'}; color: ${isSelected ? '#fde68a' : '#e2e8f0'}; border-radius: 999px; padding: 4px 8px; font-size: 9px; font-weight: 900; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer;">
-                                    ${slot.label}${isSelected ? ' ✓' : ''}
-                                </button>`;
-                            }).join('')}
-                        </div>`
-                        : '';
                     return `
                         <div
                             class="gallery-card"
@@ -1244,7 +1231,6 @@
                             : `<img src="${fotoUrl}" alt="Imagen de la galería" onerror="${BROKEN_IMAGE_INLINE_HANDLER}" style="width: 100%; height: 100%; object-fit: cover;" />`
                         }
                         <div style="position:absolute; left: 12px; top: 12px; z-index: 15; padding: 6px 10px; border-radius: 999px; background: rgba(2,6,23,0.72); border: 1px solid rgba(148,163,184,0.24); color: #e2e8f0; display:flex; align-items:center; justify-content:center; font-size: 10px; font-weight: 900; letter-spacing: 0.2em; text-transform: uppercase; backdrop-filter: blur(8px);">${getGalleryItemType(foto) === 'video' ? 'VIDEO' : 'IMG'}</div>
-                        ${battleButtons}
                         ${fotoLabel ? `<div style="position:absolute; left: 50%; bottom: 10px; transform: translateX(-50%); z-index: 15; min-width: 52px; height: 30px; padding: 0 14px; border-radius: 999px; background: ${labelStyle.bg}; border: 1px solid ${labelStyle.border}; color: ${labelStyle.text}; display:flex; align-items:center; justify-content:center; font-size: 12px; font-weight: 900; letter-spacing: 0.24em; box-shadow: 0 0 14px ${labelStyle.glow}, 0 0 24px ${labelStyle.glow}; text-shadow: 0 0 10px ${labelStyle.glow}; backdrop-filter: blur(8px);">${fotoLabel}</div>` : ""}
                         </div>
                     `;
