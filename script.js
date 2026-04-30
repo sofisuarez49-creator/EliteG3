@@ -4019,7 +4019,7 @@ const saveProfile = (e) => {
                                                 setSelectedTallerProfileId('');
                                                 openProfileEditor(p);
                                             }}
-                                            className={`profile-card rounded-2xl p-4 relative overflow-hidden text-left transition-all ${isSelected ? 'taller-card--selected' : ''}`}
+                                            className={`profile-card rounded-2xl p-4 relative text-left transition-all ${isSelected ? 'taller-card--selected' : ''}`}
                                         >
                                             <div className="w-full aspect-[4/5] rounded-xl overflow-hidden mb-4 bg-slate-900/70">
                                                 <img
