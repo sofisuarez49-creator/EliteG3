@@ -1764,11 +1764,22 @@ const getInitialCatFormData = () => ({
             const openProfileGalleryFromTooltip = (profile = {}) => {
                 const key = profile?.firebaseId || profile?.nombre;
                 if (!key) return;
-                setActiveTab('GALERIA');
-                setGalleryViewMode('PERSONAJE');
-                setSelectedCharacterBucketIds([`PERSONAJE-${key}`]);
-                setGalleryFilterLabel('INICIAL');
-                setSelectedGalleryIndex(null);
+                const existingWindow = galleryWindowRef.current;
+                const nuevaVentana = existingWindow && !existingWindow.closed ? existingWindow : window.open('', '_blank');
+                galleryWindowRef.current = nuevaVentana;
+                renderGalleryWindow({
+                    targetWindow: nuevaVentana,
+                    profileName: profile?.nombre || '',
+                    profession: profile?.profesion || '',
+                    photos: [
+                        ...((profile?.galeria?.fotos || []).map((item, index) => ({ ...normalizeGalleryItem(item, 'image'), sourceTag: 'fotos', sourceIndex: index }))),
+                        ...((profile?.galeria?.videos || []).map((item, index) => ({ ...normalizeGalleryItem(item, 'video'), sourceTag: 'videos', sourceIndex: index })))
+                    ],
+                    editingId: profile?.firebaseId || profile?.id || '',
+                    battlePhotoPrefs: profile?.batallaFotosPreferidas || profile?.galeria?.battlePhotoPreferences || {},
+                    profilePhotoUrl: profile?.fotos?.[0] || ''
+                });
+                nuevaVentana?.focus();
                 setSelectedTallerProfileId('');
                 setTallerMissingPhotosTooltipProfileId('');
             };
