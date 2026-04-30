@@ -464,6 +464,32 @@
                             let activeSlotSelectionId = '';
                             const slotCards = Array.from(document.querySelectorAll('.multimedia-slot-card'));
                             const slotAssignButtons = Array.from(document.querySelectorAll('[data-slot-assign]'));
+                            const updateSlotCardAssignedState = (slotId = '', assignedUrl = '') => {
+                                if (!slotId) return;
+                                const card = slotCards.find((slotCard) => slotCard.dataset.slotId === slotId);
+                                if (!card) return;
+                                const normalizedUrl = String(assignedUrl || '').trim();
+                                const isAssigned = Boolean(normalizedUrl);
+                                card.classList.toggle('is-assigned', isAssigned);
+                                card.classList.toggle('is-missing', !isAssigned);
+                                const stateBadge = card.querySelector('.multimedia-slot-state');
+                                if (stateBadge) {
+                                    stateBadge.textContent = isAssigned ? 'VERDE' : 'ROJO';
+                                }
+                                const previewContainer = card.querySelector('.multimedia-slot-preview');
+                                if (previewContainer) {
+                                    previewContainer.innerHTML = isAssigned
+                                        ? '<img alt="" loading="lazy" />'
+                                        : '<span class="multimedia-slot-empty">Sin foto designada</span>';
+                                    if (isAssigned) {
+                                        const img = previewContainer.querySelector('img');
+                                        if (img) {
+                                            img.src = normalizedUrl;
+                                            img.alt = slotConfigById[slotId]?.label || 'Foto designada';
+                                        }
+                                    }
+                                }
+                            };
                             const setActiveSlotSelection = (slotId = '') => {
                                 activeSlotSelectionId = slotId || '';
                                 slotCards.forEach((card) => {
@@ -489,9 +515,13 @@
                                 if (!slotConfig) return false;
                                 try {
                                     if (dbRef && profileId) {
-                                        await dbRef.ref(\`perfiles/\${profileId}/batallaFotosPreferidas/\${slotId}\`).set(String(cardButton?.dataset.url || '').trim());
+                                        const selectedUrl = String(cardButton?.dataset.url || '').trim();
+                                        await dbRef.ref(\`perfiles/\${profileId}/batallaFotosPreferidas/\${slotId}\`).set(selectedUrl);
+                                        updateSlotCardAssignedState(slotId, selectedUrl);
                                     } else if (window.opener) {
+                                        const selectedUrl = String(cardButton?.dataset.url || '').trim();
                                         window.opener.postMessage({ type: 'SET_BATTLE_PHOTO_PREF', id: profileId, slotId, index: sourceIndex, mediaType: 'image' }, '*');
+                                        updateSlotCardAssignedState(slotId, selectedUrl);
                                     } else {
                                         return false;
                                     }
