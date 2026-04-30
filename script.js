@@ -2870,6 +2870,32 @@ const getInitialCatFormData = () => ({
             const allGalleryPhotos = useMemo(() => {
                 return allGalleryMediaEntries.filter((item) => Boolean(item.url));
             }, [allGalleryMediaEntries]);
+            const allGalleryPhotosByLabel = useMemo(() => {
+                return allGalleryPhotos.reduce((acc, photo) => {
+                    const label = photo.label || '';
+                    if (!acc[label]) acc[label] = [];
+                    acc[label].push(photo);
+                    return acc;
+                }, {});
+            }, [allGalleryPhotos]);
+            const allGalleryPhotosByProfile = useMemo(() => {
+                return allGalleryPhotos.reduce((acc, photo) => {
+                    const key = photo.profileId || photo.nombre;
+                    if (!key) return acc;
+                    if (!acc[key]) acc[key] = [];
+                    acc[key].push(photo);
+                    return acc;
+                }, {});
+            }, [allGalleryPhotos]);
+            const totalGalleryProfiles = useMemo(() => {
+                return new Set(allGalleryPhotos.map((photo) => photo.profileId).filter(Boolean)).size;
+            }, [allGalleryPhotos]);
+            const profileCategorySetMap = useMemo(() => {
+                return Object.entries(profileCategoryMap || {}).reduce((acc, [profileId, categoryIds]) => {
+                    acc[profileId] = new Set(Array.isArray(categoryIds) ? categoryIds : []);
+                    return acc;
+                }, {});
+            }, [profileCategoryMap]);
             const galleryBuckets = useMemo(() => {
                 if (galleryViewMode === 'GENERAL') {
                     return [{
@@ -2883,25 +2909,18 @@ const getInitialCatFormData = () => ({
                 }
 
                 if (galleryViewMode === 'PERSONAJE') {
-                    const groupedByProfile = allGalleryPhotos.reduce((acc, photo) => {
-                        const key = photo.profileId || photo.nombre;
-                        if (!key) return acc;
-                        if (!acc[key]) {
-                            acc[key] = {
-                                id: `PERSONAJE-${key}`,
-                                profileId: photo.profileId || null,
-                                nombre: photo.nombre || 'Sin nombre',
-                                profesion: photo.profesion || 'Perfil',
-                                nacionalidad: photo.nacionalidad || '',
-                                fotoPerfil: photo.fotoPerfil || photo.url,
-                                photos: []
-                            };
-                        }
-                        acc[key].photos.push(photo);
-                        return acc;
-                    }, {});
-
-                    return Object.values(groupedByProfile)
+                    return Object.entries(allGalleryPhotosByProfile).map(([key, photos]) => {
+                        const firstPhoto = photos[0] || {};
+                        return {
+                            id: `PERSONAJE-${key}`,
+                            profileId: firstPhoto.profileId || null,
+                            nombre: firstPhoto.nombre || 'Sin nombre',
+                            profesion: firstPhoto.profesion || 'Perfil',
+                            nacionalidad: firstPhoto.nacionalidad || '',
+                            fotoPerfil: firstPhoto.fotoPerfil || firstPhoto.url || '',
+                            photos
+                        };
+                    })
                         .filter(bucket => bucket.photos.length > 0)
                         .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' }));
                 }
@@ -2909,7 +2928,7 @@ const getInitialCatFormData = () => ({
                 if (galleryViewMode === 'ETIQUETA') {
                     return GALLERY_LABELS
                         .map((label) => {
-                            const labelPhotos = allGalleryPhotos.filter(photo => photo.label === label);
+                            const labelPhotos = allGalleryPhotosByLabel[label] || [];
                             return {
                                 id: `ETIQUETA-${label}`,
                                 nombre: `Etiqueta ${label}`,
@@ -2926,7 +2945,8 @@ const getInitialCatFormData = () => ({
                     .map((categoria) => {
                         const categoryPhotos = allGalleryPhotos.filter((photo) => {
                             if (!photo.profileId) return false;
-                            return (profileCategoryMap[photo.profileId] || []).includes(categoria.firebaseId);
+                            const categoryIds = profileCategorySetMap[photo.profileId];
+                            return categoryIds ? categoryIds.has(categoria.firebaseId) : false;
                         });
 
                         return {
@@ -2940,7 +2960,7 @@ const getInitialCatFormData = () => ({
                     })
                     .filter(bucket => bucket.photos.length > 0)
                     .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' }));
-            }, [allGalleryPhotos, categorias, galleryViewMode, profileCategoryMap]);
+            }, [allGalleryPhotos, allGalleryPhotosByLabel, allGalleryPhotosByProfile, categorias, galleryViewMode, profileCategorySetMap]);
             const activeGalleryBucket = useMemo(() => {
                 if (galleryViewMode === 'GENERAL') return galleryBuckets[0] || null;
                 if (!selectedGalleryBucket) return null;
@@ -2961,8 +2981,14 @@ const getInitialCatFormData = () => ({
                 return activeGalleryBucket?.photos || allGalleryPhotos;
             }, [galleryViewMode, selectedCharacterBuckets, activeGalleryBucket, allGalleryPhotos, selectedTagLabels]);
             const galleryStats = useMemo(() => {
+                const stats = sourceGalleryPhotos.reduce((acc, photo) => {
+                    const label = photo.label || '';
+                    if (!label) return acc;
+                    acc[label] = (acc[label] || 0) + 1;
+                    return acc;
+                }, {});
                 return GALLERY_LABELS.reduce((acc, label) => {
-                    acc[label] = sourceGalleryPhotos.filter(photo => photo.label === label).length;
+                    acc[label] = stats[label] || 0;
                     return acc;
                 }, {});
             }, [sourceGalleryPhotos]);
@@ -5114,7 +5140,7 @@ const saveProfile = (e) => {
                     </div>
                     <div className="theme-surface-soft gothic-frame gothic-frame--secondary rounded-[1.8rem] px-5 py-4">
                         <p className="text-[9px] font-black uppercase tracking-[0.25em] text-slate-500">Perfiles</p>
-                        <p className="text-2xl font-black italic text-white mt-1">{new Set(allGalleryPhotos.map(photo => photo.profileId)).size}</p>
+                        <p className="text-2xl font-black italic text-white mt-1">{totalGalleryProfiles}</p>
                     </div>
                 </div>
             </div>
@@ -5222,7 +5248,7 @@ const saveProfile = (e) => {
                                     className="btn-neon font-title px-4 py-2 rounded-full text-[10px] tracking-[0.08em] transition-all"
                                     style={getGalleryFilterButtonStyle(label, selectedTagLabels.includes(label))}
                                 >
-                                    {label} · {allGalleryPhotos.filter(photo => photo.label === label).length}
+                                    {label} · {(allGalleryPhotosByLabel[label] || []).length}
                                 </button>
                             ))}
                         </div>
