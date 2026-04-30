@@ -2252,6 +2252,9 @@ const getInitialCatFormData = () => ({
                 };
             };
             const openProfileEditor = (contextProfile = {}) => {
+                if (contextProfile?.isAnonymousGallery || contextProfile?.firebaseId === ANON_PROFILE_ID) {
+                    return;
+                }
                 setFormData(mapProfileToFormData(contextProfile));
                 setEditingId(contextProfile.firebaseId || contextProfile.id || null);
                 setIsModalOpen(true);
@@ -2279,6 +2282,7 @@ const getInitialCatFormData = () => ({
                 setTallerMissingPhotosTooltipProfileId('');
             };
             const openNewProfileForm = (prefilledProfession = '') => {
+                if (activeTab === 'anonimo') return;
                 const normalizedProfession = String(prefilledProfession || '').trim();
                 setEditingId(null);
                 setFormData({
@@ -2527,7 +2531,10 @@ const getInitialCatFormData = () => ({
                     if (event.data.type === 'ADD_IMAGE') {
                         const { url, id, label, mediaType, autor } = event.data;
                         const tag = mediaType === 'video' ? 'videos' : 'fotos';
-                        const galleryRef = db.ref(`perfiles/${id}/galeria/${tag}`);
+                        if (!id) return;
+                        const galleryRef = id === ANON_PROFILE_ID
+                            ? db.ref(`${ANON_GALLERY_NODE_PATH}/${tag}`)
+                            : db.ref(`perfiles/${id}/galeria/${tag}`);
                         const snapshot = await galleryRef.once('value');
                         const currentPhotos = snapshot.val() || [];
                         const normalizedUrl = (url || '').trim();
@@ -2544,7 +2551,10 @@ const getInitialCatFormData = () => ({
                     if (event.data.type === 'DELETE_IMAGE') {
                         const { index, id, mediaType } = event.data;
                         const tag = mediaType === 'video' ? 'videos' : 'fotos';
-                        const galleryRef = db.ref(`perfiles/${id}/galeria/${tag}`);
+                        if (!id) return;
+                        const galleryRef = id === ANON_PROFILE_ID
+                            ? db.ref(`${ANON_GALLERY_NODE_PATH}/${tag}`)
+                            : db.ref(`perfiles/${id}/galeria/${tag}`);
                         const snapshot = await galleryRef.once('value');
                         const currentPhotos = snapshot.val() || [];
                         const removedPhoto = currentPhotos[index];
@@ -2552,7 +2562,7 @@ const getInitialCatFormData = () => ({
 
                         await galleryRef.set(nuevasFotos);
                         const removedUrl = normalizeGalleryItem(removedPhoto, mediaType).url;
-                        if (removedUrl) {
+                        if (removedUrl && id !== ANON_PROFILE_ID) {
                             const prefsRef = db.ref(`perfiles/${id}/batallaFotosPreferidas`);
                             const prefsSnapshot = await prefsRef.once('value');
                             const currentPrefs = sanitizeBattlePhotoPreferences(prefsSnapshot.val());
@@ -2588,7 +2598,7 @@ const getInitialCatFormData = () => ({
                     if (event.data.type === 'SET_BATTLE_PHOTO_PREF') {
                         const { id, slotId, index, mediaType } = event.data;
                         const slotConfig = getBattleSlotById(slotId);
-                        if (!id || !slotConfig || !Number.isInteger(index)) return;
+                        if (!id || id === ANON_PROFILE_ID || !slotConfig || !Number.isInteger(index)) return;
                         const tag = mediaType === 'video' ? 'videos' : 'fotos';
                         const galleryRef = db.ref(`perfiles/${id}/galeria/${tag}`);
                         const snapshot = await galleryRef.once('value');
@@ -2610,7 +2620,7 @@ const getInitialCatFormData = () => ({
                         const { id, slotId, url, mediaType, label } = event.data;
                         const slotConfig = getBattleSlotById(slotId);
                         const normalizedUrl = String(url || '').trim();
-                        if (!id || !slotConfig || !normalizedUrl) return;
+                        if (!id || id === ANON_PROFILE_ID || !slotConfig || !normalizedUrl) return;
                         if (mediaType === 'video') return;
                         const prefsRef = db.ref(`perfiles/${id}/batallaFotosPreferidas/${slotId}`);
                         await prefsRef.set(normalizedUrl);
@@ -2626,7 +2636,7 @@ const getInitialCatFormData = () => ({
                     if (event.data.type === 'CLEAR_BATTLE_PHOTO_PREF') {
                         const { id, slotId } = event.data;
                         const slotConfig = getBattleSlotById(slotId);
-                        if (!id || !slotConfig) return;
+                        if (!id || id === ANON_PROFILE_ID || !slotConfig) return;
                         const prefsRef = db.ref(`perfiles/${id}/batallaFotosPreferidas/${slotId}`);
                         await prefsRef.set('');
                         setFormData(prev => ({
@@ -4501,23 +4511,27 @@ const saveProfile = (e) => {
                                                 {selectedTallerProfile.nombre || 'Sin nombre'}
                                             </h3>
                                         </div>
-                                        <div className="grid grid-cols-1 gap-4">
-                                            <article className="taller-data-chip"><span>Profesión</span><strong>{selectedTallerProfile.profesion || 'No definida'}</strong></article>
-                                            <article className="taller-data-chip"><span>Nacionalidad - Ciudad</span><strong>{`${selectedTallerProfile.nacionalidad || 'No definida'} - ${selectedTallerProfile.ciudad || 'No definida'}`}</strong></article>
-                                            <article className="taller-data-chip"><span>Fecha de nacimiento - Edad</span><strong>{`${selectedTallerProfile.fechaNacimiento || 'No informado'} - ${calcularEdad(selectedTallerProfile.fechaNacimiento)} años`}</strong></article>
-                                            <article className="taller-data-chip"><span>Estatura</span><strong>{selectedTallerProfile.estaturaCm ? `${selectedTallerProfile.estaturaCm} cm` : 'No informada'}</strong></article>
-                                        </div>
+                                        {!selectedTallerProfile?.isAnonymousGallery && (
+                                            <div className="grid grid-cols-1 gap-4">
+                                                <article className="taller-data-chip"><span>Profesión</span><strong>{selectedTallerProfile.profesion || 'No definida'}</strong></article>
+                                                <article className="taller-data-chip"><span>Nacionalidad - Ciudad</span><strong>{`${selectedTallerProfile.nacionalidad || 'No definida'} - ${selectedTallerProfile.ciudad || 'No definida'}`}</strong></article>
+                                                <article className="taller-data-chip"><span>Fecha de nacimiento - Edad</span><strong>{`${selectedTallerProfile.fechaNacimiento || 'No informado'} - ${calcularEdad(selectedTallerProfile.fechaNacimiento)} años`}</strong></article>
+                                                <article className="taller-data-chip"><span>Estatura</span><strong>{selectedTallerProfile.estaturaCm ? `${selectedTallerProfile.estaturaCm} cm` : 'No informada'}</strong></article>
+                                            </div>
+                                        )}
                                         <div className="pt-2">
                                             <div className="grid grid-cols-2 sm:grid-cols-[1fr,1fr,auto,auto] gap-3 items-center">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => {
-                                                        setScorePanelModal({ isOpen: true, profile: selectedTallerProfile });
-                                                    }}
-                                                    className="btn-metal py-3 rounded-xl text-[11px] font-black tracking-wide uppercase"
-                                                >
-                                                    Puntajes
-                                                </button>
+                                                {!selectedTallerProfile?.isAnonymousGallery && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setScorePanelModal({ isOpen: true, profile: selectedTallerProfile });
+                                                        }}
+                                                        className="btn-metal py-3 rounded-xl text-[11px] font-black tracking-wide uppercase"
+                                                    >
+                                                        Puntajes
+                                                    </button>
+                                                )}
                                                 <button
                                                     type="button"
                                                     onClick={() => {
@@ -4542,27 +4556,31 @@ const saveProfile = (e) => {
                                                 >
                                                     Ver Galería
                                                 </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => {
-                                                        setSelectedTallerProfileId('');
-                                                        openProfileEditor(selectedTallerProfile);
-                                                    }}
-                                                    className="w-10 h-10 rounded-md bg-yellow-400 text-slate-950 text-base font-black flex items-center justify-center leading-none shadow-md hover:brightness-110 transition"
-                                                    aria-label="Editar ficha completa"
-                                                    title="Editar ficha completa"
-                                                >
-                                                    ✏️
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => requestDeleteProfile(selectedTallerProfile)}
-                                                    className="w-10 h-10 rounded-md bg-red-500 text-white text-base font-black flex items-center justify-center leading-none shadow-md hover:brightness-110 transition"
-                                                    aria-label="Eliminar ficha"
-                                                    title="Eliminar ficha"
-                                                >
-                                                    🗑️
-                                                </button>
+                                                {!selectedTallerProfile?.isAnonymousGallery && (
+                                                    <>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setSelectedTallerProfileId('');
+                                                                openProfileEditor(selectedTallerProfile);
+                                                            }}
+                                                            className="w-10 h-10 rounded-md bg-yellow-400 text-slate-950 text-base font-black flex items-center justify-center leading-none shadow-md hover:brightness-110 transition"
+                                                            aria-label="Editar ficha completa"
+                                                            title="Editar ficha completa"
+                                                        >
+                                                            ✏️
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => requestDeleteProfile(selectedTallerProfile)}
+                                                            className="w-10 h-10 rounded-md bg-red-500 text-white text-base font-black flex items-center justify-center leading-none shadow-md hover:brightness-110 transition"
+                                                            aria-label="Eliminar ficha"
+                                                            title="Eliminar ficha"
+                                                        >
+                                                            🗑️
+                                                        </button>
+                                                    </>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
@@ -4703,6 +4721,34 @@ const saveProfile = (e) => {
                                 <p className="text-sm md:text-base text-slate-200/85 mt-4 max-w-3xl">
                                     Este panel reutiliza el estilo visual del sistema y no abre la ficha de personaje para mantener una navegación discreta.
                                 </p>
+                                <div className="mt-6">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            const anonProfile = perfiles.find((profile) => profile?.firebaseId === ANON_PROFILE_ID);
+                                            if (!anonProfile) return;
+                                            const existingWindow = galleryWindowRef.current;
+                                            const nuevaVentana = existingWindow && !existingWindow.closed ? existingWindow : window.open('', '_blank');
+                                            galleryWindowRef.current = nuevaVentana;
+                                            renderGalleryWindow({
+                                                targetWindow: nuevaVentana,
+                                                profileName: anonProfile?.nombre || 'Anónimo',
+                                                profession: 'Galería',
+                                                photos: [
+                                                    ...((anonProfile?.galeria?.fotos || []).map((item, index) => ({ ...normalizeGalleryItem(item, 'image'), sourceTag: 'fotos', sourceIndex: index }))),
+                                                    ...((anonProfile?.galeria?.videos || []).map((item, index) => ({ ...normalizeGalleryItem(item, 'video'), sourceTag: 'videos', sourceIndex: index })))
+                                                ],
+                                                editingId: ANON_PROFILE_ID,
+                                                battlePhotoPrefs: {},
+                                                profilePhotoUrl: ''
+                                            });
+                                            nuevaVentana?.focus();
+                                        }}
+                                        className="btn-metal py-3 px-6 rounded-xl text-[11px] font-black tracking-wide uppercase"
+                                    >
+                                        Abrir galería anónima
+                                    </button>
+                                </div>
                             </section>
                         </div>
                     )}
