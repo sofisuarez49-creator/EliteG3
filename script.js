@@ -3657,8 +3657,8 @@ const saveProfile = (e) => {
                     .sort((a, b) => String(a?.nombre || '').localeCompare(String(b?.nombre || ''), 'es', { sensitivity: 'base' }));
             }, [perfiles, tallerSearchTerm, showIncompleteMainPhotosOnly]);
             const selectedTallerProfile = useMemo(
-                () => tallerProfiles.find((profile) => profile?.firebaseId === selectedTallerProfileId) || null,
-                [tallerProfiles, selectedTallerProfileId]
+                () => (perfiles || []).find((profile) => profile?.firebaseId === selectedTallerProfileId) || null,
+                [perfiles, selectedTallerProfileId]
             );
             useEffect(() => {
                 const closeTooltip = () => setTallerMissingPhotosTooltipProfileId('');
