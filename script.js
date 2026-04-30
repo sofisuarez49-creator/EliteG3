@@ -2201,6 +2201,7 @@
             const [tallerMissingPhotosTooltipProfileId, setTallerMissingPhotosTooltipProfileId] = useState('');
             const galleryPlaybackTimeoutRef = useRef(null);
             const galleryViewerOverlayRef = useRef(null);
+            const galleryViewerMediaRef = useRef(null);
             const pendingFullscreenRequestRef = useRef(false);
             const tallerLongPressTimeoutRef = useRef(null);
 
@@ -3222,13 +3223,37 @@ const getInitialCatFormData = () => ({
                 });
             }, [selectedGalleryPhoto]);
 
-            const requestGalleryFullscreen = () => {
+            const isMobileViewport = typeof window !== 'undefined'
+                ? window.matchMedia('(max-width: 1023px), (pointer: coarse)').matches
+                : false;
+            const applyMobileFullscreenFallback = () => {
                 const target = galleryViewerOverlayRef.current;
                 if (!target) return;
+                target.classList.add('mobile-gallery-fallback-fullscreen');
+                document.body.classList.add('mobile-gallery-fallback-active');
+            };
+            const clearMobileFullscreenFallback = () => {
+                const target = galleryViewerOverlayRef.current;
+                if (target) {
+                    target.classList.remove('mobile-gallery-fallback-fullscreen');
+                }
+                document.body.classList.remove('mobile-gallery-fallback-active');
+            };
+            const requestGalleryFullscreen = () => {
+                const target = galleryViewerOverlayRef.current;
+                const mediaElement = galleryViewerMediaRef.current;
+                if (!target) return;
                 if (document.fullscreenElement) return;
-                const request = target.requestFullscreen || target.webkitRequestFullscreen || target.msRequestFullscreen;
+                const fullscreenTarget = mediaElement || target;
+                const request = fullscreenTarget.requestFullscreen
+                    || fullscreenTarget.webkitRequestFullscreen
+                    || fullscreenTarget.msRequestFullscreen;
                 if (typeof request === 'function') {
-                    Promise.resolve(request.call(target)).catch(() => {});
+                    Promise.resolve(request.call(fullscreenTarget)).catch(() => {
+                        if (isMobileViewport) applyMobileFullscreenFallback();
+                    });
+                } else if (isMobileViewport) {
+                    applyMobileFullscreenFallback();
                 }
             };
             const exitGalleryFullscreen = () => {
@@ -3266,6 +3291,7 @@ const getInitialCatFormData = () => ({
                 pendingFullscreenRequestRef.current = false;
                 setIsGalleryPlaying(false);
                 setSelectedGalleryIndex(null);
+                clearMobileFullscreenFallback();
                 exitGalleryFullscreen();
             };
             const showNextGalleryPhoto = () => setSelectedGalleryIndex((current) => getNextPlayableIndex(current, filteredGalleryPhotos, isGalleryRandom));
@@ -5421,7 +5447,7 @@ const saveProfile = (e) => {
             {selectedGalleryPhoto && (
                 <div
                     ref={galleryViewerOverlayRef}
-                    className="fixed top-0 bottom-0 z-[260] bg-slate-950/95 backdrop-blur-xl flex items-center justify-center p-0"
+                    className="gallery-viewer-overlay fixed top-0 bottom-0 z-[260] bg-slate-950/95 backdrop-blur-xl flex items-center justify-center p-0"
                     style={isSidebarOpen ? { left: '18rem', width: 'calc(100vw - 18rem)' } : { left: 0, width: '100vw' }}
                     onClick={closeGalleryViewer}
                 >
@@ -5434,7 +5460,7 @@ const saveProfile = (e) => {
                         <span className="text-[26px] leading-none font-black">✕</span>
                     </button>
 
-                    <div className="w-screen h-screen max-h-screen flex flex-col gap-4 px-4 py-4 sm:px-6 sm:py-6" onClick={(event) => event.stopPropagation()}>
+                    <div className="gallery-viewer-shell w-screen h-screen max-h-screen flex flex-col gap-4 px-3 py-3 sm:px-6 sm:py-6" onClick={(event) => event.stopPropagation()}>
                         <div className="flex items-center justify-between gap-4 px-1 sm:px-2">
                             <div>
                                 <p className="text-2xl sm:text-3xl font-black italic text-white tracking-tighter">{selectedGalleryPhoto.nombre}</p>
@@ -5477,15 +5503,16 @@ const saveProfile = (e) => {
                             </div>
                         </div>
 
-                        <div className="relative flex-1 min-h-0 rounded-[2rem] overflow-hidden border theme-border-secondary bg-black/50">
+                        <div className="gallery-viewer-media-wrap relative flex-1 min-h-0 md:rounded-[2rem] overflow-hidden md:border theme-border-secondary bg-black/50">
                             {selectedGalleryPhoto.type === 'video' ? (() => {
                                 const embedInfo = getVideoEmbedInfo(selectedGalleryPhoto.url);
                                 if (embedInfo) {
                                     return (
                                         <iframe
+                                            ref={galleryViewerMediaRef}
                                             src={embedInfo.src}
                                             title={`${selectedGalleryPhoto.nombre} video`}
-                                            className="w-full h-[calc(100vh-14rem)] bg-black"
+                                            className="w-full h-[calc(100dvh-14rem)] bg-black"
                                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                                             allowFullScreen
                                         />
@@ -5493,9 +5520,11 @@ const saveProfile = (e) => {
                                 }
                                 return (
                                     <video
+                                        ref={galleryViewerMediaRef}
                                         src={selectedGalleryPhoto.url}
                                         controls
                                         playsInline
+                                        muted={isMobileViewport}
                                         autoPlay={isGalleryPlaying}
                                         onEnded={() => {
                                             if (isGalleryPlaying && filteredGalleryPhotos.length > 1) {
@@ -5507,14 +5536,15 @@ const saveProfile = (e) => {
                                                 showNextGalleryPhoto();
                                             }
                                         }}
-                                        className="w-full h-[calc(100vh-14rem)] object-contain bg-black"
+                                        className="w-full h-[calc(100dvh-14rem)] object-contain bg-black"
                                     />
                                 );
                             })() : (
                                 <img
     src={getSafeImageSrc(selectedGalleryPhoto.url, CRYING_EMOJI_FALLBACK)}
     alt={`${selectedGalleryPhoto.nombre} - ${selectedGalleryPhoto.label || 'galería'}`}
-    className="w-full h-[calc(100vh-14rem)] object-contain bg-black"
+    ref={galleryViewerMediaRef}
+    className="w-full h-[calc(100dvh-14rem)] object-contain bg-black"
     onError={(e) => {
         // 1. Aplicamos el fallback visual por si acaso
         applyCryingEmojiFallback(e);
