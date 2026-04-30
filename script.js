@@ -228,6 +228,25 @@
                 .filter((slot) => slot.id !== 'perfil')
                 .every((slot) => Boolean(String(prefs?.[slot.id] || '').trim()));
         };
+        const getMissingMainPhotoLabels = (profile = {}) => {
+            const missingLabels = [];
+            const profilePhotoUrl = getSafeImageSrc(String(profile?.fotos?.[0] || '').trim(), '');
+            const prefs = sanitizeBattlePhotoPreferences(profile?.batallaFotosPreferidas || profile?.galeria?.battlePhotoPreferences || {});
+
+            if (!profilePhotoUrl) {
+                missingLabels.push('Perfil');
+            }
+
+            BATTLE_PHOTO_SLOTS
+                .filter((slot) => slot.id !== 'perfil')
+                .forEach((slot) => {
+                    if (!String(prefs?.[slot.id] || '').trim()) {
+                        missingLabels.push(slot.label);
+                    }
+                });
+
+            return missingLabels;
+        };
         const openMultimediaTab = (profile = null) => {
             if (!profile) return;
             const tab = window.open('', '_blank');
@@ -1640,7 +1659,9 @@
             const [brokenGallerySavingMap, setBrokenGallerySavingMap] = useState({});
             const [brokenGalleryEditingMap, setBrokenGalleryEditingMap] = useState({});
             const [showIncompleteMainPhotosOnly, setShowIncompleteMainPhotosOnly] = useState(false);
+            const [tallerMissingPhotosTooltipProfileId, setTallerMissingPhotosTooltipProfileId] = useState('');
             const galleryPlaybackTimeoutRef = useRef(null);
+            const tallerLongPressTimeoutRef = useRef(null);
 
 const getInitialCatFormData = () => ({
     label: '',
@@ -3654,6 +3675,11 @@ const saveProfile = (e) => {
                 () => tallerProfiles.find((profile) => profile?.firebaseId === selectedTallerProfileId) || null,
                 [tallerProfiles, selectedTallerProfileId]
             );
+            useEffect(() => {
+                const closeTooltip = () => setTallerMissingPhotosTooltipProfileId('');
+                document.addEventListener('click', closeTooltip);
+                return () => document.removeEventListener('click', closeTooltip);
+            }, []);
             const battleScopeOptions = useMemo(() => {
                 if (!selectedBattleScope) return [];
                 return getBattleScopeOptions(perfiles, selectedBattleScope);
@@ -3997,13 +4023,37 @@ const saveProfile = (e) => {
                                 {tallerProfiles.map((p) => {
                                     const neonClass = getNeonClassByProfession(p.profesion);
                                     const isSelected = selectedTallerProfileId && selectedTallerProfileId === p.firebaseId;
+                                    const missingLabels = getMissingMainPhotoLabels(p);
+                                    const showMissingPhotosTooltip = tallerMissingPhotosTooltipProfileId === (p.firebaseId || p.nombre);
                                     return (
                                         <button
                                             key={p.firebaseId || p.nombre}
                                             type="button"
                                             onClick={() => {
+                                                setTallerMissingPhotosTooltipProfileId('');
                                                 setSelectedTallerProfileId('');
                                                 openProfileEditor(p);
+                                            }}
+                                            onContextMenu={(event) => {
+                                                if (!showIncompleteMainPhotosOnly || !missingLabels.length) return;
+                                                event.preventDefault();
+                                                event.stopPropagation();
+                                                setTallerMissingPhotosTooltipProfileId((prev) => (
+                                                    prev === (p.firebaseId || p.nombre) ? '' : (p.firebaseId || p.nombre)
+                                                ));
+                                            }}
+                                            onTouchStart={() => {
+                                                if (!showIncompleteMainPhotosOnly || !missingLabels.length) return;
+                                                clearTimeout(tallerLongPressTimeoutRef.current);
+                                                tallerLongPressTimeoutRef.current = setTimeout(() => {
+                                                    setTallerMissingPhotosTooltipProfileId(p.firebaseId || p.nombre);
+                                                }, 550);
+                                            }}
+                                            onTouchEnd={() => {
+                                                clearTimeout(tallerLongPressTimeoutRef.current);
+                                            }}
+                                            onTouchMove={() => {
+                                                clearTimeout(tallerLongPressTimeoutRef.current);
                                             }}
                                             className={`profile-card rounded-2xl p-4 relative text-left transition-all ${isSelected ? 'taller-card--selected' : ''}`}
                                         >
@@ -4023,6 +4073,20 @@ const saveProfile = (e) => {
                                             >
                                                 {p.profesion || 'Profesión no definida'}
                                             </p>
+                                            {showMissingPhotosTooltip && (
+                                                <div
+                                                    className="absolute left-4 right-4 bottom-4 z-20 rounded-xl border border-red-300/55 bg-slate-950/95 px-3 py-3 text-[11px] text-slate-100 shadow-[0_0_24px_rgba(248,113,113,0.45)]"
+                                                    onClick={(event) => event.stopPropagation()}
+                                                    role="tooltip"
+                                                >
+                                                    <p className="font-black uppercase tracking-wider text-red-200 mb-2">Faltan fotos:</p>
+                                                    <ul className="space-y-1">
+                                                        {missingLabels.map((label) => (
+                                                            <li key={label} className="leading-tight">• {label}</li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            )}
                                         </button>
                                     );
                                 })}
