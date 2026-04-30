@@ -1573,6 +1573,8 @@
                         if (!card) return;
                         const assigned = tryAssignGalleryCardToActiveSlot(card);
                         if (assigned) {
+                            event.preventDefault();
+                            event.stopImmediatePropagation();
                             event.stopPropagation();
                             return;
                         }
@@ -1778,6 +1780,11 @@
 
                             const card = event.target.closest('.gallery-card');
                             if (!card) return;
+                            if (activeSlotSelectionId) {
+                                if ((card.dataset.mediaType || 'image') !== 'image') return;
+                                const assigned = tryAssignGalleryCardToActiveSlot(card);
+                                if (assigned) return;
+                            }
                             event.preventDefault();
                             openFullscreenViewer(card.dataset.galleryIndex);
                         });
