@@ -743,3 +743,28 @@ body::-webkit-scrollbar-thumb {
     border-radius: 999px;
     border: 1px solid color-mix(in srgb, var(--neon-cyan) 55%, transparent);
 }
+
+.battle-mode-card {
+    min-height: 170px;
+    aspect-ratio: auto;
+}
+
+.battle-mode-card--mode {
+    min-height: 150px;
+}
+
+.battle-mode-card--arena {
+    min-height: 140px;
+}
+
+.battle-mode-card h3 {
+    font-size: clamp(0.9rem, 1.8vw, 1.1rem);
+    line-height: 1.1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.battle-mode-card p {
+    font-size: 0.68rem;
+}
