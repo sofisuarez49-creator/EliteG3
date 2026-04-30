@@ -1122,14 +1122,26 @@
                         box-sizing: border-box;
                     }
                     .viewer-slide {
-                        display: none;
+                        position: absolute;
+                        inset: 0;
                         width: 100%;
                         height: 100%;
+                        display: flex;
                         align-items: center;
                         justify-content: center;
+                        opacity: 0;
+                        visibility: hidden;
+                        pointer-events: none;
+                        transform: translate3d(0, 12px, 0) scale(0.992);
+                        transition: opacity 260ms ease, transform 300ms ease, visibility 0s linear 300ms;
+                        will-change: opacity, transform;
                     }
                     .viewer-slide.active {
-                        display: flex;
+                        opacity: 1;
+                        visibility: visible;
+                        pointer-events: auto;
+                        transform: translate3d(0, 0, 0) scale(1);
+                        transition: opacity 240ms ease, transform 260ms ease, visibility 0s linear 0s;
                     }
                     .viewer-slide img {
                         max-width: min(92vw, 1400px);
@@ -1469,7 +1481,7 @@
                                 ${itemType === 'video'
                                     ? (embedInfo
                                         ? `<iframe src="${embedInfo.src}" title="${embedInfo.title} ${index + 1}" style="width:min(92vw, 1400px); height:min(75vh, 820px); border:0; border-radius:24px; box-shadow:0 0 40px rgba(34, 211, 238, 0.2); background:#000;" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>`
-                                        : `<video src="${foto.url}" controls playsinline style="max-width:min(92vw, 1400px); max-height:calc(100vh - 64px); width:auto; height:auto; border-radius:24px; box-shadow:0 0 40px rgba(34, 211, 238, 0.2); background:#000;"></video>`)
+                                        : `<video src="${foto.url}" controls playsinline preload="metadata" style="max-width:min(92vw, 1400px); max-height:calc(100vh - 64px); width:auto; height:auto; border-radius:24px; box-shadow:0 0 40px rgba(34, 211, 238, 0.2); background:#000;"></video>`)
                                     : `<img src="${foto.url}" alt="Vista completa ${index + 1}" onerror="${BROKEN_IMAGE_INLINE_HANDLER}" />`
                                 }
                             </div>`;
@@ -1487,10 +1499,23 @@
                     const viewerRandomToggleButton = document.getElementById('viewerRandomToggle');
                     const VALID_FILE_MIME_PREFIXES = ['image/', 'video/'];
                     const VALID_FILE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'mp4', 'webm', 'ogg', 'mov', 'm4v'];
+                    const VIEWER_IMAGE_TIMEOUT_MS = 7000;
+                    const VIEWER_VIDEO_FALLBACK_TIMEOUT_MS = 30000;
+                    const VIEWER_RETRY_DELAY_MS = 900;
+                    const VIEWER_PRELOAD_RADIUS = 1;
+                    const VIEWER_STATES = Object.freeze({
+                        IDLE: 'idle',
+                        SHOWING_IMAGE: 'showing-image',
+                        PLAYING_VIDEO: 'playing-video',
+                        TRANSITIONING: 'transitioning'
+                    });
                     let currentViewerIndex = 0;
                     let viewerAutoplay = false;
                     let viewerRandom = false;
                     let viewerAutoplayTimeout = null;
+                    let viewerState = VIEWER_STATES.IDLE;
+                    let viewerTransitionToken = 0;
+                    let viewerRecoveryInProgress = false;
                     let activeSlotSelectionId = '';
                     const DND_PAYLOAD_TYPE = 'application/x-battle-slot-item';
                     const LONG_PRESS_MS = 280;
@@ -1734,15 +1759,58 @@
                         }
                     }
 
+                    function preloadViewerAround(index) {
+                        if (!viewerSlides.length) return;
+                        for (let offset = -VIEWER_PRELOAD_RADIUS; offset <= VIEWER_PRELOAD_RADIUS; offset += 1) {
+                            const targetIndex = (index + offset + viewerSlides.length) % viewerSlides.length;
+                            const slide = viewerSlides[targetIndex];
+                            const nearVideo = slide ? slide.querySelector('video') : null;
+                            if (nearVideo && nearVideo.preload !== 'auto') {
+                                nearVideo.preload = 'auto';
+                                nearVideo.load();
+                            }
+                        }
+                    }
+
+                    function pauseAndResetInactiveVideos(activeIndex) {
+                        viewerSlides.forEach((slide, slideIndex) => {
+                            if (slideIndex === activeIndex) return;
+                            const video = slide.querySelector('video');
+                            if (!video) return;
+                            video.pause();
+                            if (!video.dataset.manuallyPaused) {
+                                video.currentTime = 0;
+                            }
+                        });
+                    }
+
+                    function recoverViewerPlayback(reason = 'unknown') {
+                        if (viewerRecoveryInProgress) return;
+                        viewerRecoveryInProgress = true;
+                        setTimeout(() => {
+                            viewerRecoveryInProgress = false;
+                            if (viewerSlides.length > 1 && viewer.classList.contains('open')) {
+                                renderViewerSlide(getNextViewerIndex());
+                            } else {
+                                clearViewerAutoplayTimer();
+                                viewerState = VIEWER_STATES.IDLE;
+                            }
+                        }, VIEWER_RETRY_DELAY_MS);
+                    }
+
                     function scheduleViewerAutoplay() {
                         clearViewerAutoplayTimer();
                         if (!viewerAutoplay || !viewer.classList.contains('open') || viewerSlides.length <= 1) return;
-                        const currentSlide = viewerSlides[currentViewerIndex];
-                        const currentVideo = currentSlide ? currentSlide.querySelector('video') : null;
-                        if (currentVideo) return;
+                        if (viewerState === VIEWER_STATES.TRANSITIONING) return;
+                        if (viewerState === VIEWER_STATES.PLAYING_VIDEO) {
+                            viewerAutoplayTimeout = setTimeout(() => {
+                                recoverViewerPlayback('video-timeout');
+                            }, VIEWER_VIDEO_FALLBACK_TIMEOUT_MS);
+                            return;
+                        }
                         viewerAutoplayTimeout = setTimeout(function() {
                             renderViewerSlide(getNextViewerIndex());
-                        }, 7000);
+                        }, VIEWER_IMAGE_TIMEOUT_MS);
                     }
 
                     function syncViewerButtons() {
@@ -1753,31 +1821,43 @@
 
                     function renderViewerSlide(index) {
                         if (!viewerSlides.length) return;
+                        const renderToken = ++viewerTransitionToken;
+                        viewerState = VIEWER_STATES.TRANSITIONING;
                         currentViewerIndex = Math.max(0, Math.min(index, viewerSlides.length - 1));
+                        pauseAndResetInactiveVideos(currentViewerIndex);
                         viewerSlides.forEach(function(slide, slideIndex) {
                             slide.classList.toggle('active', slideIndex === currentViewerIndex);
                         });
                         const activeSlide = viewerSlides[currentViewerIndex];
                         const activeImage = activeSlide ? activeSlide.querySelector('img') : null;
                         const activeVideo = activeSlide ? activeSlide.querySelector('video') : null;
+                        preloadViewerAround(currentViewerIndex);
                         if (activeVideo) {
-                            activeVideo.currentTime = 0;
+                            activeVideo.onpause = function() {
+                                if (!viewerAutoplay) activeVideo.dataset.manuallyPaused = '1';
+                            };
+                            activeVideo.onplay = function() {
+                                activeVideo.dataset.manuallyPaused = '';
+                            };
                             if (viewerAutoplay) {
-                                activeVideo.play().catch(function() {});
+                                if (!activeVideo.dataset.manuallyPaused) {
+                                    activeVideo.currentTime = 0;
+                                }
+                                activeVideo.play().catch(function() {
+                                    recoverViewerPlayback('play-error');
+                                });
                             }
+                            viewerState = VIEWER_STATES.PLAYING_VIDEO;
                         }
                         if (activeImage) {
                             activeImage.onerror = function() {
-                                if (viewerSlides.length > 1) {
-                                    renderViewerSlide(getNextViewerIndex());
-                                }
+                                recoverViewerPlayback('image-error');
                             };
+                            viewerState = VIEWER_STATES.SHOWING_IMAGE;
                         }
                         if (activeVideo) {
                             activeVideo.onerror = function() {
-                                if (viewerSlides.length > 1) {
-                                    renderViewerSlide(getNextViewerIndex());
-                                }
+                                recoverViewerPlayback('video-error');
                             };
                             activeVideo.onended = function() {
                                 if (viewerAutoplay && viewerSlides.length > 1) {
@@ -1785,8 +1865,12 @@
                                 }
                             };
                         }
+                        requestAnimationFrame(() => {
+                            if (renderToken !== viewerTransitionToken) return;
+                            if (!activeVideo && !activeImage) viewerState = VIEWER_STATES.IDLE;
+                            scheduleViewerAutoplay();
+                        });
                         syncViewerButtons();
-                        scheduleViewerAutoplay();
                     }
 
                     function openFullscreenViewer(index) {
@@ -1795,12 +1879,15 @@
                         if (!Number.isInteger(parsedIndex) || parsedIndex < 0 || parsedIndex >= viewerSlides.length) return;
                         viewer.classList.add('open');
                         document.body.style.overflow = 'hidden';
+                        viewerState = VIEWER_STATES.TRANSITIONING;
                         renderViewerSlide(parsedIndex);
                     }
                     function closeFullscreenViewer() {
                         viewer.classList.remove('open');
                         document.body.style.overflow = '';
                         clearViewerAutoplayTimer();
+                        viewerState = VIEWER_STATES.IDLE;
+                        pauseAndResetInactiveVideos(-1);
                     }
                     function showNextViewerPhoto(event) {
                         if (event) event.stopPropagation();
