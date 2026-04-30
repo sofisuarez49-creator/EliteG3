@@ -15,7 +15,7 @@
     --metal-shadow: #2a3346;
 
     --glow-soft: 0 0 14px color-mix(in srgb, var(--neon-cyan) 35%, transparent);
-    --glow-strong: 0 0 28px color-mix(in srgb, var(--neon-cyan) 62%, transparent), 0 0 56px color-mix(in srgb, var(--neon-violet) 28%, transparent);
+    --glow-strong: 0 0 22px color-mix(in srgb, var(--neon-cyan) 58%, transparent), 0 0 40px color-mix(in srgb, var(--neon-violet) 24%, transparent);
     --ring-neon: 0 0 0 1px color-mix(in srgb, var(--neon-cyan) 65%, transparent), 0 0 0 3px color-mix(in srgb, var(--neon-violet) 24%, transparent);
 }
 
@@ -137,7 +137,6 @@ h1, h2, h3, h4, h5, h6,
     background:
         linear-gradient(155deg, rgba(15, 24, 43, 0.76), rgba(8, 13, 26, 0.88)),
         radial-gradient(circle at top, rgba(34, 211, 238, 0.13), transparent 65%);
-    backdrop-filter: blur(3px);
     border: 1px solid rgba(139, 153, 173, 0.34);
     box-shadow: inset 0 1px 0 rgba(215, 225, 240, 0.12), 0 3px 18px rgba(0, 0, 0, 0.45);
     padding: 0.5rem 1rem;
@@ -213,7 +212,7 @@ h1, h2, h3, h4, h5, h6,
 }
 
 .profile-card:hover {
-    box-shadow: 0 0 26px var(--card-neon-glow), 0 0 60px color-mix(in srgb, var(--card-neon-color) 42%, transparent), inset 0 0 55px color-mix(in srgb, var(--card-neon-color) 28%, transparent);
+    box-shadow: 0 0 22px var(--card-neon-glow), 0 0 44px color-mix(in srgb, var(--card-neon-color) 36%, transparent), inset 0 0 42px color-mix(in srgb, var(--card-neon-color) 24%, transparent);
     background:
         radial-gradient(circle at 50% 80%, color-mix(in srgb, var(--card-neon-color) 24%, transparent) 0%, transparent 68%),
         linear-gradient(180deg, color-mix(in srgb, var(--card-neon-color) 12%, rgba(2, 6, 23, 0.52) 88%), rgba(2, 6, 23, 0.84));
@@ -359,9 +358,9 @@ h1, h2, h3, h4, h5, h6,
     box-shadow:
         inset 0 1px 0 rgba(255, 255, 255, 0.42),
         inset 0 -22px 34px rgba(2, 6, 23, 0.7),
-        0 24px 32px rgba(2, 6, 23, 0.52),
-        0 0 26px color-mix(in srgb, var(--folder-glow, rgba(34, 211, 238, 0.65)) 70%, transparent),
-        0 0 56px color-mix(in srgb, var(--folder-glow, rgba(34, 211, 238, 0.65)) 32%, transparent);
+        0 20px 28px rgba(2, 6, 23, 0.5),
+        0 0 22px color-mix(in srgb, var(--folder-glow, rgba(34, 211, 238, 0.65)) 62%, transparent),
+        0 0 42px color-mix(in srgb, var(--folder-glow, rgba(34, 211, 238, 0.65)) 26%, transparent);
 }
 
 .profession-folder-card__icon {
@@ -397,9 +396,9 @@ h1, h2, h3, h4, h5, h6,
     box-shadow:
         inset 0 1px 0 rgba(255, 255, 255, 0.48),
         inset 0 -18px 28px rgba(2, 6, 23, 0.74),
-        0 14px 26px rgba(2, 6, 23, 0.56),
-        0 0 26px color-mix(in srgb, var(--neon-cyan) 64%, transparent),
-        0 0 54px color-mix(in srgb, var(--neon-cyan) 34%, transparent);
+        0 12px 24px rgba(2, 6, 23, 0.54),
+        0 0 22px color-mix(in srgb, var(--neon-cyan) 56%, transparent),
+        0 0 40px color-mix(in srgb, var(--neon-cyan) 28%, transparent);
 }
 
 .solid-metal-ui {
@@ -422,6 +421,17 @@ h1, h2, h3, h4, h5, h6,
         inset 0 -18px 28px rgba(2, 6, 23, 0.74),
         0 14px 26px rgba(2, 6, 23, 0.56),
         0 0 26px color-mix(in srgb, var(--neon-cyan) 44%, transparent);
+}
+
+
+.profile-card,
+.profession-folder-card,
+button,
+.btn-metal,
+.btn-neon,
+.sidebar-nav-btn,
+.battle-participant-card {
+    will-change: transform, box-shadow;
 }
 
 ::-webkit-scrollbar { width: 6px; }
@@ -529,8 +539,8 @@ button:hover,
     box-shadow:
         inset 0 1px 0 rgba(255, 255, 255, 0.45),
         inset 0 -10px 16px rgba(2, 6, 23, 0.45),
-        0 14px 24px rgba(2, 6, 23, 0.52),
-        0 0 26px color-mix(in srgb, var(--neon-cyan) 38%, transparent);
+        0 12px 22px rgba(2, 6, 23, 0.5),
+        0 0 20px color-mix(in srgb, var(--neon-cyan) 32%, transparent);
 }
 
 .metal-btn-3d {
@@ -597,8 +607,8 @@ button:hover,
     box-shadow:
         inset 0 1px 0 rgba(255,255,255,0.4),
         inset 0 -22px 30px rgba(2,6,23,0.75),
-        0 18px 32px rgba(2,6,23,0.58),
-        0 0 36px color-mix(in srgb, var(--battle-profession-color) 56%, transparent);
+        0 16px 28px rgba(2,6,23,0.54),
+        0 0 28px color-mix(in srgb, var(--battle-profession-color) 48%, transparent);
 }
 
 .sidebar-screen-toggle {
