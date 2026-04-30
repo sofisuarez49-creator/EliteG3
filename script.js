@@ -2203,6 +2203,12 @@
             const [brokenGalleryEditingMap, setBrokenGalleryEditingMap] = useState({});
             const [showIncompleteMainPhotosOnly, setShowIncompleteMainPhotosOnly] = useState(false);
             const [tallerMissingPhotosTooltipProfileId, setTallerMissingPhotosTooltipProfileId] = useState('');
+            const [equipos, setEquipos] = useState([]);
+            const [jugadores, setJugadores] = useState([]);
+            const [showJugadorForm, setShowJugadorForm] = useState(false);
+            const [jugadorFormData, setJugadorFormData] = useState({ nombre: '', equipos: [] });
+            const [jugadoresSortBy, setJugadoresSortBy] = useState('alfabetico');
+            const [jugadoresTeamFilter, setJugadoresTeamFilter] = useState('TODOS');
             const galleryPlaybackTimeoutRef = useRef(null);
             const galleryViewerOverlayRef = useRef(null);
             const galleryViewerMediaRef = useRef(null);
@@ -2306,6 +2312,31 @@ const getInitialCatFormData = () => ({
                 });
                 setIsModalOpen(true);
             };
+            const handleAddJugadorEquipo = (teamId) => {
+                if (!teamId) return;
+                setJugadorFormData((prev) => {
+                    if ((prev.equipos || []).some((entry) => entry.teamId === teamId)) return prev;
+                    return { ...prev, equipos: [...(prev.equipos || []), { teamId, camisetas: [] }] };
+                });
+            };
+            const handleJugadorCamisetasChange = (teamId, selectedValues) => {
+                setJugadorFormData((prev) => ({
+                    ...prev,
+                    equipos: (prev.equipos || []).map((entry) => (
+                        entry.teamId === teamId ? { ...entry, camisetas: selectedValues } : entry
+                    ))
+                }));
+            };
+            const saveJugador = async (event) => {
+                event.preventDefault();
+                const nombre = String(jugadorFormData?.nombre || '').trim();
+                const equiposSeleccionados = (jugadorFormData?.equipos || []).filter((entry) => entry?.teamId);
+                if (!nombre) return alert('Ingresá el nombre del jugador.');
+                if (!equiposSeleccionados.length) return alert('Seleccioná al menos un equipo.');
+                await db.ref('jugadores').push({ nombre, equipos: equiposSeleccionados, creadoEn: Date.now() });
+                setJugadorFormData({ nombre: '', equipos: [] });
+                setShowJugadorForm(false);
+            };
             const profileCompletionRows = useMemo(() => {
                 const rows = [
                     { key: 'nombre', label: 'Nombre', value: formData?.nombre },
@@ -2335,6 +2366,15 @@ const getInitialCatFormData = () => ({
                     missing: withStatus.filter((row) => !row.isComplete)
                 };
             }, [formData]);
+            const equiposMap = useMemo(() => new Map((equipos || []).map((equipo) => [equipo.id, equipo])), [equipos]);
+            const jugadoresListado = useMemo(() => {
+                let rows = [...(jugadores || [])];
+                if (jugadoresTeamFilter !== 'TODOS') {
+                    rows = rows.filter((jugador) => (jugador.equipos || []).some((entry) => entry.teamId === jugadoresTeamFilter));
+                }
+                rows.sort((a, b) => String(a?.nombre || '').localeCompare(String(b?.nombre || ''), 'es', { sensitivity: 'base' }));
+                return rows;
+            }, [jugadores, jugadoresTeamFilter, jugadoresSortBy]);
             const addGalleryImage = async ({ profileId, url, tag = 'fotos', label = '', type = 'image', autor = '' }) => {
                 const normalizedUrl = (url || '').trim();
                 const normalizedLabel = GALLERY_LABELS.includes(label) ? label : '';
@@ -2745,6 +2785,22 @@ const getInitialCatFormData = () => ({
                     anonGalleryRef.off();
                     arenasRef.off();
                     arenaGlobalRef.off();
+                };
+            }, []);
+            useEffect(() => {
+                const equiposRef = db.ref('equipos');
+                const jugadoresRef = db.ref('jugadores');
+                equiposRef.on('value', (snapshot) => {
+                    const data = snapshot.val() || {};
+                    setEquipos(Object.entries(data).map(([id, value]) => ({ id, ...(value || {}) })));
+                });
+                jugadoresRef.on('value', (snapshot) => {
+                    const data = snapshot.val() || {};
+                    setJugadores(Object.entries(data).map(([id, value]) => ({ id, ...(value || {}), equipos: Array.isArray(value?.equipos) ? value.equipos : [] })));
+                });
+                return () => {
+                    equiposRef.off();
+                    jugadoresRef.off();
                 };
             }, []);
 
@@ -4538,6 +4594,7 @@ const saveProfile = (e) => {
                                 { id: 'RANKING', icon: 'trending-up', label: 'Ranking' },
                                 { id: 'BATALLAS', icon: 'swords', label: 'Batallas' },
                                 { id: 'GALERIA', icon: 'images', label: 'Galería' },
+                                { id: 'JUGADORES', icon: 'users', label: 'Jugadores' },
                                 { id: 'anonimo', icon: 'user-round-x', label: 'ánonimo' },
                                 { id: 'TALLER', icon: 'hammer', label: 'Taller' }
                             ].map(item => (
@@ -4817,6 +4874,64 @@ const saveProfile = (e) => {
                         </div>
                     )}
 
+                    {activeTab === 'JUGADORES' && !selectedCategory && (
+                        <div className="space-y-6 animate-in fade-in duration-500">
+                            <div className="flex flex-wrap items-center gap-3 justify-between">
+                                <h2 className="neon-sign neon-sign--cyan text-4xl font-black italic text-white uppercase tracking-tighter">Jugadores</h2>
+                                <button type="button" onClick={() => setShowJugadorForm((prev) => !prev)} className="btn-metal btn-metal--gold py-3 px-5 rounded-xl text-[11px] font-black tracking-wide uppercase">
+                                    + Agregar jugador
+                                </button>
+                            </div>
+                            {showJugadorForm && (
+                                <form onSubmit={saveJugador} className="hud-frame hud-frame--panel profession-banner p-6 rounded-2xl space-y-4">
+                                    <input type="text" value={jugadorFormData.nombre} onChange={(event) => setJugadorFormData((prev) => ({ ...prev, nombre: event.target.value }))} placeholder="Nombre del jugador" className="w-full rounded-xl border border-cyan-200/30 bg-slate-950/70 px-4 py-3 text-sm text-slate-100 outline-none" />
+                                    <div className="flex flex-wrap items-center gap-3">
+                                        <select defaultValue="" onChange={(event) => { handleAddJugadorEquipo(event.target.value); event.target.value = ''; }} className="rounded-xl border border-cyan-200/30 bg-slate-950/70 px-4 py-3 text-sm text-slate-100 outline-none">
+                                            <option value="">Agregar equipo...</option>
+                                            {equipos.map((equipo) => <option key={equipo.id} value={equipo.id}>{equipo.nombre || 'Equipo sin nombre'}</option>)}
+                                        </select>
+                                    </div>
+                                    <div className="space-y-3">
+                                        {(jugadorFormData.equipos || []).map((entry) => {
+                                            const equipo = equiposMap.get(entry.teamId) || {};
+                                            const camisetas = Array.isArray(equipo.camisetas) ? equipo.camisetas : [];
+                                            return (
+                                                <div key={entry.teamId} className="rounded-xl border border-cyan-200/20 p-4 space-y-2">
+                                                    <p className="text-sm font-bold text-cyan-100">{equipo.nombre || 'Equipo'}</p>
+                                                    <select multiple value={entry.camisetas || []} onChange={(event) => handleJugadorCamisetasChange(entry.teamId, [...event.target.selectedOptions].map((option) => option.value))} className="w-full min-h-[90px] rounded-xl border border-cyan-200/20 bg-slate-950/70 px-3 py-2 text-xs text-slate-100 outline-none">
+                                                        {camisetas.map((camiseta, idx) => <option key={`${entry.teamId}-${idx}`} value={String(camiseta)}>{String(camiseta)}</option>)}
+                                                    </select>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                    <button type="submit" className="btn-metal py-3 px-5 rounded-xl text-[11px] font-black tracking-wide uppercase">Guardar jugador</button>
+                                </form>
+                            )}
+                            <div className="flex flex-wrap gap-3 items-center">
+                                <select value={jugadoresSortBy} onChange={(event) => setJugadoresSortBy(event.target.value)} className="rounded-xl border border-cyan-200/30 bg-slate-950/70 px-4 py-2 text-xs text-slate-100 outline-none">
+                                    <option value="alfabetico">Orden alfabético</option>
+                                </select>
+                                <select value={jugadoresTeamFilter} onChange={(event) => setJugadoresTeamFilter(event.target.value)} className="rounded-xl border border-cyan-200/30 bg-slate-950/70 px-4 py-2 text-xs text-slate-100 outline-none">
+                                    <option value="TODOS">Todos los equipos</option>
+                                    {equipos.map((equipo) => <option key={`filter-${equipo.id}`} value={equipo.id}>{equipo.nombre || 'Equipo sin nombre'}</option>)}
+                                </select>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                                {jugadoresListado.map((jugador) => (
+                                    <article key={jugador.id} className="rounded-2xl border border-cyan-200/20 bg-slate-900/60 p-4 space-y-2">
+                                        <h3 className="text-lg font-black text-white">{jugador.nombre || 'Sin nombre'}</h3>
+                                        <div className="space-y-2">
+                                            {(jugador.equipos || []).map((entry) => {
+                                                const equipo = equiposMap.get(entry.teamId) || {};
+                                                return <p key={`${jugador.id}-${entry.teamId}`} className="text-xs text-slate-300">{equipo.nombre || 'Equipo'} — Camisetas: {(entry.camisetas || []).join(', ') || 'Sin camisetas seleccionadas'}</p>;
+                                            })}
+                                        </div>
+                                    </article>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                     {activeTab === 'anonimo' && !selectedCategory && (
                         <div className="space-y-8 animate-in fade-in duration-500">
                             <section className="hud-frame hud-frame--panel profession-banner p-8 rounded-2xl gothic-frame gothic-frame--ornate gothic-frame--grand">
