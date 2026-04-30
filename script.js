@@ -223,7 +223,8 @@
             const profilePhotoUrl = getSafeImageSrc(String(profile?.fotos?.[0] || '').trim(), '');
             const prefs = sanitizeBattlePhotoPreferences(profile?.batallaFotosPreferidas || profile?.galeria?.battlePhotoPreferences || {});
             if (!profilePhotoUrl) return false;
-            return MAIN_BATTLE_PHOTO_SLOTS
+            return BATTLE_PHOTO_SLOTS
+                .filter((slot) => slot.id !== 'perfil')
                 .every((slot) => Boolean(String(prefs?.[slot.id] || '').trim()));
         };
         const getMissingMainPhotoLabels = (profile = {}) => {
@@ -232,10 +233,11 @@
             const prefs = sanitizeBattlePhotoPreferences(profile?.batallaFotosPreferidas || profile?.galeria?.battlePhotoPreferences || {});
 
             if (!profilePhotoUrl) {
-                missingLabels.push(PROFILE_BATTLE_PHOTO_SLOT?.label || 'Perfil');
+                missingLabels.push('Perfil');
             }
 
-            MAIN_BATTLE_PHOTO_SLOTS
+            BATTLE_PHOTO_SLOTS
+                .filter((slot) => slot.id !== 'perfil')
                 .forEach((slot) => {
                     if (!String(prefs?.[slot.id] || '').trim()) {
                         missingLabels.push(slot.label);
@@ -1232,12 +1234,15 @@
 
                 <details open style="width:100%; margin-bottom: 20px; border-radius: 12px; border: 1px solid rgba(148,163,184,0.28); background: rgba(2,6,23,0.45);">
                     <summary style="cursor:pointer; list-style:none; padding: 12px 14px; font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; font-weight: 900; color: #f8fafc;">
-                        4 PRINCIPALES EDITABLES (SIN PERFIL)
+                        5 Principales
                     </summary>
                     <div style="padding: 0 14px 14px; display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px;">
-                    ${MAIN_BATTLE_PHOTO_SLOTS.map((slot) => {
-                        const hasSelection = !!safeBattlePhotoPrefs[slot.id];
-                        const canPickFromGallery = true;
+                    ${BATTLE_PHOTO_SLOTS.map((slot) => {
+                        const isProfileSlot = slot.id === 'perfil';
+                        const hasSelection = isProfileSlot
+                            ? !!normalizedProfilePhotoUrl
+                            : !!safeBattlePhotoPrefs[slot.id];
+                        const canPickFromGallery = !isProfileSlot;
                         return `
                             <div class="gallery-slot-card" data-slot-id="${slot.id}" style="border:1px solid ${hasSelection ? 'rgba(34,197,94,0.9)' : 'rgba(239,68,68,0.95)'}; border-radius:10px; padding:10px; background: rgba(15,23,42,0.75); box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 0 0 1px ${hasSelection ? 'rgba(34,197,94,0.28)' : 'rgba(239,68,68,0.24)'};">
                                 <div style="font-size:10px; color:#f8fafc; font-weight:900; letter-spacing:0.12em; text-transform:uppercase;">${slot.label}</div>
@@ -1260,7 +1265,7 @@
                                         onclick="event.stopPropagation(); selectSlotFromGallery('${slot.id}');"
                                         style="width:100%; border:1px solid rgba(74,222,128,0.7); background: rgba(20,83,45,0.78); color:#dcfce7; border-radius:8px; padding:6px 8px; font-size:10px; font-weight:800; letter-spacing:0.08em; text-transform:uppercase; cursor:pointer; box-shadow: 0 0 12px rgba(74,222,128,0.22);"
                                     >
-                                        DESIGNAR FOTO
+                                        Designar de galería
                                     </button>` : ''}
                                 </div>
                             </div>
