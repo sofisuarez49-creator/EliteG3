@@ -767,7 +767,7 @@ body::-webkit-scrollbar-thumb {
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
-    transition: opacity 220ms ease, transform 220ms ease, visibility 0s linear 3s;
+    transition: opacity 220ms ease, transform 220ms ease, visibility 0s linear 180ms;
     z-index: 35;
 }
 
@@ -792,5 +792,5 @@ button.profile-card:focus-visible .incomplete-photo-tooltip {
     opacity: 1;
     visibility: visible;
     transform: translateX(-50%) translateY(0) perspective(720px) rotateX(0deg);
-    transition-delay: 3s, 3s, 3s;
+    transition-delay: 150ms, 150ms, 150ms;
 }
