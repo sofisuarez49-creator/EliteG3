@@ -1725,6 +1725,17 @@ const getInitialCatFormData = () => ({
                 setEditingId(contextProfile.firebaseId || contextProfile.id || null);
                 setIsModalOpen(true);
             };
+            const openProfileGalleryFromTooltip = (profile = {}) => {
+                const key = profile?.firebaseId || profile?.nombre;
+                if (!key) return;
+                setActiveTab('GALERIA');
+                setGalleryViewMode('PERSONAJE');
+                setSelectedCharacterBucketIds([`PERSONAJE-${key}`]);
+                setGalleryFilterLabel('INICIAL');
+                setSelectedGalleryIndex(null);
+                setSelectedTallerProfileId('');
+                setTallerMissingPhotosTooltipProfileId('');
+            };
             const openNewProfileForm = (prefilledProfession = '') => {
                 const normalizedProfession = String(prefilledProfession || '').trim();
                 setEditingId(null);
@@ -4074,18 +4085,25 @@ const saveProfile = (e) => {
                                                 {p.profesion || 'Profesión no definida'}
                                             </p>
                                             {showMissingPhotosTooltip && (
-                                                <div
-                                                    className="absolute left-4 right-4 bottom-4 z-20 rounded-xl border border-red-300/55 bg-slate-950/95 px-3 py-3 text-[11px] text-slate-100 shadow-[0_0_24px_rgba(248,113,113,0.45)]"
-                                                    onClick={(event) => event.stopPropagation()}
+                                                <button
+                                                    type="button"
+                                                    className="absolute left-4 right-4 bottom-4 z-20 rounded-xl border border-red-300/55 bg-slate-950/95 px-3 py-3 text-[11px] text-slate-100 text-left shadow-[0_0_24px_rgba(248,113,113,0.45)] transition hover:border-cyan-300/75 hover:text-cyan-100"
+                                                    onClick={(event) => {
+                                                        event.preventDefault();
+                                                        event.stopPropagation();
+                                                        openProfileGalleryFromTooltip(p);
+                                                    }}
                                                     role="tooltip"
+                                                    title="Ir a la galería de este personaje"
                                                 >
                                                     <p className="font-black uppercase tracking-wider text-red-200 mb-2">Faltan fotos:</p>
-                                                    <ul className="space-y-1">
+                                                    <ul className="space-y-1 mb-2">
                                                         {missingLabels.map((label) => (
                                                             <li key={label} className="leading-tight">• {label}</li>
                                                         ))}
                                                     </ul>
-                                                </div>
+                                                    <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-[0.18em] text-cyan-200">Ir a galería ↗</span>
+                                                </button>
                                             )}
                                         </button>
                                     );
