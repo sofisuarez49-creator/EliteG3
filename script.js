@@ -427,6 +427,9 @@
                             const normalizeLabel = (rawLabel = '') => validLabels.includes(rawLabel) ? rawLabel : '';
                             const brokenCards = new Set();
                             const DND_PAYLOAD_TYPE = 'application/x-battle-slot-item';
+                            const LONG_PRESS_MS = 280;
+                            let longPressTimer = null;
+                            let touchPayload = null;
                             const isImagePayload = (payload) => String(payload?.mediaType || '').trim() === 'image';
                             const assignToSlot = (payload = {}, slotId = '') => {
                                 if (!window.opener || !slotId || !isImagePayload(payload)) return false;
@@ -586,6 +589,35 @@
                                     try { payload = JSON.parse(event.dataTransfer.getData(DND_PAYLOAD_TYPE) || '{}'); } catch {}
                                     assignToSlot(payload, slotId);
                                     setTimeout(() => slotCard.classList.remove('drop-active'), 160);
+                                });
+                            });
+                            document.querySelectorAll('.multimedia-thumb-btn').forEach((button) => {
+                                button.addEventListener('pointerdown', (event) => {
+                                    if (button.dataset.mediaType !== 'image') return;
+                                    clearTimeout(longPressTimer);
+                                    touchPayload = {
+                                        sourceIndex: Number(button.dataset.index),
+                                        mediaType: button.dataset.mediaType || 'image',
+                                        url: button.dataset.url || ''
+                                    };
+                                    longPressTimer = setTimeout(() => {
+                                        button.style.outline = '2px solid rgba(34,211,238,0.85)';
+                                    }, LONG_PRESS_MS);
+                                });
+                                button.addEventListener('pointerup', (event) => {
+                                    clearTimeout(longPressTimer);
+                                    button.style.outline = '';
+                                    if (!touchPayload) return;
+                                    const slotEl = document.elementFromPoint(event.clientX, event.clientY)?.closest('.multimedia-slot-card[data-slot-id]');
+                                    if (slotEl && slotEl.dataset.slotId && slotEl.dataset.slotId !== 'perfil') {
+                                        assignToSlot(touchPayload, slotEl.dataset.slotId);
+                                    }
+                                    touchPayload = null;
+                                });
+                                button.addEventListener('pointercancel', () => {
+                                    clearTimeout(longPressTimer);
+                                    button.style.outline = '';
+                                    touchPayload = null;
                                 });
                             });
 
@@ -1397,6 +1429,9 @@
                     let viewerAutoplayTimeout = null;
                     let activeSlotSelectionId = '';
                     const DND_PAYLOAD_TYPE = 'application/x-battle-slot-item';
+                    const LONG_PRESS_MS = 280;
+                    let longPressTimer = null;
+                    let touchPayload = null;
 
                     function isAllowedFileType(file) {
                         if (!file) return false;
@@ -1515,6 +1550,35 @@
                         event.dataTransfer.effectAllowed = 'copy';
                         event.dataTransfer.setData(DND_PAYLOAD_TYPE, JSON.stringify(payload));
                         event.dataTransfer.setData('text/plain', payload.url || '');
+                    });
+                    galleryGrid?.addEventListener('pointerdown', (event) => {
+                        const card = event.target.closest('.gallery-card');
+                        if (!card || card.dataset.mediaType !== 'image') return;
+                        clearTimeout(longPressTimer);
+                        touchPayload = {
+                            sourceIndex: Number(card.dataset.sourceIndex),
+                            mediaType: card.dataset.mediaType || 'image',
+                            url: card.dataset.url || '',
+                            compatibleSlots: card.dataset.compatibleSlots || ''
+                        };
+                        longPressTimer = setTimeout(() => {
+                            card.classList.add('ring-2', 'ring-cyan-300');
+                        }, LONG_PRESS_MS);
+                    });
+                    galleryGrid?.addEventListener('pointerup', (event) => {
+                        clearTimeout(longPressTimer);
+                        const card = event.target.closest('.gallery-card');
+                        if (card) card.classList.remove('ring-2', 'ring-cyan-300');
+                        if (!touchPayload) return;
+                        const slotEl = document.elementFromPoint(event.clientX, event.clientY)?.closest('.gallery-slot-card[data-slot-id]');
+                        if (slotEl && slotEl.dataset.slotId && slotEl.dataset.slotId !== 'perfil') {
+                            assignToSlot(touchPayload, slotEl.dataset.slotId);
+                        }
+                        touchPayload = null;
+                    });
+                    galleryGrid?.addEventListener('pointercancel', () => {
+                        clearTimeout(longPressTimer);
+                        touchPayload = null;
                     });
                     document.querySelectorAll('.gallery-slot-card').forEach((slotCard) => {
                         const slotId = slotCard.dataset.slotId || '';
