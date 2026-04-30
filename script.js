@@ -17,6 +17,8 @@
         const { useState, useEffect, useMemo, useRef } = React;
 
         const GALLERY_LABELS = ['C', 'P', 'B', 'N', 'S', 'E', 'X'];
+        const ANON_GALLERY_NODE_PATH = 'anonimo/galeria';
+        const ANON_PROFILE_ID = '__anonimo_gallery__';
         const GALLERY_VIEW_MODES = ['PERSONAJE', 'ETIQUETA', 'GENERAL'];
         const GALLERY_VIEW_MODE_LABELS = {
             PERSONAJE: 'Personaje',
@@ -218,6 +220,29 @@
         const getGalleryItemUrl = (item) => normalizeGalleryItem(item).url;
         const getGalleryItemLabel = (item) => normalizeGalleryItem(item).label;
         const getGalleryItemType = (item) => normalizeGalleryItem(item).type;
+        const getSafeGalleryArray = (gallery, key, fallbackType = 'image') => (
+            Array.isArray(gallery?.[key])
+                ? gallery[key].map((item) => normalizeGalleryItem(item, fallbackType)).filter((item) => item.url)
+                : []
+        );
+        const mapAnonymousGalleryToProfile = (gallery = {}) => ({
+            firebaseId: ANON_PROFILE_ID,
+            nombre: 'Anónimo',
+            nacionalidad: '',
+            ciudad: '',
+            profesion: 'Galería',
+            fechaNacimiento: '',
+            estaturaCm: '',
+            fotos: [],
+            galeria: {
+                fotos: getSafeGalleryArray(gallery, 'fotos', 'image'),
+                gifs: getSafeGalleryArray(gallery, 'gifs', 'image'),
+                videos: getSafeGalleryArray(gallery, 'videos', 'video')
+            },
+            batallaFotosPreferidas: getDefaultBattlePhotoPreferences(),
+            puntuaciones: createZeroScores(),
+            isAnonymousGallery: true
+        });
 
         const hasAllMainPhotosAssigned = (profile = {}) => {
             const profilePhotoUrl = getSafeImageSrc(String(profile?.fotos?.[0] || '').trim(), '');
@@ -2605,17 +2630,25 @@ const getInitialCatFormData = () => ({
 
                 window.addEventListener('message', handleMessage);
                 const perfilesRef = db.ref('perfiles');
+                const anonGalleryRef = db.ref(ANON_GALLERY_NODE_PATH);
+                let perfilesData = {};
+                let anonGalleryData = {};
+                const refreshPerfilesState = () => {
+                    const listaPerfiles = Object.keys(perfilesData || {}).map(key => ({
+                        ...mapProfileToFormData(perfilesData[key]),
+                        firebaseId: key // Guardamos la llave de Firebase por si necesitamos editar
+                    }));
+                    const anonProfile = mapAnonymousGalleryToProfile(anonGalleryData || {});
+                    const hasAnonGallery = Object.values(anonProfile.galeria || {}).some((items) => Array.isArray(items) && items.length > 0);
+                    setPerfiles(hasAnonGallery ? [...listaPerfiles, anonProfile] : listaPerfiles);
+                };
                 perfilesRef.on('value', (snapshot) => {
-                    const data = snapshot.val();
-                    if (data) {
-                        const listaPerfiles = Object.keys(data).map(key => ({
-                            ...mapProfileToFormData(data[key]),
-                            firebaseId: key // Guardamos la llave de Firebase por si necesitamos editar
-                        }));
-                        setPerfiles(listaPerfiles);
-                    } else {
-                        setPerfiles([]);
-                    }
+                    perfilesData = snapshot.val() || {};
+                    refreshPerfilesState();
+                });
+                anonGalleryRef.on('value', (snapshot) => {
+                    anonGalleryData = snapshot.val() || {};
+                    refreshPerfilesState();
                 });
 
                 // Escuchar Categorías en tiempo real desde Firebase
@@ -2633,6 +2666,7 @@ const getInitialCatFormData = () => ({
                 return () => {
                     window.removeEventListener('message', handleMessage);
                     perfilesRef.off();
+                    anonGalleryRef.off();
                     arenasRef.off();
                     arenaGlobalRef.off();
                 };
