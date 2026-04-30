@@ -1231,6 +1231,9 @@
                         <div
                             class="gallery-card"
                             data-gallery-index="${index}"
+                            data-source-index="${foto.sourceIndex}"
+                            data-media-type="${getGalleryItemType(foto)}"
+                            data-compatible-slots="${compatibleSlots.map((slot) => slot.id).join(',')}"
                             title="Abrir visor de pantalla completa"
                             style="
                                 aspect-ratio: 1/1;
@@ -1355,7 +1358,30 @@
                         activeSlotSelectionId = slotId || '';
                         const slotInput = document.getElementById('slotSelectionId');
                         if (slotInput) slotInput.value = activeSlotSelectionId;
-                        alert('Listo. Ahora elegí una imagen tocando el chip del slot sobre la foto en la galería.');
+                        alert('Listo. Ahora hacé click en una imagen de la galería para asignarla al casillero seleccionado (o tocá su chip de slot).');
+                    }
+
+                    function tryAssignGalleryCardToActiveSlot(cardElement) {
+                        const slotId = activeSlotSelectionId || document.getElementById('slotSelectionId')?.value || '';
+                        if (!slotId || !cardElement || !window.opener) return false;
+                        const mediaType = cardElement.dataset.mediaType || 'image';
+                        if (mediaType !== 'image') {
+                            alert('Solo podés asignar imágenes en los casilleros principales.');
+                            return false;
+                        }
+                        const sourceIndex = Number(cardElement.dataset.sourceIndex);
+                        if (!Number.isInteger(sourceIndex) || sourceIndex < 0) return false;
+                        const compatibleSlots = (cardElement.dataset.compatibleSlots || '').split(',').map((value) => value.trim()).filter(Boolean);
+                        if (!compatibleSlots.includes(slotId)) {
+                            alert('Esa imagen no es compatible con el casillero seleccionado por su etiqueta.');
+                            return false;
+                        }
+                        window.opener.postMessage({ type: 'SET_BATTLE_PHOTO_PREF', id: '${editingId}', slotId, index: sourceIndex, mediaType }, '*');
+                        alert('Imagen asignada al casillero seleccionado.');
+                        activeSlotSelectionId = '';
+                        const slotInput = document.getElementById('slotSelectionId');
+                        if (slotInput) slotInput.value = '';
+                        return true;
                     }
 
                     function resetAddMediaModalFields() {
@@ -1410,6 +1436,16 @@
 
                         postMedia(normalizedUrl, mediaType);
                     }
+
+                    galleryGrid?.addEventListener('click', (event) => {
+                        const card = event.target.closest('.gallery-card');
+                        if (!card) return;
+                        const assigned = tryAssignGalleryCardToActiveSlot(card);
+                        if (assigned) {
+                            event.stopPropagation();
+                            return;
+                        }
+                    });
 
                     function getNextViewerIndex() {
                         if (viewerSlides.length <= 1) return 0;
