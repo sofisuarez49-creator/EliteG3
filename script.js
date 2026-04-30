@@ -1240,13 +1240,11 @@
                         const hasSelection = Boolean(assignedUrl);
                         const canPickFromGallery = !isProfileSlot;
                         return `
-                            <div class="gallery-slot-card" data-slot-id="${slot.id}" style="border:1px solid ${hasSelection ? 'rgba(34,197,94,0.9)' : 'rgba(239,68,68,0.95)'}; border-radius:10px; padding:10px; background: rgba(15,23,42,0.75); box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 0 0 1px ${hasSelection ? 'rgba(34,197,94,0.28)' : 'rgba(239,68,68,0.24)'};">
-                                <div style="font-size:10px; color:#f8fafc; font-weight:900; letter-spacing:0.12em; text-transform:uppercase;">${slot.label}</div>
-                                <div style="font-size:11px; color:${hasSelection ? '#86efac' : '#fca5a5'}; margin-top:6px; font-weight:700;">
+                            <div class="gallery-slot-card" data-slot-id="${slot.id}" style="border:1px solid ${hasSelection ? 'rgba(74,222,128,0.95)' : 'rgba(248,113,113,0.95)'}; border-radius:10px; padding:10px; background:${hasSelection ? 'linear-gradient(155deg, rgba(20,83,45,0.95) 0%, rgba(21,128,61,0.82) 45%, rgba(5,46,22,0.96) 100%)' : 'linear-gradient(155deg, rgba(127,29,29,0.96) 0%, rgba(185,28,28,0.84) 45%, rgba(69,10,10,0.96) 100%)'}; box-shadow: inset 0 2px 0 rgba(255,255,255,0.24), inset 0 -2px 0 rgba(2,6,23,0.45), inset 0 0 0 1px ${hasSelection ? 'rgba(187,247,208,0.25)' : 'rgba(254,202,202,0.22)'}, 0 8px 16px rgba(2,6,23,0.45), 0 0 18px ${hasSelection ? 'rgba(74,222,128,0.35)' : 'rgba(248,113,113,0.3)'}; position: relative;">
+                                <div style="position:absolute; inset:1px; border-radius:9px; pointer-events:none; background: linear-gradient(145deg, rgba(255,255,255,0.24) 0%, rgba(255,255,255,0.05) 22%, rgba(255,255,255,0) 42%, rgba(2,6,23,0.22) 78%, rgba(2,6,23,0.42) 100%);"></div>
+                                <div style="font-size:10px; color:#f8fafc; font-weight:900; letter-spacing:0.12em; text-transform:uppercase; position:relative;">${slot.label}</div>
+                                <div style="font-size:11px; color:${hasSelection ? '#dcfce7' : '#fee2e2'}; margin-top:6px; font-weight:800; position:relative; text-shadow: 0 1px 0 rgba(15,23,42,0.65);">
                                     Estado: ${hasSelection ? 'Asignada' : 'No asignada'}
-                                </div>
-                                <div style="font-size:10px; color:${hasSelection ? '#86efac' : '#fca5a5'}; margin-top:4px;">
-                                    ${hasSelection ? '✅ Foto asignada' : '❌ Sin foto asignada'}
                                 </div>
                                 <div style="margin-top:8px; border-radius:8px; overflow:hidden; aspect-ratio:4/3; border:1px dashed rgba(148,163,184,0.45); background: rgba(2,6,23,0.86); display:flex; align-items:center; justify-content:center;">
                                     ${hasSelection
