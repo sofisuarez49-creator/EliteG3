@@ -1495,12 +1495,23 @@
                         if (!slotId || !window.opener || !isImagePayload(payload)) return false;
                         const sourceIndex = Number(payload.sourceIndex);
                         if (!Number.isInteger(sourceIndex) || sourceIndex < 0) return false;
-                        window.opener.postMessage({ type: 'SET_BATTLE_PHOTO_PREF', id: '${editingId}', slotId, index: sourceIndex, mediaType }, '*');
+                        window.opener.postMessage({ type: 'SET_BATTLE_PHOTO_PREF', id: '${editingId}', slotId, index: sourceIndex, mediaType: payload.mediaType || 'image' }, '*');
                         activeSlotSelectionId = '';
                         const slotInput = document.getElementById('slotSelectionId');
                         if (slotInput) slotInput.value = '';
                         updateSlotGalleryButtons();
                         return true;
+                    }
+
+                    function tryAssignGalleryCardToActiveSlot(card) {
+                        if (!card || !activeSlotSelectionId) return false;
+                        const payload = {
+                            sourceIndex: Number(card.dataset.sourceIndex),
+                            mediaType: card.dataset.mediaType || 'image',
+                            url: card.dataset.url || '',
+                            compatibleSlots: card.dataset.compatibleSlots || ''
+                        };
+                        return assignToSlot(payload, activeSlotSelectionId);
                     }
 
                     function resetAddMediaModalFields() {
