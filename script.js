@@ -1071,8 +1071,8 @@
                     }
                     .viewer-close {
                         position: fixed;
-                        top: 20px;
-                        right: 30px;
+                        top: calc(env(safe-area-inset-top, 0px) + 16px);
+                        right: calc(env(safe-area-inset-right, 0px) + 16px);
                         z-index: 2100;
                         background: rgba(15, 23, 42, 0.9);
                         color: #f87171;
@@ -1090,7 +1090,7 @@
                             inset 0 1px 0 rgba(255, 244, 214, 0.35),
                             inset 0 -2px 0 rgba(48, 28, 12, 0.55);
                         text-shadow: 0 0 6px rgba(0, 0, 0, 0.75);
-                        transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+                        transition: transform 0.14s ease, opacity 0.14s ease, box-shadow 0.2s ease, filter 0.2s ease;
                     }
                     .viewer-close:hover {
                         transform: scale(1.06);
@@ -1104,6 +1104,12 @@
                     .viewer-nav:focus-visible {
                         outline: 3px solid #ffe0a8;
                         outline-offset: 3px;
+                    }
+                    .viewer-close:active,
+                    .viewer-nav:active,
+                    .viewer-control-btn:active {
+                        transform: scale(0.95);
+                        opacity: 0.85;
                     }
                     .viewer-stage {
                         position: relative;
@@ -1139,11 +1145,10 @@
                             inset 0 0 24px rgba(255, 223, 171, 0.12);
                     }
                     .viewer-nav {
-                        position: fixed;
-                        bottom: 26px;
+                        position: relative;
                         z-index: 2100;
-                        width: 44px;
-                        height: 44px;
+                        width: 48px;
+                        height: 48px;
                         border-radius: 50%;
                         border: 2px solid #d8b374;
                         background: linear-gradient(180deg, #624021 0%, #3a2512 100%);
@@ -1160,19 +1165,13 @@
                             0 6px 16px rgba(0, 0, 0, 0.55),
                             inset 0 1px 0 rgba(255, 244, 214, 0.34),
                             inset 0 -2px 0 rgba(48, 28, 12, 0.55);
-                        transition: transform 0.2s ease, border-color 0.2s ease, color 0.2s ease, filter 0.2s ease;
+                        transition: transform 0.14s ease, opacity 0.14s ease, border-color 0.2s ease, color 0.2s ease, filter 0.2s ease;
                     }
                     .viewer-nav:hover {
                         transform: scale(1.06);
                         border-color: #f0c883;
                         color: #fff7e6;
                         filter: brightness(1.1);
-                    }
-                    .viewer-nav.prev {
-                        left: 24px;
-                    }
-                    .viewer-nav.next {
-                        right: 24px;
                     }
                     .viewer-nav[disabled] {
                         opacity: 0.62;
@@ -1188,7 +1187,7 @@
                     .viewer-hint {
                         position: fixed;
                         left: 50%;
-                        bottom: 28px;
+                        bottom: calc(env(safe-area-inset-bottom, 0px) + 104px);
                         transform: translateX(-50%);
                         z-index: 2100;
                         padding: 10px 16px;
@@ -1203,11 +1202,31 @@
                     }
                     .viewer-controls {
                         position: fixed;
-                        top: 24px;
-                        left: 24px;
+                        top: calc(env(safe-area-inset-top, 0px) + 16px);
+                        left: calc(env(safe-area-inset-left, 0px) + 16px);
                         z-index: 2100;
                         display: flex;
                         gap: 10px;
+                        padding: 8px 10px;
+                        border-radius: 999px;
+                        background: rgba(10, 24, 38, 0.35);
+                        border: 1px solid rgba(56, 189, 248, 0.28);
+                    }
+                    .viewer-bottom-bar {
+                        position: fixed;
+                        left: 50%;
+                        bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
+                        transform: translateX(-50%);
+                        z-index: 2100;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        gap: 24px;
+                        padding: 10px 18px;
+                        border-radius: 999px;
+                        background: rgba(25, 16, 8, 0.85);
+                        border: 1px solid rgba(201, 162, 98, 0.72);
+                        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.45);
                     }
                     .viewer-control-btn {
                         border: 1px solid rgba(56, 189, 248, 0.5);
@@ -1215,6 +1234,8 @@
                         color: #bae6fd;
                         border-radius: 999px;
                         padding: 8px 14px;
+                        min-width: 44px;
+                        min-height: 44px;
                         font-size: 10px;
                         text-transform: uppercase;
                         letter-spacing: 0.2em;
@@ -1228,42 +1249,43 @@
                     }
                     @media (max-width: 640px) {
                         .viewer-stage {
-                            padding: 20px 16px 106px;
+                            padding: calc(env(safe-area-inset-top, 0px) + 18px) 16px calc(env(safe-area-inset-bottom, 0px) + 132px);
                         }
                         .viewer-close {
-                            top: 14px;
-                            right: 16px;
-                            width: 42px;
-                            height: 42px;
+                            top: calc(env(safe-area-inset-top, 0px) + 12px);
+                            right: calc(env(safe-area-inset-right, 0px) + 12px);
+                            width: 48px;
+                            height: 48px;
                         }
                         .viewer-nav {
-                            bottom: 18px;
-                            width: 40px;
-                            height: 40px;
+                            width: 48px;
+                            height: 48px;
                             font-size: 22px;
                         }
-                        .viewer-nav.prev {
-                            left: 16px;
-                        }
-                        .viewer-nav.next {
-                            right: 16px;
-                        }
                         .viewer-hint {
-                            bottom: 20px;
+                            bottom: calc(env(safe-area-inset-bottom, 0px) + 96px);
                             padding: 8px 12px;
                             font-size: 10px;
                             max-width: calc(100vw - 120px);
                             text-align: center;
                         }
                         .viewer-controls {
-                            top: 14px;
-                            left: 14px;
+                            top: calc(env(safe-area-inset-top, 0px) + 12px);
+                            left: calc(env(safe-area-inset-left, 0px) + 12px);
                             gap: 8px;
+                            padding: 7px 9px;
                         }
                         .viewer-control-btn {
-                            padding: 7px 10px;
+                            padding: 9px 12px;
                             font-size: 9px;
                             letter-spacing: 0.16em;
+                            min-width: 46px;
+                            min-height: 46px;
+                        }
+                        .viewer-bottom-bar {
+                            bottom: calc(env(safe-area-inset-bottom, 0px) + 10px);
+                            gap: 18px;
+                            padding: 10px 16px;
                         }
                     }
                 </style>
@@ -1432,8 +1454,10 @@
                         <button id="viewerRandomToggle" class="viewer-control-btn" type="button" onclick="toggleViewerRandom(event)">Aleatorio OFF</button>
                     </div>
                     ${fotosGaleria.length > 1 ? `
-                        <button class="viewer-nav prev" id="viewerPrev" onclick="showPreviousViewerPhoto(event)" aria-label="Foto anterior">←</button>
-                        <button class="viewer-nav next" id="viewerNext" onclick="showNextViewerPhoto(event)" aria-label="Foto siguiente">→</button>
+                        <div class="viewer-bottom-bar">
+                            <button class="viewer-nav prev" id="viewerPrev" onclick="showPreviousViewerPhoto(event)" aria-label="Foto anterior">←</button>
+                            <button class="viewer-nav next" id="viewerNext" onclick="showNextViewerPhoto(event)" aria-label="Foto siguiente">→</button>
+                        </div>
                     ` : ''}
                     <div class="viewer-hint">Usá ← → para cambiar y Escape para salir</div>
                     <div class="viewer-stage" id="viewerStage">
