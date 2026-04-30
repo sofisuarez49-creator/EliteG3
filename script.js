@@ -3891,8 +3891,8 @@ const saveProfile = (e) => {
                                             <article className="taller-data-chip"><span>Fecha de nacimiento - Edad</span><strong>{`${selectedTallerProfile.fechaNacimiento || 'No informado'} - ${calcularEdad(selectedTallerProfile.fechaNacimiento)} años`}</strong></article>
                                             <article className="taller-data-chip"><span>Estatura</span><strong>{selectedTallerProfile.estaturaCm ? `${selectedTallerProfile.estaturaCm} cm` : 'No informada'}</strong></article>
                                         </div>
-                                        <div className="pt-2 space-y-3">
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        <div className="pt-2">
+                                            <div className="grid grid-cols-2 sm:grid-cols-[1fr,1fr,auto,auto] gap-3 items-center">
                                                 <button
                                                     type="button"
                                                     onClick={() => {
@@ -3926,28 +3926,26 @@ const saveProfile = (e) => {
                                                 >
                                                     Ver Galería
                                                 </button>
-                                            </div>
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                                 <button
                                                     type="button"
                                                     onClick={() => {
                                                         setSelectedTallerProfileId('');
                                                         openProfileEditor(selectedTallerProfile);
                                                     }}
-                                                    className="w-full btn-metal btn-metal--gold py-3 rounded-xl text-xs flex items-center justify-center"
+                                                    className="w-10 h-10 rounded-md bg-yellow-400 text-slate-950 text-base font-black flex items-center justify-center leading-none shadow-md hover:brightness-110 transition"
                                                     aria-label="Editar ficha completa"
                                                     title="Editar ficha completa"
                                                 >
-                                                    <LucideIcon name="pencil" size={18} className="text-yellow-300" />
+                                                    ✏️
                                                 </button>
                                                 <button
                                                     type="button"
                                                     onClick={() => requestDeleteProfile(selectedTallerProfile)}
-                                                    className="w-full btn-metal btn-metal--danger py-3 rounded-xl text-xs flex items-center justify-center"
+                                                    className="w-10 h-10 rounded-md bg-red-500 text-white text-base font-black flex items-center justify-center leading-none shadow-md hover:brightness-110 transition"
                                                     aria-label="Eliminar ficha"
                                                     title="Eliminar ficha"
                                                 >
-                                                    <LucideIcon name="trash-2" size={18} className="text-red-400" />
+                                                    🗑️
                                                 </button>
                                             </div>
                                         </div>
