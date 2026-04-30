@@ -3245,15 +3245,13 @@ const getInitialCatFormData = () => ({
             };
             const requestGalleryFullscreen = () => {
                 const target = galleryViewerOverlayRef.current;
-                const mediaElement = galleryViewerMediaRef.current;
                 if (!target) return;
                 if (document.fullscreenElement) return;
-                const fullscreenTarget = mediaElement || target;
-                const request = fullscreenTarget.requestFullscreen
-                    || fullscreenTarget.webkitRequestFullscreen
-                    || fullscreenTarget.msRequestFullscreen;
+                const request = target.requestFullscreen
+                    || target.webkitRequestFullscreen
+                    || target.msRequestFullscreen;
                 if (typeof request === 'function') {
-                    Promise.resolve(request.call(fullscreenTarget)).catch(() => {
+                    Promise.resolve(request.call(target)).catch(() => {
                         if (isMobileViewport) applyMobileFullscreenFallback();
                     });
                 } else if (isMobileViewport) {
