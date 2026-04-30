@@ -2179,6 +2179,7 @@
             const [selectedTagLabels, setSelectedTagLabels] = useState([]);
             const [isGalleryPlaying, setIsGalleryPlaying] = useState(false);
             const [isGalleryRandom, setIsGalleryRandom] = useState(false);
+            const [isGeneralFullscreen, setIsGeneralFullscreen] = useState(false);
             const [galleryPlaybackSeconds, setGalleryPlaybackSeconds] = useState(5);
             const [galleryVisibleLimit, setGalleryVisibleLimit] = useState(20);
             const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -3126,6 +3127,7 @@ const getInitialCatFormData = () => ({
                 if (selectedGalleryIndex === null) {
                     setIsGalleryPlaying(false);
                     setIsGalleryRandom(false);
+                    setIsGeneralFullscreen(false);
                 }
             }, [selectedGalleryIndex]);
             useEffect(() => {
@@ -3265,11 +3267,12 @@ const getInitialCatFormData = () => ({
                     Promise.resolve(exit.call(document)).catch(() => {});
                 }
             };
-            const openGalleryViewer = (index, autoplay = false) => {
+            const openGalleryViewer = (index, { autoplay = false, fromGeneralPlay = false } = {}) => {
                 pendingFullscreenRequestRef.current = !!autoplay;
                 setSelectedGalleryIndex(index);
                 setIsGalleryPlaying(autoplay);
-                setIsEditingGalleryLabel(true);
+                setIsGeneralFullscreen(fromGeneralPlay);
+                setIsEditingGalleryLabel(!fromGeneralPlay);
             };
             const addCharacterToGallerySelection = (bucketId) => {
                 if (!bucketId) return;
@@ -5317,7 +5320,7 @@ const saveProfile = (e) => {
                     <div className="flex flex-wrap items-center gap-3">
                         <button
                             type="button"
-                            onClick={() => openGalleryViewer(0, true)}
+                            onClick={() => openGalleryViewer(0, { autoplay: true, fromGeneralPlay: true })}
                             disabled={!filteredGalleryPhotos.length}
                             className="btn-metal btn-metal--gold inline-flex items-center gap-2 px-5 py-3 rounded-full text-[10px] disabled:opacity-40 disabled:cursor-not-allowed"
                         >
@@ -5456,13 +5459,14 @@ const saveProfile = (e) => {
                     <button
                         type="button"
                         onClick={closeGalleryViewer}
-                        className="btn-metal btn-metal--danger absolute top-4 right-4 sm:top-6 sm:right-6 w-12 h-12 rounded-full flex items-center justify-center"
+                        className={`btn-metal btn-metal--danger absolute ${isGeneralFullscreen ? 'top-2 right-2 sm:top-3 sm:right-3 w-10 h-10' : 'top-4 right-4 sm:top-6 sm:right-6 w-12 h-12'} rounded-full flex items-center justify-center`}
                         aria-label="Cerrar visor"
                     >
                         <span className="text-[26px] leading-none font-black">✕</span>
                     </button>
 
-                    <div className="gallery-viewer-shell w-screen h-screen max-h-screen flex flex-col gap-4 px-3 py-3 sm:px-6 sm:py-6" onClick={(event) => event.stopPropagation()}>
+                    <div className={`gallery-viewer-shell w-screen h-screen max-h-screen flex flex-col ${isGeneralFullscreen ? 'gap-1 px-1 py-1 sm:px-2 sm:py-2' : 'gap-4 px-3 py-3 sm:px-6 sm:py-6'}`} onClick={(event) => event.stopPropagation()}>
+                        {!isGeneralFullscreen && (
                         <div className="flex items-center justify-between gap-4 px-1 sm:px-2">
                             <div>
                                 <p className="text-2xl sm:text-3xl font-black italic text-white tracking-tighter">{selectedGalleryPhoto.nombre}</p>
@@ -5510,8 +5514,9 @@ const saveProfile = (e) => {
                                 </div>
                             </div>
                         </div>
+                        )}
 
-                        <div className="gallery-viewer-media-wrap relative flex-1 min-h-0 md:rounded-[2rem] overflow-hidden md:border theme-border-secondary bg-black/50">
+                        <div className={`gallery-viewer-media-wrap relative flex-1 min-h-0 overflow-hidden bg-black/50 ${isGeneralFullscreen ? 'rounded-xl md:rounded-2xl' : 'md:rounded-[2rem] md:border theme-border-secondary'}`}>
                             {selectedGalleryPhoto.type === 'video' ? (() => {
                                 const embedInfo = getVideoEmbedInfo(selectedGalleryPhoto.url);
                                 if (embedInfo) {
@@ -5520,7 +5525,7 @@ const saveProfile = (e) => {
                                             ref={galleryViewerMediaRef}
                                             src={embedInfo.src}
                                             title={`${selectedGalleryPhoto.nombre} video`}
-                                            className="w-full h-[calc(100dvh-14rem)] bg-black"
+                                            className={`w-full ${isGeneralFullscreen ? 'h-[calc(100dvh-4.5rem)]' : 'h-[calc(100dvh-14rem)]'} bg-black`}
                                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                                             allowFullScreen
                                         />
@@ -5544,7 +5549,7 @@ const saveProfile = (e) => {
                                                 showNextGalleryPhoto();
                                             }
                                         }}
-                                        className="w-full h-[calc(100dvh-14rem)] object-contain bg-black"
+                                        className={`w-full ${isGeneralFullscreen ? 'h-[calc(100dvh-4.5rem)]' : 'h-[calc(100dvh-14rem)]'} object-contain bg-black`}
                                     />
                                 );
                             })() : (
@@ -5552,7 +5557,7 @@ const saveProfile = (e) => {
     src={getSafeImageSrc(selectedGalleryPhoto.url, CRYING_EMOJI_FALLBACK)}
     alt={`${selectedGalleryPhoto.nombre} - ${selectedGalleryPhoto.label || 'galería'}`}
     ref={galleryViewerMediaRef}
-    className="w-full h-[calc(100dvh-14rem)] object-contain bg-black"
+    className={`w-full ${isGeneralFullscreen ? 'h-[calc(100dvh-4.5rem)]' : 'h-[calc(100dvh-14rem)]'} object-contain bg-black`}
     onError={(e) => {
         // 1. Aplicamos el fallback visual por si acaso
         applyCryingEmojiFallback(e);
@@ -5579,6 +5584,7 @@ const saveProfile = (e) => {
                             )}
                         </div>
 
+                        {!isGeneralFullscreen && (
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-1 sm:px-2">
                             <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-slate-400">
                                 {selectedGalleryIndex + 1} de {filteredGalleryPhotos.length} archivos visibles
@@ -5640,6 +5646,7 @@ const saveProfile = (e) => {
                                 )}
                             </div>
                         </div>
+                        )}
                     </div>
                 </div>
             )}
