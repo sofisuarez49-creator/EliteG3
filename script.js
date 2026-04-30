@@ -243,6 +243,10 @@
             puntuaciones: createZeroScores(),
             isAnonymousGallery: true
         });
+        const getGallerySourceCharacterId = (profile = {}) => {
+            if (profile?.isAnonymousGallery || profile?.firebaseId === ANON_PROFILE_ID) return 'anonimo';
+            return profile?.firebaseId || '';
+        };
 
         const hasAllMainPhotosAssigned = (profile = {}) => {
             const profilePhotoUrl = getSafeImageSrc(String(profile?.fotos?.[0] || '').trim(), '');
@@ -2762,6 +2766,7 @@ const getInitialCatFormData = () => ({
             }, [perfiles, categorias]);
             const allGalleryMediaEntries = useMemo(() => {
                 return (perfiles || []).flatMap((perfil) => {
+                    const sourceCharacterId = getGallerySourceCharacterId(perfil);
                     const galleryItems = [
                         ...(Array.isArray(perfil?.galeria?.fotos)
                             ? perfil.galeria.fotos.map((item, sourceIndex) => ({ item, sourceTag: 'fotos', sourceIndex, fallbackType: 'image' }))
@@ -2788,6 +2793,7 @@ const getInitialCatFormData = () => ({
                             nacionalidad: perfil.nacionalidad || '',
                             fotoPerfil: perfil.fotos?.[0] || normalizedItem.url,
                             profileId: perfil.firebaseId,
+                            sourceCharacterId,
                             sourceTag,
                             sourceIndex
                         };
