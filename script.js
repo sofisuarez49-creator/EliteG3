@@ -4377,6 +4377,7 @@ const saveProfile = (e) => {
                                 { id: 'RANKING', icon: 'trending-up', label: 'Ranking' },
                                 { id: 'BATALLAS', icon: 'swords', label: 'Batallas' },
                                 { id: 'GALERIA', icon: 'images', label: 'Galería' },
+                                { id: 'anonimo', icon: 'user-round-x', label: 'ánonimo' },
                                 { id: 'TALLER', icon: 'hammer', label: 'Taller' }
                             ].map(item => (
                                 <button
@@ -4386,6 +4387,7 @@ const saveProfile = (e) => {
                                         setSelectedCategory(null);
                                         setSelectedGalleryBucket(null);
                                         setSelectedGalleryIndex(null);
+                                        setSelectedTallerProfileId('');
                                     }}
                                     className={`btn-metal sidebar-nav-btn w-full flex items-center gap-4 px-6 py-4 rounded-[2rem] text-sm transition-all ${activeTab === item.id ? 'is-active text-[#ecfeff]' : 'text-slate-900'}`}
                                 >
@@ -4643,6 +4645,20 @@ const saveProfile = (e) => {
                                 profile={selectedTallerProfile}
                                 onClose={() => setIsMultimediaModalOpen(false)}
                             />
+                        </div>
+                    )}
+
+                    {activeTab === 'anonimo' && !selectedCategory && (
+                        <div className="space-y-8 animate-in fade-in duration-500">
+                            <section className="hud-frame hud-frame--panel profession-banner p-8 rounded-2xl gothic-frame gothic-frame--ornate gothic-frame--grand">
+                                <p className="text-[11px] uppercase tracking-[0.35em] text-cyan-200/80 font-black">Modo</p>
+                                <h2 className="neon-sign neon-sign--magenta font-title text-5xl md:text-6xl font-black italic text-white tracking-[0.08em] leading-none mt-3">
+                                    ánonimo
+                                </h2>
+                                <p className="text-sm md:text-base text-slate-200/85 mt-4 max-w-3xl">
+                                    Este panel reutiliza el estilo visual del sistema y no abre la ficha de personaje para mantener una navegación discreta.
+                                </p>
+                            </section>
                         </div>
                     )}
 
