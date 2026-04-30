@@ -315,9 +315,9 @@
                 const assignedPhoto = assignedUrl
                     ? (isProfileSlot
                         ? { url: assignedUrl }
-                        : galleryImageByUrl[assignedUrl])
+                        : (galleryImageByUrl[assignedUrl] || { url: assignedUrl, label: '', sourceIndex: -1 }))
                     : null;
-                const isAssigned = !!assignedPhoto;
+                const isAssigned = Boolean(assignedUrl);
                 return `
                     <div class="multimedia-slot-card ${isAssigned ? 'is-assigned' : 'is-missing'}" data-slot-id="${slot.id}">
                         <div class="multimedia-slot-top">
