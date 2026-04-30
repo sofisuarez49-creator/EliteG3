@@ -5473,16 +5473,22 @@ const saveProfile = (e) => {
                                         <button
                                             type="button"
                                             onClick={() => setIsGalleryPlaying((prev) => !prev)}
-                                            className="btn-metal btn-metal--gold px-4 py-2 rounded-full text-[10px]"
+                                            className={`w-12 h-12 rounded-full border flex items-center justify-center text-2xl transition-all shadow-lg shadow-black/40 ${isGalleryPlaying
+                                                ? 'border-[var(--metal-gold)] bg-[color:color-mix(in_srgb,var(--metal-gold)_35%,rgba(2,6,23,0.9))] brightness-110'
+                                                : 'theme-border-secondary bg-slate-900/85 opacity-80'}`}
+                                            aria-label={isGalleryPlaying ? 'Pausar reproducción' : 'Reproducir'}
                                         >
-                                            {isGalleryPlaying ? 'Pause' : 'Play'}
+                                            ▶️
                                         </button>
                                         <button
                                             type="button"
                                             onClick={() => setIsGalleryRandom((prev) => !prev)}
-                                            className={`btn-metal px-4 py-2 rounded-full text-[10px] transition-all ${isGalleryRandom ? 'btn-metal--gold is-active text-[#fffaf0]' : 'btn-metal--silver text-slate-900'}`}
+                                            className={`w-12 h-12 rounded-full border flex items-center justify-center text-2xl transition-all shadow-lg shadow-black/40 ${isGalleryRandom
+                                                ? 'border-[var(--metal-gold)] bg-[color:color-mix(in_srgb,var(--metal-gold)_35%,rgba(2,6,23,0.9))] brightness-110'
+                                                : 'theme-border-secondary bg-slate-900/85 opacity-80'}`}
+                                            aria-label={isGalleryRandom ? 'Aleatorio activado' : 'Aleatorio desactivado'}
                                         >
-                                            Aleatorio {isGalleryRandom ? 'ON' : 'OFF'}
+                                            🔀
                                         </button>
                                     </>
                                 )}
@@ -5561,19 +5567,11 @@ const saveProfile = (e) => {
                                 <>
                                     <button
                                         type="button"
-                                        onClick={(event) => { event.stopPropagation(); showPreviousGalleryPhoto(); }}
-                                        className="absolute left-4 bottom-4 sm:left-6 sm:bottom-6 w-10 h-10 rounded-full border theme-border-secondary bg-slate-900/90 text-white flex items-center justify-center hover:border-[var(--metal-gold)] hover:text-[color:color-mix(in_srgb,var(--metal-gold)_72%,white)] transition-all shadow-lg shadow-black/40"
-                                        aria-label="Foto anterior"
-                                    >
-                                        <span className="text-[20px] leading-none font-black">←</span>
-                                    </button>
-                                    <button
-                                        type="button"
                                         onClick={(event) => { event.stopPropagation(); showNextGalleryPhoto(); }}
-                                        className="absolute right-4 bottom-4 sm:right-6 sm:bottom-6 w-10 h-10 rounded-full border theme-border-secondary bg-slate-900/90 text-white flex items-center justify-center hover:border-[var(--metal-gold)] hover:text-[color:color-mix(in_srgb,var(--metal-gold)_72%,white)] transition-all shadow-lg shadow-black/40"
+                                        className="absolute right-4 bottom-4 sm:right-6 sm:bottom-6 w-12 h-12 rounded-full border theme-border-secondary bg-slate-900/90 text-white flex items-center justify-center hover:border-[var(--metal-gold)] transition-all shadow-lg shadow-black/40 text-2xl"
                                         aria-label="Foto siguiente"
                                     >
-                                        <span className="text-[20px] leading-none font-black">→</span>
+                                        ➡️
                                     </button>
                                 </>
                             )}
