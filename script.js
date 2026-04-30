@@ -219,6 +219,14 @@
         const getGalleryItemUrl = (item) => normalizeGalleryItem(item).url;
         const getGalleryItemLabel = (item) => normalizeGalleryItem(item).label;
         const getGalleryItemType = (item) => normalizeGalleryItem(item).type;
+        const hasAllMainPhotosAssigned = (profile = {}) => {
+            const profilePhotoUrl = getSafeImageSrc(String(profile?.fotos?.[0] || '').trim(), '');
+            const prefs = sanitizeBattlePhotoPreferences(profile?.batallaFotosPreferidas || profile?.galeria?.battlePhotoPreferences || {});
+            if (!profilePhotoUrl) return false;
+            return BATTLE_PHOTO_SLOTS
+                .filter((slot) => slot.id !== 'perfil')
+                .every((slot) => Boolean(String(prefs?.[slot.id] || '').trim()));
+        };
         const openMultimediaTab = (profile = null) => {
             if (!profile) return;
             const tab = window.open('', '_blank');
@@ -1630,6 +1638,7 @@
             const [brokenGalleryUrlDrafts, setBrokenGalleryUrlDrafts] = useState({});
             const [brokenGallerySavingMap, setBrokenGallerySavingMap] = useState({});
             const [brokenGalleryEditingMap, setBrokenGalleryEditingMap] = useState({});
+            const [showIncompleteMainPhotosOnly, setShowIncompleteMainPhotosOnly] = useState(false);
             const galleryPlaybackTimeoutRef = useRef(null);
 
 const getInitialCatFormData = () => ({
@@ -3630,6 +3639,7 @@ const saveProfile = (e) => {
                 return [...(perfiles || [])]
                     .filter((profile) => {
                         if (!hasCoreProfileData(profile)) return false;
+                        if (showIncompleteMainPhotosOnly && hasAllMainPhotosAssigned(profile)) return false;
                         if (!normalizedSearch) return true;
                         const haystack = [
                             String(profile.nombre || '').trim(),
@@ -3639,7 +3649,7 @@ const saveProfile = (e) => {
                         return haystack.includes(normalizedSearch);
                     })
                     .sort((a, b) => String(a?.nombre || '').localeCompare(String(b?.nombre || ''), 'es', { sensitivity: 'base' }));
-            }, [perfiles, tallerSearchTerm]);
+            }, [perfiles, tallerSearchTerm, showIncompleteMainPhotosOnly]);
             const selectedTallerProfile = useMemo(
                 () => tallerProfiles.find((profile) => profile?.firebaseId === selectedTallerProfileId) || null,
                 [tallerProfiles, selectedTallerProfileId]
@@ -3972,6 +3982,15 @@ const saveProfile = (e) => {
                                     aria-label="Buscar perfiles del taller"
                                     className="w-full rounded-2xl border border-cyan-200/30 bg-slate-950/70 px-5 py-3 text-sm text-slate-100 outline-none transition-all focus:border-cyan-300/70 focus:shadow-[0_0_20px_rgba(34,211,238,0.25)]"
                                 />
+                            </div>
+                            <div>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowIncompleteMainPhotosOnly((prev) => !prev)}
+                                    className={`btn-metal py-3 px-5 rounded-xl text-[11px] font-black tracking-wide uppercase transition-all ${showIncompleteMainPhotosOnly ? 'btn-metal--danger' : ''}`}
+                                >
+                                    Fotos incompletas {showIncompleteMainPhotosOnly ? '(Activo)' : ''}
+                                </button>
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-10">
