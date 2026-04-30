@@ -1361,6 +1361,10 @@
                         style="margin-top: 15px; width: 100%; padding: 10px; background: linear-gradient(180deg, rgba(14,116,144,0.95), rgba(8,47,73,0.95)); color: #ecfeff; border: 1px solid rgba(103,232,249,0.9); border-radius: 8px; font-weight: 800; cursor: pointer; text-transform: uppercase; letter-spacing: 0.08em; box-shadow: 0 0 14px rgba(34,211,238,0.4);">
                         Guardar
                     </button>
+                    <button id="modalPlayFullscreenButton" type="button" onclick="startFullscreenPlaybackFromModal(event)"
+                        style="margin-top: 10px; width: 100%; padding: 10px; background: linear-gradient(180deg, rgba(30,64,175,0.95), rgba(30,58,138,0.95)); color: #dbeafe; border: 1px solid rgba(147,197,253,0.9); border-radius: 8px; font-weight: 800; cursor: pointer; text-transform: uppercase; letter-spacing: 0.08em; box-shadow: 0 0 14px rgba(59,130,246,0.38);">
+                        Play pantalla completa
+                    </button>
                 </div>
 
                 <details open style="width:100%; margin-bottom: 20px; border-radius: 12px; border: 1px solid rgba(148,163,184,0.28); background: rgba(2,6,23,0.45);">
@@ -1497,16 +1501,11 @@
 
                 <div id="fullscreenViewer" class="fullscreen-viewer">
                     <button class="viewer-close" onclick="closeFullscreenViewer()" aria-label="Cerrar visor">✕</button>
-                    <div class="viewer-controls">
-                        <button id="viewerPlayToggle" class="viewer-control-btn" type="button" onclick="toggleViewerAutoplay(event)">Play</button>
-                        <button id="viewerRandomToggle" class="viewer-control-btn" type="button" onclick="toggleViewerRandom(event)">Aleatorio OFF</button>
+                    <div class="viewer-bottom-bar">
+                        <button class="viewer-nav prev" id="viewerPrev" onclick="showPreviousViewerPhoto(event)" aria-label="Foto anterior">←</button>
+                        <button id="viewerPlayToggle" class="viewer-control-btn viewer-control-btn--center" type="button" onclick="toggleViewerAutoplay(event)">Play</button>
+                        <button class="viewer-nav next" id="viewerNext" onclick="showNextViewerPhoto(event)" aria-label="Foto siguiente">→</button>
                     </div>
-                    ${fotosGaleria.length > 1 ? `
-                        <div class="viewer-bottom-bar">
-                            <button class="viewer-nav prev" id="viewerPrev" onclick="showPreviousViewerPhoto(event)" aria-label="Foto anterior">←</button>
-                            <button class="viewer-nav next" id="viewerNext" onclick="showNextViewerPhoto(event)" aria-label="Foto siguiente">→</button>
-                        </div>
-                    ` : ''}
                     <div class="viewer-hint">Usá ← → para cambiar y Escape para salir</div>
                     <div class="viewer-stage" id="viewerStage">
                         ${fotosGaleria.map((foto, index) => {
@@ -1533,7 +1532,7 @@
                     const viewerPrevButton = document.getElementById('viewerPrev');
                     const viewerNextButton = document.getElementById('viewerNext');
                     const viewerPlayToggleButton = document.getElementById('viewerPlayToggle');
-                    const viewerRandomToggleButton = document.getElementById('viewerRandomToggle');
+                    const modalPlayFullscreenButton = document.getElementById('modalPlayFullscreenButton');
                     const VALID_FILE_MIME_PREFIXES = ['image/', 'video/'];
                     const VALID_FILE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'mp4', 'webm', 'ogg', 'mov', 'm4v'];
                     const VIEWER_IMAGE_TIMEOUT_MS = 7000;
@@ -1809,10 +1808,6 @@
 
                     function setViewerRandomState(nextState) {
                         viewerRandom = !!nextState;
-                        if (viewerRandomToggleButton) {
-                            viewerRandomToggleButton.textContent = 'Aleatorio ' + (viewerRandom ? 'ON' : 'OFF');
-                            viewerRandomToggleButton.classList.toggle('random-active', viewerRandom);
-                        }
                     }
 
                     function preloadViewerAround(index) {
@@ -2051,6 +2046,16 @@
                         if (event) event.stopPropagation();
                         setViewerRandomState(!viewerRandom);
                     }
+
+                    function startFullscreenPlaybackFromModal(event) {
+                        if (event) event.stopPropagation();
+                        const modal = document.getElementById('miModal');
+                        if (modal) modal.style.display = 'none';
+                        if (!viewer.classList.contains('open')) {
+                            openFullscreenViewer(currentViewerIndex || 0);
+                        }
+                        setViewerAutoplayState(true);
+                    }
                     if (galleryGrid) {
                         galleryGrid.addEventListener('click', function(event) {
                             const deleteButton = event.target.closest('.gallery-delete');
@@ -2106,7 +2111,6 @@
                         }
                     });
                     setViewerAutoplayState(false);
-                    setViewerRandomState(false);
                     renderViewerSlide(0);
                 <\/script>
             </body>
