@@ -1336,6 +1336,9 @@
                             data-gallery-index="${index}"
                             data-source-index="${foto.sourceIndex}"
                             data-media-type="${getGalleryItemType(foto)}"
+                            data-url="${fotoUrl}"
+                            data-compatible-slots="${fotoLabel}"
+                            draggable="${getGalleryItemType(foto) === 'image' ? 'true' : 'false'}"
                             title="Abrir visor de pantalla completa"
                             style="
                                 aspect-ratio: 1/1;
@@ -1344,7 +1347,7 @@
                                 border: 2px solid ${estilo.color};
                                 box-shadow: 0 0 15px ${estilo.sombra};
                                 transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-                                cursor: pointer;
+                                cursor: ${getGalleryItemType(foto) === 'image' ? 'grab' : 'pointer'};
                                 position: relative;
                                 background: #0f172a;
                             "
