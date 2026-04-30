@@ -56,7 +56,6 @@
         };
         const getBattleSlotById = (slotId = '') => BATTLE_PHOTO_SLOTS.find((slot) => slot.id === slotId);
         const getBattleSlotForArena = (arenaName = '') => BATTLE_ARENA_TO_SLOT[(arenaName || '').trim().toLowerCase()] || '';
-        const getCompatibleBattleSlotsForLabel = (label = '') => BATTLE_PHOTO_SLOTS.filter((slot) => slot.labels.includes(label));
         const GALLERY_LABEL_STYLES = {
             C: {
                 bg: 'linear-gradient(135deg, rgba(34,211,238,0.92), rgba(14,116,144,0.95))',
@@ -1173,27 +1172,12 @@
                         "DEFAULT": { color: "#334155", sombra: "transparent" }
                     };
                     const estilo = config[profession?.toUpperCase()] || config["DEFAULT"];
-                    const compatibleSlots = getGalleryItemType(foto) === 'image' ? getCompatibleBattleSlotsForLabel(fotoLabel) : [];
-                    const battleButtons = compatibleSlots.length
-                        ? `<div style="position:absolute; left: 8px; right: 8px; bottom: 48px; z-index: 16; display:flex; flex-wrap:wrap; justify-content:center; gap:6px;">
-                            ${compatibleSlots.map((slot) => {
-                                const isSelected = safeBattlePhotoPrefs[slot.id] === fotoUrl;
-                                return `<button
-                                    onclick="event.stopPropagation(); window.opener.postMessage({type: 'SET_BATTLE_PHOTO_PREF', id: '${editingId}', slotId: '${slot.id}', index: ${foto.sourceIndex}, mediaType: '${getGalleryItemType(foto)}'}, '*');"
-                                    title="Usar en ${slot.label}"
-                                    style="border: 1px solid ${isSelected ? '#fbbf24' : 'rgba(148,163,184,0.45)'}; background: ${isSelected ? 'rgba(120,53,15,0.88)' : 'rgba(2,6,23,0.75)'}; color: ${isSelected ? '#fde68a' : '#e2e8f0'}; border-radius: 999px; padding: 4px 8px; font-size: 9px; font-weight: 900; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer;">
-                                    ${slot.label}${isSelected ? ' ✓' : ''}
-                                </button>`;
-                            }).join('')}
-                        </div>`
-                        : '';
                     return `
                         <div
                             class="gallery-card"
                             data-gallery-index="${index}"
                             data-source-index="${foto.sourceIndex}"
                             data-media-type="${getGalleryItemType(foto)}"
-                            data-compatible-slots="${compatibleSlots.map((slot) => slot.id).join(',')}"
                             title="Abrir visor de pantalla completa"
                             style="
                                 aspect-ratio: 1/1;
@@ -1244,7 +1228,6 @@
                             : `<img src="${fotoUrl}" alt="Imagen de la galería" onerror="${BROKEN_IMAGE_INLINE_HANDLER}" style="width: 100%; height: 100%; object-fit: cover;" />`
                         }
                         <div style="position:absolute; left: 12px; top: 12px; z-index: 15; padding: 6px 10px; border-radius: 999px; background: rgba(2,6,23,0.72); border: 1px solid rgba(148,163,184,0.24); color: #e2e8f0; display:flex; align-items:center; justify-content:center; font-size: 10px; font-weight: 900; letter-spacing: 0.2em; text-transform: uppercase; backdrop-filter: blur(8px);">${getGalleryItemType(foto) === 'video' ? 'VIDEO' : 'IMG'}</div>
-                        ${battleButtons}
                         ${fotoLabel ? `<div style="position:absolute; left: 50%; bottom: 10px; transform: translateX(-50%); z-index: 15; min-width: 52px; height: 30px; padding: 0 14px; border-radius: 999px; background: ${labelStyle.bg}; border: 1px solid ${labelStyle.border}; color: ${labelStyle.text}; display:flex; align-items:center; justify-content:center; font-size: 12px; font-weight: 900; letter-spacing: 0.24em; box-shadow: 0 0 14px ${labelStyle.glow}, 0 0 24px ${labelStyle.glow}; text-shadow: 0 0 10px ${labelStyle.glow}; backdrop-filter: blur(8px);">${fotoLabel}</div>` : ""}
                         </div>
                     `;
@@ -1331,11 +1314,6 @@
                         }
                         const sourceIndex = Number(cardElement.dataset.sourceIndex);
                         if (!Number.isInteger(sourceIndex) || sourceIndex < 0) return false;
-                        const compatibleSlots = (cardElement.dataset.compatibleSlots || '').split(',').map((value) => value.trim()).filter(Boolean);
-                        if (!compatibleSlots.includes(slotId)) {
-                            alert('Esa imagen no es compatible con el casillero seleccionado por su etiqueta.');
-                            return false;
-                        }
                         window.opener.postMessage({ type: 'SET_BATTLE_PHOTO_PREF', id: '${editingId}', slotId, index: sourceIndex, mediaType }, '*');
                         alert('Imagen asignada al casillero seleccionado.');
                         activeSlotSelectionId = '';
@@ -2060,8 +2038,6 @@ const getInitialCatFormData = () => ({
                         const currentItems = snapshot.val() || [];
                         const selectedItem = normalizeGalleryItem(currentItems[index], mediaType);
                         if (!selectedItem.url || selectedItem.type !== 'image') return;
-                        if (!slotConfig.labels.includes(selectedItem.label)) return;
-
                         const prefsRef = db.ref(`perfiles/${id}/batallaFotosPreferidas/${slotId}`);
                         await prefsRef.set(selectedItem.url);
                         setFormData(prev => ({
@@ -2079,7 +2055,6 @@ const getInitialCatFormData = () => ({
                         const normalizedUrl = String(url || '').trim();
                         if (!id || !slotConfig || !normalizedUrl) return;
                         if (mediaType === 'video') return;
-                        if (!slotConfig.labels.includes(label)) return;
                         const prefsRef = db.ref(`perfiles/${id}/batallaFotosPreferidas/${slotId}`);
                         await prefsRef.set(normalizedUrl);
                         setFormData(prev => ({
