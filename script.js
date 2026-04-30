@@ -1,19 +1,6 @@
-        // Configuración de tu proyecto de Firebase
-        const firebaseConfig = {
-            apiKey: "AIzaSyAcW679YdIT03pyq8IgKKnR8oyO4_fvpFs",
-            authDomain: "g2elite-a3b85.firebaseapp.com",
-            databaseURL: "https://g2elite-a3b85-default-rtdb.firebaseio.com/",
-            projectId: "g2elite-a3b85",
-            storageBucket: "g2elite-a3b85.firebasestorage.app",
-            messagingSenderId: "951346482286",
-            appId: "1:951346482286:web:6001135252de2a4d982a7f",
-        };
-
-        // Inicializar Firebase
-        if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
-        }
-        const db = firebase.database();
+(async () => {
+        const db = await (window.firebaseDbReady || Promise.resolve(window.firebaseDb));
+        if (!db) throw new Error('Firebase no se inicializó correctamente.');
         const { useState, useEffect, useMemo, useRef } = React;
 
         const GALLERY_LABELS = ['C', 'P', 'B', 'N', 'S', 'E', 'X'];
@@ -6811,3 +6798,5 @@ const saveProfile = (e) => {
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
+
+})();
