@@ -2173,6 +2173,7 @@
             const [scorePanelModal, setScorePanelModal] = useState({ isOpen: false, profile: null });
             const [galleryFilterLabel, setGalleryFilterLabel] = useState('INICIAL');
             const [galleryViewMode, setGalleryViewMode] = useState('GENERAL');
+            const [galleryViewerMode, setGalleryViewerMode] = useState('item');
             const [selectedGalleryIndex, setSelectedGalleryIndex] = useState(null);
             const [selectedGalleryBucket, setSelectedGalleryBucket] = useState(null);
             const [selectedCharacterBucketIds, setSelectedCharacterBucketIds] = useState([]);
@@ -3265,11 +3266,12 @@ const getInitialCatFormData = () => ({
                     Promise.resolve(exit.call(document)).catch(() => {});
                 }
             };
-            const openGalleryViewer = (index, autoplay = false) => {
+            const openGalleryViewer = (index, autoplay = false, viewerMode = 'item') => {
                 pendingFullscreenRequestRef.current = !!autoplay;
+                setGalleryViewerMode(viewerMode === 'general' ? 'general' : 'item');
                 setSelectedGalleryIndex(index);
                 setIsGalleryPlaying(autoplay);
-                setIsEditingGalleryLabel(true);
+                setIsEditingGalleryLabel(viewerMode !== 'general');
             };
             const addCharacterToGallerySelection = (bucketId) => {
                 if (!bucketId) return;
@@ -5317,7 +5319,7 @@ const saveProfile = (e) => {
                     <div className="flex flex-wrap items-center gap-3">
                         <button
                             type="button"
-                            onClick={() => openGalleryViewer(0, true)}
+                            onClick={() => openGalleryViewer(0, true, 'general')}
                             disabled={!filteredGalleryPhotos.length}
                             className="btn-metal btn-metal--gold inline-flex items-center gap-2 px-5 py-3 rounded-full text-[10px] disabled:opacity-40 disabled:cursor-not-allowed"
                         >
@@ -5364,7 +5366,7 @@ const saveProfile = (e) => {
                                     <button
                                         key={photo.id}
                                         type="button"
-                                        onClick={() => openGalleryViewer(index)}
+                                        onClick={() => openGalleryViewer(index, false, 'item')}
                                         className="group text-left theme-surface-card border rounded-[1.4rem] overflow-hidden transition-all duration-500 focus:outline-none focus:ring-2 focus:ring-[var(--glow-gold)] focus:ring-offset-2 focus:ring-offset-[#020617]"
                                         style={{
                                             borderColor: `color-mix(in srgb, ${professionVisual.glowColor} 72%, rgba(148,163,184,0.48) 28%)`,
@@ -5463,6 +5465,77 @@ const saveProfile = (e) => {
                     </button>
 
                     <div className="gallery-viewer-shell w-screen h-screen max-h-screen flex flex-col gap-4 px-3 py-3 sm:px-6 sm:py-6" onClick={(event) => event.stopPropagation()}>
+                        {(() => {
+                            const viewerShared = {
+                                mediaWrapClass: 'gallery-viewer-media-wrap relative flex-1 min-h-0 md:rounded-[2rem] overflow-hidden md:border theme-border-secondary bg-black/50',
+                                mediaClass: 'w-full h-[calc(100dvh-14rem)] object-contain bg-black'
+                            };
+                            const renderMedia = () => (
+                                <div className={viewerShared.mediaWrapClass}>
+                                    {selectedGalleryPhoto.type === 'video' ? (() => {
+                                        const embedInfo = getVideoEmbedInfo(selectedGalleryPhoto.url);
+                                        if (embedInfo) {
+                                            return (
+                                                <iframe
+                                                    ref={galleryViewerMediaRef}
+                                                    src={embedInfo.src}
+                                                    title={`${selectedGalleryPhoto.nombre} video`}
+                                                    className="w-full h-[calc(100dvh-14rem)] bg-black"
+                                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                                    allowFullScreen
+                                                />
+                                            );
+                                        }
+                                        return (
+                                            <video
+                                                ref={galleryViewerMediaRef}
+                                                src={selectedGalleryPhoto.url}
+                                                controls
+                                                playsInline
+                                                muted={isMobileViewport}
+                                                autoPlay={isGalleryPlaying}
+                                                onEnded={() => {
+                                                    if (isGalleryPlaying && filteredGalleryPhotos.length > 1) showNextGalleryPhoto();
+                                                }}
+                                                onError={() => {
+                                                    if (filteredGalleryPhotos.length > 1) showNextGalleryPhoto();
+                                                }}
+                                                className={viewerShared.mediaClass}
+                                            />
+                                        );
+                                    })() : (
+                                        <img
+                                            src={getSafeImageSrc(selectedGalleryPhoto.url, CRYING_EMOJI_FALLBACK)}
+                                            alt={`${selectedGalleryPhoto.nombre} - ${selectedGalleryPhoto.label || 'galería'}`}
+                                            ref={galleryViewerMediaRef}
+                                            className={viewerShared.mediaClass}
+                                            onError={(e) => {
+                                                applyCryingEmojiFallback(e);
+                                                if (filteredGalleryPhotos.length > 1) showNextGalleryPhoto();
+                                            }}
+                                        />
+                                    )}
+                                    {filteredGalleryPhotos.length > 1 && (
+                                        <button
+                                            type="button"
+                                            onClick={(event) => { event.stopPropagation(); showNextGalleryPhoto(); }}
+                                            className="absolute right-4 bottom-4 sm:right-6 sm:bottom-6 w-12 h-12 rounded-full border theme-border-secondary bg-slate-900/90 text-white flex items-center justify-center hover:border-[var(--metal-gold)] transition-all shadow-lg shadow-black/40 text-2xl"
+                                            aria-label="Foto siguiente"
+                                        >
+                                            ➡️
+                                        </button>
+                                    )}
+                                </div>
+                            );
+                            if (galleryViewerMode === 'general') {
+                                return (
+                                    <div className="flex-1 min-h-0 flex flex-col">
+                                        {renderMedia()}
+                                    </div>
+                                );
+                            }
+                            return (
+                                <>
                         <div className="flex items-center justify-between gap-4 px-1 sm:px-2">
                             <div>
                                 <p className="text-2xl sm:text-3xl font-black italic text-white tracking-tighter">{selectedGalleryPhoto.nombre}</p>
@@ -5511,73 +5584,7 @@ const saveProfile = (e) => {
                             </div>
                         </div>
 
-                        <div className="gallery-viewer-media-wrap relative flex-1 min-h-0 md:rounded-[2rem] overflow-hidden md:border theme-border-secondary bg-black/50">
-                            {selectedGalleryPhoto.type === 'video' ? (() => {
-                                const embedInfo = getVideoEmbedInfo(selectedGalleryPhoto.url);
-                                if (embedInfo) {
-                                    return (
-                                        <iframe
-                                            ref={galleryViewerMediaRef}
-                                            src={embedInfo.src}
-                                            title={`${selectedGalleryPhoto.nombre} video`}
-                                            className="w-full h-[calc(100dvh-14rem)] bg-black"
-                                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                                            allowFullScreen
-                                        />
-                                    );
-                                }
-                                return (
-                                    <video
-                                        ref={galleryViewerMediaRef}
-                                        src={selectedGalleryPhoto.url}
-                                        controls
-                                        playsInline
-                                        muted={isMobileViewport}
-                                        autoPlay={isGalleryPlaying}
-                                        onEnded={() => {
-                                            if (isGalleryPlaying && filteredGalleryPhotos.length > 1) {
-                                                showNextGalleryPhoto();
-                                            }
-                                        }}
-                                        onError={() => {
-                                            if (filteredGalleryPhotos.length > 1) {
-                                                showNextGalleryPhoto();
-                                            }
-                                        }}
-                                        className="w-full h-[calc(100dvh-14rem)] object-contain bg-black"
-                                    />
-                                );
-                            })() : (
-                                <img
-    src={getSafeImageSrc(selectedGalleryPhoto.url, CRYING_EMOJI_FALLBACK)}
-    alt={`${selectedGalleryPhoto.nombre} - ${selectedGalleryPhoto.label || 'galería'}`}
-    ref={galleryViewerMediaRef}
-    className="w-full h-[calc(100dvh-14rem)] object-contain bg-black"
-    onError={(e) => {
-        // 1. Aplicamos el fallback visual por si acaso
-        applyCryingEmojiFallback(e);
-        
-        // 2. Pasamos a la siguiente foto si hay más de una
-        if (filteredGalleryPhotos.length > 1) {
-            showNextGalleryPhoto();
-        }
-    }}
-/>
-                            )}
-
-                            {filteredGalleryPhotos.length > 1 && (
-                                <>
-                                    <button
-                                        type="button"
-                                        onClick={(event) => { event.stopPropagation(); showNextGalleryPhoto(); }}
-                                        className="absolute right-4 bottom-4 sm:right-6 sm:bottom-6 w-12 h-12 rounded-full border theme-border-secondary bg-slate-900/90 text-white flex items-center justify-center hover:border-[var(--metal-gold)] transition-all shadow-lg shadow-black/40 text-2xl"
-                                        aria-label="Foto siguiente"
-                                    >
-                                        ➡️
-                                    </button>
-                                </>
-                            )}
-                        </div>
+                        {renderMedia()}
 
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-1 sm:px-2">
                             <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-slate-400">
@@ -5640,6 +5647,9 @@ const saveProfile = (e) => {
                                 )}
                             </div>
                         </div>
+                                </>
+                            );
+                        })()}
                     </div>
                 </div>
             )}
