@@ -1884,6 +1884,8 @@
             const [showIncompleteMainPhotosOnly, setShowIncompleteMainPhotosOnly] = useState(false);
             const [tallerMissingPhotosTooltipProfileId, setTallerMissingPhotosTooltipProfileId] = useState('');
             const galleryPlaybackTimeoutRef = useRef(null);
+            const galleryViewerOverlayRef = useRef(null);
+            const pendingFullscreenRequestRef = useRef(false);
             const tallerLongPressTimeoutRef = useRef(null);
 
 const getInitialCatFormData = () => ({
@@ -2809,7 +2811,32 @@ const getInitialCatFormData = () => ({
                 };
             }, [isGalleryPlaying, selectedGalleryPhoto, filteredGalleryPhotos, isGalleryRandom, galleryPlaybackSeconds]);
 
+            useEffect(() => {
+                if (!selectedGalleryPhoto || !pendingFullscreenRequestRef.current) return;
+                pendingFullscreenRequestRef.current = false;
+                requestAnimationFrame(() => {
+                    requestGalleryFullscreen();
+                });
+            }, [selectedGalleryPhoto]);
+
+            const requestGalleryFullscreen = () => {
+                const target = galleryViewerOverlayRef.current;
+                if (!target) return;
+                if (document.fullscreenElement) return;
+                const request = target.requestFullscreen || target.webkitRequestFullscreen || target.msRequestFullscreen;
+                if (typeof request === 'function') {
+                    Promise.resolve(request.call(target)).catch(() => {});
+                }
+            };
+            const exitGalleryFullscreen = () => {
+                if (!document.fullscreenElement) return;
+                const exit = document.exitFullscreen || document.webkitExitFullscreen || document.msExitFullscreen;
+                if (typeof exit === 'function') {
+                    Promise.resolve(exit.call(document)).catch(() => {});
+                }
+            };
             const openGalleryViewer = (index, autoplay = false) => {
+                pendingFullscreenRequestRef.current = !!autoplay;
                 setSelectedGalleryIndex(index);
                 setIsGalleryPlaying(autoplay);
                 setIsEditingGalleryLabel(true);
@@ -2833,8 +2860,10 @@ const getInitialCatFormData = () => ({
                 setSelectedGalleryIndex(null);
             };
             const closeGalleryViewer = () => {
+                pendingFullscreenRequestRef.current = false;
                 setIsGalleryPlaying(false);
                 setSelectedGalleryIndex(null);
+                exitGalleryFullscreen();
             };
             const showNextGalleryPhoto = () => setSelectedGalleryIndex((current) => getNextPlayableIndex(current, filteredGalleryPhotos, isGalleryRandom));
             const showPreviousGalleryPhoto = () => setSelectedGalleryIndex((current) => clampIndex((current ?? 0) - 1, filteredGalleryPhotos.length));
@@ -4900,6 +4929,7 @@ const saveProfile = (e) => {
 
             {selectedGalleryPhoto && (
                 <div
+                    ref={galleryViewerOverlayRef}
                     className="fixed top-0 bottom-0 z-[260] bg-slate-950/95 backdrop-blur-xl flex items-center justify-center p-0"
                     style={isSidebarOpen ? { left: '18rem', width: 'calc(100vw - 18rem)' } : { left: 0, width: '100vw' }}
                     onClick={closeGalleryViewer}
