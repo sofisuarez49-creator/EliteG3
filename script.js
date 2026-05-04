@@ -5705,14 +5705,47 @@ const saveProfile = (e) => {
 
                             {filteredGalleryPhotos.length > 1 && (
                                 <>
-                                    <button
-                                        type="button"
-                                        onClick={(event) => { event.stopPropagation(); showNextGalleryPhoto(); }}
-                                        className="absolute right-4 bottom-4 sm:right-6 sm:bottom-6 w-12 h-12 rounded-full border theme-border-secondary bg-slate-900/90 text-white flex items-center justify-center hover:border-[var(--metal-gold)] transition-all shadow-lg shadow-black/40 text-2xl"
-                                        aria-label="Foto siguiente"
-                                    >
-                                        ➡️
-                                    </button>
+                                    {isGeneralFullscreen ? (
+                                        <div className="absolute left-1/2 bottom-3 sm:bottom-4 -translate-x-1/2 flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 rounded-full border border-[color:color-mix(in_srgb,var(--metal-gold)_40%,rgba(148,163,184,0.45))] bg-slate-950/85 backdrop-blur-md shadow-[0_0_18px_rgba(15,23,42,0.65)]">
+                                            <button
+                                                type="button"
+                                                onClick={(event) => { event.stopPropagation(); setIsGalleryRandom((prev) => !prev); }}
+                                                className={`px-3 sm:px-4 h-10 rounded-full border text-[11px] sm:text-xs font-black uppercase tracking-[0.18em] transition-all ${isGalleryRandom
+                                                    ? 'border-[var(--metal-gold)] text-[var(--metal-gold)] bg-[color:color-mix(in_srgb,var(--metal-gold)_28%,rgba(2,6,23,0.9))]'
+                                                    : 'theme-border-secondary text-slate-200 bg-slate-900/90'}`}
+                                                aria-label={isGalleryRandom ? 'Aleatorio activado' : 'Aleatorio desactivado'}
+                                            >
+                                                {isGalleryRandom ? 'Random On' : 'Random Off'}
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={(event) => { event.stopPropagation(); setIsGalleryPlaying((prev) => !prev); }}
+                                                className={`px-4 sm:px-5 h-10 rounded-full border text-[11px] sm:text-xs font-black uppercase tracking-[0.18em] transition-all ${isGalleryPlaying
+                                                    ? 'border-[var(--metal-gold)] text-[var(--metal-gold)] bg-[color:color-mix(in_srgb,var(--metal-gold)_28%,rgba(2,6,23,0.9))]'
+                                                    : 'theme-border-secondary text-slate-200 bg-slate-900/90'}`}
+                                                aria-label={isGalleryPlaying ? 'Pausar reproducción' : 'Reproducir'}
+                                            >
+                                                {isGalleryPlaying ? 'Pause' : 'Play'}
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={(event) => { event.stopPropagation(); showNextGalleryPhoto(); }}
+                                                className="w-10 h-10 rounded-full border theme-border-secondary bg-slate-900/90 text-white flex items-center justify-center hover:border-[var(--metal-gold)] transition-all shadow-lg shadow-black/40 text-xl"
+                                                aria-label="Foto siguiente"
+                                            >
+                                                ➡️
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <button
+                                            type="button"
+                                            onClick={(event) => { event.stopPropagation(); showNextGalleryPhoto(); }}
+                                            className="absolute right-4 bottom-4 sm:right-6 sm:bottom-6 w-12 h-12 rounded-full border theme-border-secondary bg-slate-900/90 text-white flex items-center justify-center hover:border-[var(--metal-gold)] transition-all shadow-lg shadow-black/40 text-2xl"
+                                            aria-label="Foto siguiente"
+                                        >
+                                            ➡️
+                                        </button>
+                                    )}
                                 </>
                             )}
                         </div>
