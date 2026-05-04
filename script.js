@@ -2204,6 +2204,7 @@
             const [isGeneralFullscreen, setIsGeneralFullscreen] = useState(false);
             const [galleryPlaybackSeconds, setGalleryPlaybackSeconds] = useState(5);
             const [galleryVisibleLimit, setGalleryVisibleLimit] = useState(20);
+            const [isDownloadingAllGallery, setIsDownloadingAllGallery] = useState(false);
             const [isSidebarOpen, setIsSidebarOpen] = useState(true);
             const [isEditingGalleryLabel, setIsEditingGalleryLabel] = useState(false);
             const [galleryLabelDraft, setGalleryLabelDraft] = useState('');
@@ -3375,6 +3376,80 @@ const getInitialCatFormData = () => ({
                     : [...current, label]
                 );
                 setSelectedGalleryIndex(null);
+            };
+            const downloadAllGalleryPhotosAsZip = async () => {
+                const canZip = typeof window !== 'undefined' && typeof window.JSZip !== 'undefined';
+                if (!canZip) {
+                    window.alert('No se pudo iniciar la descarga: falta la librería ZIP.');
+                    return;
+                }
+                if (!filteredGalleryPhotos.length) {
+                    window.alert('No hay archivos visibles para descargar.');
+                    return;
+                }
+
+                const sanitizeFileName = (value = '') => String(value || '')
+                    .normalize('NFD')
+                    .replace(/[̀-ͯ]/g, '')
+                    .replace(/[\/:*?"<>|]/g, '-')
+                    .replace(/\s+/g, ' ')
+                    .trim();
+                const buildFileExtension = (url = '') => {
+                    const cleanUrl = String(url || '').split('?')[0].split('#')[0];
+                    const ext = (cleanUrl.match(/\.([a-zA-Z0-9]{2,5})$/) || [])[1];
+                    return (ext || 'jpg').toLowerCase();
+                };
+
+                setIsDownloadingAllGallery(true);
+                try {
+                    const zip = new window.JSZip();
+                    const mediaEntries = filteredGalleryPhotos.filter((photo) => photo?.url);
+                    let downloadedCount = 0;
+                    let failedCount = 0;
+
+                    for (let i = 0; i < mediaEntries.length; i += 1) {
+                        const photo = mediaEntries[i];
+                        const folderName = sanitizeFileName(photo.nombre || 'Sin nombre') || 'Sin nombre';
+                        const fileExt = buildFileExtension(photo.url);
+                        const labelPart = sanitizeFileName(photo.label || 'sin-etiqueta') || 'sin-etiqueta';
+                        const fileName = `${String(i + 1).padStart(4, '0')}_${labelPart}.${fileExt}`;
+                        try {
+                            const response = await fetch(photo.url, { mode: 'cors' });
+                            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                            const blob = await response.blob();
+                            zip.folder(folderName).file(fileName, blob);
+                            downloadedCount += 1;
+                        } catch (error) {
+                            failedCount += 1;
+                            console.warn('No se pudo descargar un archivo de la galería:', photo.url, error);
+                        }
+                    }
+
+                    if (!downloadedCount) {
+                        window.alert('No se pudo descargar ningún archivo. Revisá permisos CORS/URLs.');
+                        return;
+                    }
+
+                    const zipBlob = await zip.generateAsync({ type: 'blob' });
+                    const zipUrl = URL.createObjectURL(zipBlob);
+                    const link = document.createElement('a');
+                    const stamp = new Date().toISOString().slice(0, 10);
+                    link.href = zipUrl;
+                    link.download = `galeria-completa-${stamp}.zip`;
+                    document.body.appendChild(link);
+                    link.click();
+                    link.remove();
+                    URL.revokeObjectURL(zipUrl);
+
+                    if (failedCount > 0) {
+                        window.alert(`Descarga completada con avisos: ${downloadedCount} archivos incluidos y ${failedCount} omitidos.`);
+                    }
+                } catch (error) {
+                    console.error('Error al generar ZIP de galería:', error);
+                    window.alert('No se pudo crear el ZIP de la galería.');
+                } finally {
+                    setIsDownloadingAllGallery(false);
+                }
             };
             const closeGalleryViewer = () => {
                 pendingFullscreenRequestRef.current = false;
@@ -5477,6 +5552,16 @@ const saveProfile = (e) => {
                         >
                             <LucideIcon name="play" size={14} />
                             Play {activeGalleryBucket?.nombre || currentGalleryModeLabel}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={downloadAllGalleryPhotosAsZip}
+                            disabled={isDownloadingAllGallery || !filteredGalleryPhotos.length}
+                            className="btn-metal btn-metal--silver inline-flex items-center gap-2 px-5 py-3 rounded-full text-[10px] text-slate-900 disabled:opacity-40 disabled:cursor-not-allowed"
+                            title="Descargar toda la multimedia visible en un ZIP"
+                        >
+                            <LucideIcon name="download" size={14} />
+                            {isDownloadingAllGallery ? 'Generando ZIP...' : 'DESCARGAR TODO'}
                         </button>
                         <button
                             type="button"
