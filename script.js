@@ -2232,6 +2232,7 @@
             const [brokenGallerySavingMap, setBrokenGallerySavingMap] = useState({});
             const [brokenGalleryEditingMap, setBrokenGalleryEditingMap] = useState({});
             const [showIncompleteMainPhotosOnly, setShowIncompleteMainPhotosOnly] = useState(false);
+            const [showBrokenPhotosOnly, setShowBrokenPhotosOnly] = useState(false);
             const [tallerMissingPhotosTooltipProfileId, setTallerMissingPhotosTooltipProfileId] = useState('');
             const galleryPlaybackTimeoutRef = useRef(null);
             const galleryViewerOverlayRef = useRef(null);
@@ -4411,6 +4412,13 @@ const saveProfile = (e) => {
 
                 return base;
             }, [perfiles, activeTab, selectedCategory]);
+            const brokenProfileIds = useMemo(() => {
+                return new Set(
+                    brokenGalleryPhotos
+                        .map((photo) => String(photo?.profileId || '').trim())
+                        .filter(Boolean)
+                );
+            }, [brokenGalleryPhotos]);
             const tallerProfiles = useMemo(() => {
                 const normalizedSearch = String(tallerSearchTerm || '').trim().toLowerCase();
                 const normalizeProfession = (profile) => {
@@ -4441,6 +4449,10 @@ const saveProfile = (e) => {
                     .filter((profile) => {
                         if (!hasCoreProfileData(profile)) return false;
                         if (showIncompleteMainPhotosOnly && hasAllMainPhotosAssigned(profile)) return false;
+                        if (showBrokenPhotosOnly) {
+                            const profileId = String(profile?.firebaseId || profile?.id || '').trim();
+                            if (!profileId || !brokenProfileIds.has(profileId)) return false;
+                        }
                         if (!normalizedSearch) return true;
                         const haystack = [
                             String(profile.nombre || '').trim(),
@@ -4450,7 +4462,7 @@ const saveProfile = (e) => {
                         return haystack.includes(normalizedSearch);
                     })
                     .sort((a, b) => String(a?.nombre || '').localeCompare(String(b?.nombre || ''), 'es', { sensitivity: 'base' }));
-            }, [perfiles, tallerSearchTerm, showIncompleteMainPhotosOnly]);
+            }, [perfiles, tallerSearchTerm, showIncompleteMainPhotosOnly, showBrokenPhotosOnly, brokenProfileIds]);
             const selectedTallerProfile = useMemo(
                 () => tallerProfiles.find((profile) => profile?.firebaseId === selectedTallerProfileId) || null,
                 [tallerProfiles, selectedTallerProfileId]
@@ -4802,13 +4814,20 @@ const saveProfile = (e) => {
                                     className="w-full rounded-2xl border border-cyan-200/30 bg-slate-950/70 px-5 py-3 text-sm text-slate-100 outline-none transition-all focus:border-cyan-300/70 focus:shadow-[0_0_20px_rgba(34,211,238,0.25)]"
                                 />
                             </div>
-                            <div>
+                            <div className="flex flex-wrap gap-3">
                                 <button
                                     type="button"
                                     onClick={() => setShowIncompleteMainPhotosOnly((prev) => !prev)}
                                     className={`btn-metal py-3 px-5 rounded-xl text-[11px] font-black tracking-wide uppercase transition-all ${showIncompleteMainPhotosOnly ? 'btn-metal--danger' : ''}`}
                                 >
                                     Fotos incompletas {showIncompleteMainPhotosOnly ? '(Activo)' : ''}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowBrokenPhotosOnly((prev) => !prev)}
+                                    className={`btn-metal py-3 px-5 rounded-xl text-[11px] font-black tracking-wide uppercase transition-all ${showBrokenPhotosOnly ? 'btn-metal--danger' : ''}`}
+                                >
+                                    Fotos Rotas {showBrokenPhotosOnly ? '(Activo)' : ''}
                                 </button>
                             </div>
 
