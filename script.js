@@ -1275,16 +1275,17 @@
                     }
                     .viewer-bottom-bar {
                         position: fixed;
-                        right: calc(env(safe-area-inset-right, 0px) + 16px);
+                        left: 50%;
+                        transform: translateX(-50%);
                         bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
                         z-index: 2100;
                         display: flex;
-                        flex-direction: column;
-                        align-items: flex-end;
-                        justify-content: flex-end;
+                        flex-direction: row;
+                        align-items: center;
+                        justify-content: center;
                         gap: 10px;
-                        padding: 12px;
-                        border-radius: 18px;
+                        padding: 10px 12px;
+                        border-radius: 999px;
                         background: rgba(25, 16, 8, 0.85);
                         border: 1px solid rgba(201, 162, 98, 0.72);
                         box-shadow: 0 10px 24px rgba(0, 0, 0, 0.45);
@@ -1345,8 +1346,10 @@
                         }
                         .viewer-bottom-bar {
                             bottom: calc(env(safe-area-inset-bottom, 0px) + 10px);
-                            gap: 18px;
-                            padding: 10px 16px;
+                            gap: 8px;
+                            padding: 8px 10px;
+                            width: min(94vw, 430px);
+                            justify-content: space-between;
                         }
                     }
                 </style>
