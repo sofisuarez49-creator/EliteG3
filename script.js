@@ -2219,6 +2219,7 @@
             const galleryAudioBRef = useRef(null);
             const pendingFullscreenRequestRef = useRef(false);
             const tallerLongPressTimeoutRef = useRef(null);
+            const tallerLongPressTriggeredRef = useRef(false);
 
 const getInitialCatFormData = () => ({
     label: '',
@@ -4798,6 +4799,10 @@ const saveProfile = (e) => {
                                             key={p.firebaseId || p.nombre}
                                             type="button"
                                             onClick={() => {
+                                                if (tallerLongPressTriggeredRef.current) {
+                                                    tallerLongPressTriggeredRef.current = false;
+                                                    return;
+                                                }
                                                 setTallerMissingPhotosTooltipProfileId('');
                                                 setSelectedTallerProfileId('');
                                                 openProfileEditor(p);
@@ -4812,8 +4817,10 @@ const saveProfile = (e) => {
                                             }}
                                             onTouchStart={() => {
                                                 if (!showIncompleteMainPhotosOnly || !missingLabels.length) return;
+                                                tallerLongPressTriggeredRef.current = false;
                                                 clearTimeout(tallerLongPressTimeoutRef.current);
                                                 tallerLongPressTimeoutRef.current = setTimeout(() => {
+                                                    tallerLongPressTriggeredRef.current = true;
                                                     setTallerMissingPhotosTooltipProfileId(p.firebaseId || p.nombre);
                                                 }, 550);
                                             }}
