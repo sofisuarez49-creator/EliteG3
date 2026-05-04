@@ -6440,33 +6440,35 @@ const saveProfile = (e) => {
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="rounded-xl border border-emerald-500/40 bg-emerald-950/20 p-4 min-h-44">
-                                    <h4 className="text-xs font-black uppercase tracking-[0.16em] text-emerald-300 mb-3">Ganó contra</h4>
-                                    {breakdown.wins.length ? (
-                                        <ul className="space-y-2">
-                                            {breakdown.wins.map((name, idx) => (
-                                                <li key={`win-${name}-${idx}`} className="text-sm text-emerald-200 font-semibold">{name}</li>
-                                            ))}
-                                        </ul>
-                                    ) : (
-                                        <p className="text-xs text-emerald-200/70">No hay batallas ganadas registradas.</p>
-                                    )}
-                                </div>
+                            {!scoreBreakdownItemDetail?.arenaName && (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="rounded-xl border border-emerald-500/40 bg-emerald-950/20 p-4 min-h-44">
+                                        <h4 className="text-xs font-black uppercase tracking-[0.16em] text-emerald-300 mb-3">Ganó contra</h4>
+                                        {breakdown.wins.length ? (
+                                            <ul className="space-y-2">
+                                                {breakdown.wins.map((name, idx) => (
+                                                    <li key={`win-${name}-${idx}`} className="text-sm text-emerald-200 font-semibold">{name}</li>
+                                                ))}
+                                            </ul>
+                                        ) : (
+                                            <p className="text-xs text-emerald-200/70">No hay batallas ganadas registradas.</p>
+                                        )}
+                                    </div>
 
-                                <div className="rounded-xl border border-rose-500/40 bg-rose-950/20 p-4 min-h-44">
-                                    <h4 className="text-xs font-black uppercase tracking-[0.16em] text-rose-300 mb-3">Perdió contra</h4>
-                                    {breakdown.losses.length ? (
-                                        <ul className="space-y-2">
-                                            {breakdown.losses.map((name, idx) => (
-                                                <li key={`loss-${name}-${idx}`} className="text-sm text-rose-200 font-semibold">{name}</li>
-                                            ))}
-                                        </ul>
-                                    ) : (
-                                        <p className="text-xs text-rose-200/70">No hay batallas perdidas registradas.</p>
-                                    )}
+                                    <div className="rounded-xl border border-rose-500/40 bg-rose-950/20 p-4 min-h-44">
+                                        <h4 className="text-xs font-black uppercase tracking-[0.16em] text-rose-300 mb-3">Perdió contra</h4>
+                                        {breakdown.losses.length ? (
+                                            <ul className="space-y-2">
+                                                {breakdown.losses.map((name, idx) => (
+                                                    <li key={`loss-${name}-${idx}`} className="text-sm text-rose-200 font-semibold">{name}</li>
+                                                ))}
+                                            </ul>
+                                        ) : (
+                                            <p className="text-xs text-rose-200/70">No hay batallas perdidas registradas.</p>
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
+                            )}
 
                             {scoreBreakdownItemDetail?.arenaName && (
                                 <div className="mt-5 rounded-2xl border border-cyan-500/40 bg-cyan-950/15 p-4 max-h-[48vh] overflow-y-auto themed-scrollbar">
