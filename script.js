@@ -4635,7 +4635,7 @@ const saveProfile = (e) => {
             return (
                 <div className="app-space-theme flex h-screen w-screen overflow-hidden bg-[#020617] stone-wall-surface relative">
                     {isSidebarOpen && (
-                    <aside className="hud-frame hud-frame--panel w-72 shrink-0 theme-surface-card stone-wall-surface border-r theme-border-secondary flex flex-col p-8 z-20 shadow-xl overflow-y-auto relative">
+                    <aside className="hud-frame hud-frame--panel w-64 shrink-0 theme-surface-card stone-wall-surface border-r theme-border-secondary flex flex-col p-6 z-20 shadow-xl overflow-y-auto relative">
                         <div className="corner-ember-glow corner-ember-glow--left corner-ember-glow--top" aria-hidden="true"></div>
                         <div className="mb-12 text-center flex-shrink-0">
                             <h1 className="neon-sign neon-sign--cyan text-5xl font-black text-[var(--metal-gold)] italic tracking-tighter leading-none">G2</h1>
@@ -4647,6 +4647,7 @@ const saveProfile = (e) => {
                                 { id: 'RANKING', icon: 'trending-up', label: 'Ranking' },
                                 { id: 'BATALLAS', icon: 'swords', label: 'Batallas' },
                                 { id: 'GALERIA', icon: 'images', label: 'Galería' },
+                                { id: 'CAMPEONAS', icon: 'crown', label: 'Campeonas' },
                                 { id: 'anonimo', icon: 'user-round-x', label: 'ánonimo' },
                                 { id: 'TALLER', icon: 'hammer', label: 'Taller' }
                             ].map(item => (
@@ -4659,7 +4660,7 @@ const saveProfile = (e) => {
                                         setSelectedGalleryIndex(null);
                                         setSelectedTallerProfileId('');
                                     }}
-                                    className={`btn-metal sidebar-nav-btn w-full flex items-center gap-4 px-6 py-4 rounded-[2rem] text-sm transition-all ${activeTab === item.id ? 'is-active text-[#ecfeff]' : 'text-slate-900'}`}
+                                    className={`btn-metal sidebar-nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-[1.6rem] text-xs transition-all ${activeTab === item.id ? 'is-active text-[#ecfeff]' : 'text-slate-900'}`}
                                 >
                                     <LucideIcon name={item.icon} size={18} />
                                     {item.label}
@@ -4936,6 +4937,14 @@ const saveProfile = (e) => {
                                 profile={selectedTallerProfile}
                                 onClose={() => setIsMultimediaModalOpen(false)}
                             />
+                        </div>
+                    )}
+
+
+                    {activeTab === 'CAMPEONAS' && !selectedCategory && (
+                        <div className="rounded-[1.8rem] border border-cyan-200/20 bg-slate-900/60 p-8 text-center">
+                            <h2 className="font-title text-2xl md:text-3xl text-cyan-100 uppercase tracking-[0.12em] mb-3">Campeonas</h2>
+                            <p className="text-slate-300 text-sm md:text-base">Esta sección estará disponible próximamente.</p>
                         </div>
                     )}
 
