@@ -15,6 +15,7 @@
         }
         const db = firebase.database();
         const { useState, useEffect, useMemo, useRef } = React;
+        const CHORD_SONGS_PATH = 'acordes/canciones';
 
         const GALLERY_LABELS = ['C', 'P', 'B', 'N', 'S', 'E', 'X'];
         const ANON_GALLERY_NODE_PATH = 'anonimo/galeria';
@@ -2224,6 +2225,11 @@
             const [selectedGalleryAudioA, setSelectedGalleryAudioA] = useState('');
             const [selectedGalleryAudioB, setSelectedGalleryAudioB] = useState('');
             const [selectedTallerProfileId, setSelectedTallerProfileId] = useState('');
+            const [chordSongs, setChordSongs] = useState([]);
+            const [selectedChordSongId, setSelectedChordSongId] = useState('');
+            const [selectedLyricWord, setSelectedLyricWord] = useState('');
+            const [selectedChordTag, setSelectedChordTag] = useState('C');
+            const [isSavingChordTag, setIsSavingChordTag] = useState(false);
             const [isMultimediaModalOpen, setIsMultimediaModalOpen] = useState(false);
             const [isBrokenGalleryModalOpen, setIsBrokenGalleryModalOpen] = useState(false);
             const [brokenGalleryMap, setBrokenGalleryMap] = useState({});
@@ -2795,6 +2801,18 @@ const getInitialCatFormData = () => ({
                 // Escuchar Categorías en tiempo real desde Firebase
                 setCategorias(INITIAL_CATEGORIES);
 
+                const chordSongsRef = db.ref(CHORD_SONGS_PATH);
+                chordSongsRef.on('value', (snapshot) => {
+                    const rawSongs = snapshot.val() || {};
+                    const songs = Object.entries(rawSongs).map(([id, song]) => ({
+                        id,
+                        titulo: String(song?.titulo || song?.nombre || `Canción ${id}`).trim(),
+                        letra: String(song?.letra || '').trim(),
+                        wordChords: song?.wordChords && typeof song.wordChords === 'object' ? song.wordChords : {}
+                    }));
+                    setChordSongs(songs.sort((a, b) => a.titulo.localeCompare(b.titulo, 'es', { sensitivity: 'base' })));
+                });
+
                 const arenasRef = db.ref('arenaBattleState');
                 arenasRef.on('value', (snapshot) => {
                     setArenaBattleState(snapshot.val() || {});
@@ -2808,10 +2826,21 @@ const getInitialCatFormData = () => ({
                     window.removeEventListener('message', handleMessage);
                     perfilesRef.off();
                     anonGalleryRef.off();
+                    chordSongsRef.off();
                     arenasRef.off();
                     arenaGlobalRef.off();
                 };
             }, []);
+
+            useEffect(() => {
+                if (!chordSongs.length) {
+                    setSelectedChordSongId('');
+                    return;
+                }
+                if (!selectedChordSongId || !chordSongs.some((song) => song.id === selectedChordSongId)) {
+                    setSelectedChordSongId(chordSongs[0].id);
+                }
+            }, [chordSongs, selectedChordSongId]);
             useEffect(() => {
                 const primaryTrack = galleryAudioTracks.find((track) => track.url === selectedGalleryAudioA);
                 const secondaryTrack = galleryAudioTracks.find((track) => track.url === selectedGalleryAudioB);
@@ -4625,6 +4654,7 @@ const saveProfile = (e) => {
                                 { id: 'GALERIA', icon: 'images', label: 'Galería' },
                                 { id: 'anonimo', icon: 'user-round-x', label: 'ánonimo' },
                                 { id: 'TALLER', icon: 'hammer', label: 'Taller' }
+                                ,{ id: 'ACORDES', icon: 'music-2', label: 'Acordes' }
                             ].map(item => (
                                 <button
                                     key={item.id}
@@ -6194,6 +6224,101 @@ const saveProfile = (e) => {
                     </div>
                 )}
             </div>
+        );
+    })()}
+    {activeTab === 'ACORDES' && !selectedCategory && (() => {
+        const selectedSong = chordSongs.find((song) => song.id === selectedChordSongId) || null;
+        const selectedSongWordChords = selectedSong?.wordChords || {};
+        const normalizedWord = selectedLyricWord.trim().toLowerCase();
+        const applyChordToWord = async () => {
+            if (!selectedSong?.id || !normalizedWord) return;
+            setIsSavingChordTag(true);
+            try {
+                await db.ref(`${CHORD_SONGS_PATH}/${selectedSong.id}/wordChords/${normalizedWord}`).set(selectedChordTag);
+            } catch (error) {
+                console.error('No se pudo guardar el acorde de la palabra:', error);
+            } finally {
+                setIsSavingChordTag(false);
+            }
+        };
+        const lyricWords = (selectedSong?.letra || '')
+            .split(/\s+/)
+            .map((word) => word.trim())
+            .filter(Boolean);
+
+        return (
+            <section className="hud-frame hud-frame--panel profession-banner p-6 rounded-2xl gothic-frame gothic-frame--ornate space-y-5">
+                <div>
+                    <p className="text-[11px] uppercase tracking-[0.25em] text-cyan-200/80">Sección Acordes</p>
+                    <h2 className="text-2xl font-black mt-1">Canciones cargadas</h2>
+                </div>
+                {!chordSongs.length ? (
+                    <p className="text-slate-300">No hay canciones en Firebase todavía. Cargá datos en <code>{CHORD_SONGS_PATH}</code>.</p>
+                ) : (
+                    <>
+                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                            {chordSongs.map((song) => (
+                                <button
+                                    key={song.id}
+                                    type="button"
+                                    onClick={() => {
+                                        setSelectedChordSongId(song.id);
+                                        setSelectedLyricWord('');
+                                    }}
+                                    className={`text-left rounded-xl border p-4 transition ${selectedChordSongId === song.id ? 'border-cyan-300 bg-cyan-950/35' : 'border-slate-700 bg-slate-900/50 hover:border-cyan-500/60'}`}
+                                >
+                                    <h3 className="font-bold">{song.titulo || 'Sin título'}</h3>
+                                    <p className="text-xs text-slate-300 mt-1 line-clamp-3">{song.letra || 'Sin letra cargada.'}</p>
+                                </button>
+                            ))}
+                        </div>
+                        {selectedSong && (
+                            <article className="rounded-2xl border border-slate-700 bg-slate-950/65 p-5 space-y-4">
+                                <h3 className="text-xl font-black">{selectedSong.titulo}</h3>
+                                <div className="rounded-xl border border-slate-700 p-4 max-h-[280px] overflow-y-auto leading-8">
+                                    {lyricWords.map((word, idx) => {
+                                        const cleanWord = word.replace(/[.,;:!?¡¿()"']/g, '').toLowerCase();
+                                        const isSelected = normalizedWord === cleanWord && cleanWord;
+                                        const chordLabel = selectedSongWordChords[cleanWord];
+                                        return (
+                                            <button
+                                                key={`${word}-${idx}`}
+                                                type="button"
+                                                disabled={!cleanWord}
+                                                onClick={() => setSelectedLyricWord(cleanWord)}
+                                                className={`inline-flex items-center gap-1 mr-2 mb-2 px-2 py-1 rounded-md border ${isSelected ? 'border-cyan-300 bg-cyan-950/45' : 'border-slate-700 bg-slate-900/70 hover:border-cyan-500/50'}`}
+                                            >
+                                                <span>{word}</span>
+                                                {chordLabel && <span className="text-[10px] px-1 rounded bg-fuchsia-900/60 border border-fuchsia-400/40">{chordLabel}</span>}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                                <div className="flex flex-wrap items-center gap-3">
+                                    <span className="text-sm text-slate-300">Palabra seleccionada: <strong>{selectedLyricWord || 'ninguna'}</strong></span>
+                                    <select
+                                        value={selectedChordTag}
+                                        onChange={(e) => setSelectedChordTag(e.target.value)}
+                                        className="bg-slate-900 border border-slate-600 rounded-lg px-3 py-2"
+                                    >
+                                        {GALLERY_LABELS.map((label) => (
+                                            <option key={label} value={label}>{label}</option>
+                                        ))}
+                                    </select>
+                                    <button
+                                        type="button"
+                                        onClick={applyChordToWord}
+                                        disabled={!normalizedWord || isSavingChordTag}
+                                        className="btn-metal px-4 py-2 rounded-lg disabled:opacity-50"
+                                    >
+                                        {isSavingChordTag ? 'Guardando...' : 'Asignar acorde/etiqueta'}
+                                    </button>
+                                </div>
+                            </article>
+                        )}
+                    </>
+                )}
+            </section>
         );
     })()}
 
