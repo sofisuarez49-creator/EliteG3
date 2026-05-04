@@ -1261,16 +1261,16 @@
                     }
                     .viewer-bottom-bar {
                         position: fixed;
-                        left: 50%;
+                        right: calc(env(safe-area-inset-right, 0px) + 16px);
                         bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
-                        transform: translateX(-50%);
                         z-index: 2100;
                         display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        gap: 24px;
-                        padding: 10px 18px;
-                        border-radius: 999px;
+                        flex-direction: column;
+                        align-items: flex-end;
+                        justify-content: flex-end;
+                        gap: 10px;
+                        padding: 12px;
+                        border-radius: 18px;
                         background: rgba(25, 16, 8, 0.85);
                         border: 1px solid rgba(201, 162, 98, 0.72);
                         box-shadow: 0 10px 24px rgba(0, 0, 0, 0.45);
@@ -1503,7 +1503,7 @@
                 <div id="fullscreenViewer" class="fullscreen-viewer">
                     <button class="viewer-close" onclick="closeFullscreenViewer()" aria-label="Cerrar visor">✕</button>
                     <div class="viewer-bottom-bar">
-                        <button class="viewer-nav prev" id="viewerPrev" onclick="showPreviousViewerPhoto(event)" aria-label="Foto anterior">←</button>
+                        <button id="viewerRandomToggle" class="viewer-control-btn" type="button" onclick="toggleViewerRandom(event)">Random Off</button>
                         <button id="viewerPlayToggle" class="viewer-control-btn viewer-control-btn--center" type="button" onclick="toggleViewerAutoplay(event)">Play</button>
                         <button class="viewer-nav next" id="viewerNext" onclick="showNextViewerPhoto(event)" aria-label="Foto siguiente">→</button>
                     </div>
@@ -1530,9 +1530,9 @@
                     const viewerStage = document.getElementById('viewerStage');
                     const galleryGrid = document.getElementById('galleryGrid');
                     const viewerSlides = Array.from(document.querySelectorAll('.viewer-slide'));
-                    const viewerPrevButton = document.getElementById('viewerPrev');
                     const viewerNextButton = document.getElementById('viewerNext');
                     const viewerPlayToggleButton = document.getElementById('viewerPlayToggle');
+                    const viewerRandomToggleButton = document.getElementById('viewerRandomToggle');
                     const modalPlayFullscreenButton = document.getElementById('modalPlayFullscreenButton');
                     const VALID_FILE_MIME_PREFIXES = ['image/', 'video/'];
                     const VALID_FILE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'mp4', 'webm', 'ogg', 'mov', 'm4v'];
@@ -1809,6 +1809,10 @@
 
                     function setViewerRandomState(nextState) {
                         viewerRandom = !!nextState;
+                        if (viewerRandomToggleButton) {
+                            viewerRandomToggleButton.textContent = viewerRandom ? 'Random On' : 'Random Off';
+                            viewerRandomToggleButton.classList.toggle('random-active', viewerRandom);
+                        }
                     }
 
                     function preloadViewerAround(index) {
@@ -1867,7 +1871,6 @@
 
                     function syncViewerButtons() {
                         const disableNavigation = viewerSlides.length <= 1;
-                        if (viewerPrevButton) viewerPrevButton.disabled = disableNavigation;
                         if (viewerNextButton) viewerNextButton.disabled = disableNavigation;
                     }
 
