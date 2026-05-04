@@ -2190,6 +2190,7 @@
             const [contextMenuPosition, setContextMenuPosition] = useState({ x: 0, y: 0 });
             const [sortBy, setSortBy] = useState('promedio');
             const [sortDirection, setSortDirection] = useState('desc');
+            const [isFullRankingVisible, setIsFullRankingVisible] = useState(false);
             const [scoreBreakdownModal, setScoreBreakdownModal] = useState({ isOpen: false, profile: null, category: null });
             const [scorePanelModal, setScorePanelModal] = useState({ isOpen: false, profile: null });
             const [galleryFilterLabel, setGalleryFilterLabel] = useState('INICIAL');
@@ -4607,6 +4608,9 @@ const saveProfile = (e) => {
             });
 
             const showExtendedRankingColumns = !isSidebarOpen;
+            const visibleRankingProfiles = useMemo(() => (
+                isFullRankingVisible ? sortedProfiles : sortedProfiles.slice(0, 10)
+            ), [sortedProfiles, isFullRankingVisible]);
 
             return (
                 <div className="app-space-theme flex h-screen w-screen overflow-hidden bg-[#020617] stone-wall-surface relative">
@@ -6233,6 +6237,15 @@ const saveProfile = (e) => {
     {/* 4. VISTA RANKING (SOLO TABLA) */}
     {activeTab === 'RANKING' && !selectedCategory && (
         <div className="theme-surface-card rounded-2xl gothic-frame gothic-frame--ornate animate-in zoom-in-95 duration-500 ranking-table-shell">
+            <div className="ranking-table-toolbar">
+                <button
+                    type="button"
+                    onClick={() => setIsFullRankingVisible((prev) => !prev)}
+                    className={`ranking-toggle-totality ${isFullRankingVisible ? 'is-active' : 'is-inactive'}`}
+                >
+                    Ver totalidad
+                </button>
+            </div>
             <div className="ranking-table-scroll">
             <table className={`w-full ${showExtendedRankingColumns ? 'min-w-[860px] xl:min-w-[980px]' : 'min-w-[700px] xl:min-w-[820px]'} text-left border-collapse`}>
                 <thead className="theme-surface-soft">
@@ -6324,7 +6337,7 @@ const saveProfile = (e) => {
                     </tr>
                 </thead>
                 <tbody>
-                    {sortedProfiles.map((p, idx) => (
+                    {visibleRankingProfiles.map((p, idx) => (
 <tr key={p.firebaseId || p.id} onClick={() => openProfileEditor(p)}
     className={`cursor-pointer border-b border-slate-700/70 last:border-0 transition-all duration-300 group ${idx === 0 ? 'podium-1' : idx === 1 ? 'podium-2' : idx === 2 ? 'podium-3' : 'hover:bg-white/5'}`}>
 
