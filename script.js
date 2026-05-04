@@ -3384,7 +3384,7 @@ const getInitialCatFormData = () => ({
                     return;
                 }
                 if (!filteredGalleryPhotos.length) {
-                    window.alert('No hay fotos visibles para descargar.');
+                    window.alert('No hay archivos visibles para descargar.');
                     return;
                 }
 
@@ -3403,12 +3403,12 @@ const getInitialCatFormData = () => ({
                 setIsDownloadingAllGallery(true);
                 try {
                     const zip = new window.JSZip();
-                    const imagePhotos = filteredGalleryPhotos.filter((photo) => photo?.type !== 'video' && photo?.url);
+                    const mediaEntries = filteredGalleryPhotos.filter((photo) => photo?.url);
                     let downloadedCount = 0;
                     let failedCount = 0;
 
-                    for (let i = 0; i < imagePhotos.length; i += 1) {
-                        const photo = imagePhotos[i];
+                    for (let i = 0; i < mediaEntries.length; i += 1) {
+                        const photo = mediaEntries[i];
                         const folderName = sanitizeFileName(photo.nombre || 'Sin nombre') || 'Sin nombre';
                         const fileExt = buildFileExtension(photo.url);
                         const labelPart = sanitizeFileName(photo.label || 'sin-etiqueta') || 'sin-etiqueta';
@@ -3421,12 +3421,12 @@ const getInitialCatFormData = () => ({
                             downloadedCount += 1;
                         } catch (error) {
                             failedCount += 1;
-                            console.warn('No se pudo descargar una foto de la galería:', photo.url, error);
+                            console.warn('No se pudo descargar un archivo de la galería:', photo.url, error);
                         }
                     }
 
                     if (!downloadedCount) {
-                        window.alert('No se pudo descargar ninguna foto. Revisá permisos CORS/URLs.');
+                        window.alert('No se pudo descargar ningún archivo. Revisá permisos CORS/URLs.');
                         return;
                     }
 
@@ -3442,7 +3442,7 @@ const getInitialCatFormData = () => ({
                     URL.revokeObjectURL(zipUrl);
 
                     if (failedCount > 0) {
-                        window.alert(`Descarga completada con avisos: ${downloadedCount} fotos incluidas y ${failedCount} omitidas.`);
+                        window.alert(`Descarga completada con avisos: ${downloadedCount} archivos incluidos y ${failedCount} omitidos.`);
                     }
                 } catch (error) {
                     console.error('Error al generar ZIP de galería:', error);
@@ -5558,7 +5558,7 @@ const saveProfile = (e) => {
                             onClick={downloadAllGalleryPhotosAsZip}
                             disabled={isDownloadingAllGallery || !filteredGalleryPhotos.length}
                             className="btn-metal btn-metal--silver inline-flex items-center gap-2 px-5 py-3 rounded-full text-[10px] text-slate-900 disabled:opacity-40 disabled:cursor-not-allowed"
-                            title="Descargar todas las fotos visibles en un ZIP"
+                            title="Descargar toda la multimedia visible en un ZIP"
                         >
                             <LucideIcon name="download" size={14} />
                             {isDownloadingAllGallery ? 'Generando ZIP...' : 'DESCARGAR TODO'}
