@@ -891,10 +891,24 @@
             const scope = BATTLE_SCOPES.find((item) => item.id === scopeId);
             return scope?.label || 'General';
         };
+        const sanitizeArenaKeySegment = (value = '') => {
+            const normalized = String(value || '').trim();
+            if (!normalized) return '';
+            return encodeURIComponent(normalized.toLowerCase());
+        };
+        const decodeArenaKeySegment = (value = '') => {
+            const normalized = String(value || '').trim();
+            if (!normalized) return '';
+            try {
+                return decodeURIComponent(normalized).toLowerCase();
+            } catch {
+                return normalized.toLowerCase();
+            }
+        };
         const getArenaBattleKey = (arenaName, scopeId = 'GENERAL', groupKey = '') => {
             const safeArena = String(arenaName || '').trim();
             const safeScope = String(scopeId || 'GENERAL').trim().toUpperCase();
-            const safeGroup = String(groupKey || '').trim().toLowerCase();
+            const safeGroup = sanitizeArenaKeySegment(groupKey);
             if (!safeArena) return '';
             return `${safeScope}::${safeGroup || 'all'}::${safeArena}`;
         };
@@ -911,7 +925,7 @@
             const arenaName = parts.slice(2).join('::');
             return {
                 scopeId: String(parts[0] || 'GENERAL').trim().toUpperCase() || 'GENERAL',
-                groupKey: String(parts[1] || 'all').trim().toLowerCase() || 'all',
+                groupKey: decodeArenaKeySegment(parts[1] || 'all') || 'all',
                 arenaName: String(arenaName || '').trim()
             };
         };
