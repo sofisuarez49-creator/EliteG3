@@ -4600,6 +4600,14 @@ const saveProfile = (e) => {
                     losses: battles.filter((battle) => battle.loserId === selectedProfileId)
                 };
             };
+            const getItemBattleSummary = (profileId, arenaName) => {
+                const detail = getItemBattleBreakdown(profileId, arenaName);
+                const wins = detail.wins.length;
+                const losses = detail.losses.length;
+                const total = wins + losses;
+                const winRate = total ? (wins / total) * 100 : 0;
+                return { wins, losses, total, winRate };
+            };
 
             const sortedProfiles = [...filteredProfiles].sort((a, b) => {
                 const aValue = getSortValue(a, sortBy);
@@ -6490,17 +6498,25 @@ const saveProfile = (e) => {
                                 <p className="text-[10px] uppercase tracking-[0.18em] text-slate-400 font-black mb-2">Detalle por ítem</p>
                                 <div className="flex flex-wrap gap-2">
                                     {categoryItems.map((itemName) => (
-                                        <button
-                                            key={`breakdown-item-${itemName}`}
-                                            type="button"
-                                            onClick={() => {
-                                                const itemDetail = getItemBattleBreakdown(scoreBreakdownModal.profile.firebaseId, itemName);
-                                                setScoreBreakdownItemDetail(itemDetail);
-                                            }}
-                                            className="btn-metal btn-metal--bronze px-3 py-2 rounded-lg text-[10px] font-black"
-                                        >
-                                            {itemName}
-                                        </button>
+                                        (() => {
+                                            const summary = getItemBattleSummary(scoreBreakdownModal.profile.firebaseId, itemName);
+                                            return (
+                                                <button
+                                                    key={`breakdown-item-${itemName}`}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const itemDetail = getItemBattleBreakdown(scoreBreakdownModal.profile.firebaseId, itemName);
+                                                        setScoreBreakdownItemDetail(itemDetail);
+                                                    }}
+                                                    className="btn-metal btn-metal--bronze px-3 py-2 rounded-lg text-[10px] font-black min-w-[10.5rem] text-left"
+                                                >
+                                                    <p className="leading-none">{itemName}</p>
+                                                    <p className="mt-1 text-[9px] font-semibold text-slate-200/90 tracking-[0.01em] normal-case">
+                                                        {summary.wins}/{summary.total} · {summary.winRate.toFixed(0)}% victorias
+                                                    </p>
+                                                </button>
+                                            );
+                                        })()
                                     ))}
                                 </div>
                             </div>
