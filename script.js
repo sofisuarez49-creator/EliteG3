@@ -1,12 +1,13 @@
         // Configuración de tu proyecto de Firebase
         const firebaseConfig = {
-            apiKey: "AIzaSyAcW679YdIT03pyq8IgKKnR8oyO4_fvpFs",
-            authDomain: "g2elite-a3b85.firebaseapp.com",
-            databaseURL: "https://g2elite-a3b85-default-rtdb.firebaseio.com/",
-            projectId: "g2elite-a3b85",
-            storageBucket: "g2elite-a3b85.firebasestorage.app",
-            messagingSenderId: "951346482286",
-            appId: "1:951346482286:web:6001135252de2a4d982a7f",
+            apiKey: "AIzaSyAcrVq7ryWv5EJbRhZ1TmhFia-LAV10cN4",
+            authDomain: "eliteg3-1650f.firebaseapp.com",
+            databaseURL: "https://eliteg3-1650f-default-rtdb.firebaseio.com/",
+            projectId: "eliteg3-1650f",
+            storageBucket: "eliteg3-1650f.firebasestorage.app",
+            messagingSenderId: "351711372153",
+            appId: "1:351711372153:web:60ce4742396e37974f85a8",
+            measurementId: "G-HGYPLEY6DJ",
         };
 
         // Inicializar Firebase
