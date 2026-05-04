@@ -3406,6 +3406,22 @@ const getInitialCatFormData = () => ({
                     const mediaEntries = filteredGalleryPhotos.filter((photo) => photo?.url);
                     let downloadedCount = 0;
                     let failedCount = 0;
+                    let fallbackCount = 0;
+                    const configuredProxy = String(window.GALLERY_DOWNLOAD_PROXY || '').trim();
+                    const proxyBaseUrl = configuredProxy || 'https://corsproxy.io/?';
+                    const buildProxyUrl = (url) => {
+                        if (!proxyBaseUrl) return '';
+                        if (proxyBaseUrl.includes('{url}')) {
+                            return proxyBaseUrl.replace('{url}', encodeURIComponent(url));
+                        }
+                        const separator = proxyBaseUrl.endsWith('?') || proxyBaseUrl.endsWith('=') ? '' : (proxyBaseUrl.includes('?') ? '&' : '?');
+                        return `${proxyBaseUrl}${separator}${encodeURIComponent(url)}`;
+                    };
+                    const fetchBinary = async (url) => {
+                        const directResponse = await fetch(url, { mode: 'cors' });
+                        if (!directResponse.ok) throw new Error(`HTTP ${directResponse.status}`);
+                        return { blob: await directResponse.blob(), viaProxy: false };
+                    };
 
                     for (let i = 0; i < mediaEntries.length; i += 1) {
                         const photo = mediaEntries[i];
@@ -3414,11 +3430,19 @@ const getInitialCatFormData = () => ({
                         const labelPart = sanitizeFileName(photo.label || 'sin-etiqueta') || 'sin-etiqueta';
                         const fileName = `${String(i + 1).padStart(4, '0')}_${labelPart}.${fileExt}`;
                         try {
-                            const response = await fetch(photo.url, { mode: 'cors' });
-                            if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                            const blob = await response.blob();
-                            zip.folder(folderName).file(fileName, blob);
+                            let result;
+                            try {
+                                result = await fetchBinary(photo.url);
+                            } catch (directError) {
+                                const proxyUrl = buildProxyUrl(photo.url);
+                                if (!proxyUrl) throw directError;
+                                const proxyResponse = await fetch(proxyUrl, { mode: 'cors' });
+                                if (!proxyResponse.ok) throw new Error(`Proxy HTTP ${proxyResponse.status}`);
+                                result = { blob: await proxyResponse.blob(), viaProxy: true };
+                            }
+                            zip.folder(folderName).file(fileName, result.blob);
                             downloadedCount += 1;
+                            if (result.viaProxy) fallbackCount += 1;
                         } catch (error) {
                             failedCount += 1;
                             console.warn('No se pudo descargar un archivo de la galería:', photo.url, error);
@@ -3442,7 +3466,7 @@ const getInitialCatFormData = () => ({
                     URL.revokeObjectURL(zipUrl);
 
                     if (failedCount > 0) {
-                        window.alert(`Descarga completada con avisos: ${downloadedCount} archivos incluidos y ${failedCount} omitidos.`);
+                        window.alert(`Descarga completada con avisos: ${downloadedCount} archivos incluidos, ${failedCount} omitidos y ${fallbackCount} recuperados por proxy.`);
                     }
                 } catch (error) {
                     console.error('Error al generar ZIP de galería:', error);
