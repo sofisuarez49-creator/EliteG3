@@ -5053,16 +5053,23 @@ const saveProfile = (e) => {
                         const getTopThree = (items = []) => [...items]
                             .sort((a, b) => (Number(calcularPromedio(b)) || 0) - (Number(calcularPromedio(a)) || 0))
                             .slice(0, 3);
-                        const cards = [];
+                        const cardsBySection = {
+                            nacionalidades: [],
+                            profesiones: [],
+                            edades: [],
+                            items: [],
+                            caracteristicas: []
+                        };
+                        const generalTop = getTopThree(safeProfiles);
 
                         const nacionalidades = [...new Set(safeProfiles.map((p) => String(p.nacionalidad || '').trim()).filter(Boolean))];
-                        nacionalidades.forEach((nacionalidad) => cards.push({
+                        nacionalidades.forEach((nacionalidad) => cardsBySection.nacionalidades.push({
                             id: `nac-${nacionalidad}`,
                             title: `Nacionalidad · ${nacionalidad}`,
                             top: getTopThree(safeProfiles.filter((p) => String(p.nacionalidad || '').trim() === nacionalidad))
                         }));
 
-                        ageRanges.forEach((range) => cards.push({
+                        ageRanges.forEach((range) => cardsBySection.edades.push({
                             id: `edad-${range.id}`,
                             title: `Edad · ${range.id}`,
                             top: getTopThree(safeProfiles.filter((p) => {
@@ -5072,7 +5079,7 @@ const saveProfile = (e) => {
                         }));
 
                         const profesiones = [...new Set(safeProfiles.map((p) => String(p.profesion || '').trim()).filter(Boolean))];
-                        profesiones.forEach((profesion) => cards.push({
+                        profesiones.forEach((profesion) => cardsBySection.profesiones.push({
                             id: `prof-${profesion}`,
                             title: `Profesión · ${profesion}`,
                             top: getTopThree(safeProfiles.filter((p) => String(p.profesion || '').trim() === profesion))
@@ -5082,7 +5089,7 @@ const saveProfile = (e) => {
                             const top = [...safeProfiles]
                                 .sort((a, b) => (Number(b?.puntuaciones?.[item]) || 0) - (Number(a?.puntuaciones?.[item]) || 0))
                                 .slice(0, 3);
-                            cards.push({ id: `item-${item}`, title: `Ítem · ${item}`, top });
+                            cardsBySection.items.push({ id: `item-${item}`, title: `Ítem · ${item}`, top });
                         });
 
                         [['Cuerpo', ['Cuerpo', 'Cola', 'Pechos', 'Cintura', 'Piernas', 'Estatura']], ['Rostro', ['Rostro', 'Ojos', 'Boca', 'Cabello']], ['Actitud', ['Sensualidad', 'Carisma', 'Elegancia', 'Dulzura', 'Talento']]].forEach(([label, keys]) => {
@@ -5093,44 +5100,64 @@ const saveProfile = (e) => {
                                 }))
                                 .sort((a, b) => (b.__metaScore || 0) - (a.__metaScore || 0))
                                 .slice(0, 3);
-                            cards.push({ id: `meta-${label}`, title: label, top });
+                            cardsBySection.caracteristicas.push({ id: `meta-${label}`, title: label, top });
                         });
+
+                        const sections = [
+                            { id: 'general', title: 'Podio de puntuación general', cards: [{ id: 'general-score', title: 'General · Ranking total', top: generalTop }] },
+                            { id: 'nacionalidades', title: 'Podios por nacionalidades', cards: cardsBySection.nacionalidades },
+                            { id: 'profesiones', title: 'Podios por profesión', cards: cardsBySection.profesiones },
+                            { id: 'edades', title: 'Podios por edades', cards: cardsBySection.edades },
+                            { id: 'items', title: 'Podios por ítem', cards: cardsBySection.items },
+                            { id: 'caracteristicas', title: 'Podios por características', cards: cardsBySection.caracteristicas }
+                        ];
+
+                        const renderPodiumCard = (card, isGeneralSection = false) => (
+                            <article key={card.id} className={`theme-surface-soft border theme-border-secondary rounded-2xl p-5 ${isGeneralSection ? 'shadow-[0_0_22px_rgba(250,204,21,0.18)]' : ''}`}>
+                                <h3 className={`text-xs font-black uppercase tracking-[0.18em] mb-3 ${isGeneralSection ? 'text-[var(--metal-gold)]' : 'text-cyan-200'}`}>{card.title}</h3>
+                                <ol className="space-y-2">
+                                    {card.top.length ? card.top.map((p, idx) => {
+                                        const championThumb = getSafeImageSrc(String(p?.fotos?.[0] || '').trim(), '');
+                                        const isChampion = idx === 0;
+                                        return (
+                                            <li key={`${card.id}-${p.firebaseId || p.nombre || idx}`} className="flex items-center justify-between gap-3 text-xs">
+                                                <div className="flex items-center gap-2 min-w-0">
+                                                    {isChampion && championThumb && (
+                                                        <div className="flex flex-col items-center shrink-0 -mt-1" title={`Campeona de ${card.title}`}>
+                                                            <span className="text-[12px] leading-none -mb-0.5" aria-hidden="true">👑</span>
+                                                            <img
+                                                                src={championThumb}
+                                                                alt={`Miniatura de ${p.nombre || 'Campeona'}`}
+                                                                className={`w-8 h-8 rounded-full object-cover border ${isGeneralSection ? 'border-[var(--metal-gold)] shadow-[0_0_16px_rgba(250,204,21,0.48)]' : 'border-[var(--metal-gold)] shadow-[0_0_14px_rgba(250,204,21,0.35)]'}`}
+                                                            />
+                                                        </div>
+                                                    )}
+                                                    <span className="font-black text-slate-100 truncate">{idx + 1}. {p.nombre || 'Sin nombre'}</span>
+                                                </div>
+                                                <span className="text-[var(--metal-gold)] font-black shrink-0">{calcularPromedio(p)}</span>
+                                            </li>
+                                        );
+                                    }) : <li className="text-xs text-slate-400">Sin datos suficientes.</li>}
+                                </ol>
+                            </article>
+                        );
 
                         return (
                             <div className="space-y-8 animate-in fade-in duration-500">
                                 <div>
                                     <h2 className="neon-sign neon-sign--magenta text-4xl font-black italic text-white uppercase tracking-tighter">Campeonas</h2>
-                                    <p className="text-xs font-bold text-[var(--metal-gold)] uppercase tracking-widest mt-1">Podios por nacionalidad, edad, profesión e ítems</p>
+                                    <p className="text-xs font-bold text-[var(--metal-gold)] uppercase tracking-widest mt-1">Podios organizados por secciones</p>
                                 </div>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-                                    {cards.map((card) => (
-                                        <article key={card.id} className="theme-surface-soft border theme-border-secondary rounded-2xl p-5">
-                                            <h3 className="text-xs font-black uppercase tracking-[0.18em] text-cyan-200 mb-3">{card.title}</h3>
-                                            <ol className="space-y-2">
-                                                {card.top.length ? card.top.map((p, idx) => {
-                                                    const championThumb = getSafeImageSrc(String(p?.fotos?.[0] || '').trim(), '');
-                                                    const isChampion = idx === 0;
-                                                    return (
-                                                        <li key={`${card.id}-${p.firebaseId || p.nombre || idx}`} className="flex items-center justify-between gap-3 text-xs">
-                                                            <div className="flex items-center gap-2 min-w-0">
-                                                                {isChampion && championThumb && (
-                                                                    <div className="flex flex-col items-center shrink-0 -mt-1" title={`Campeona de ${card.title}`}>
-                                                                        <span className="text-[12px] leading-none -mb-0.5" aria-hidden="true">👑</span>
-                                                                        <img
-                                                                            src={championThumb}
-                                                                            alt={`Miniatura de ${p.nombre || 'Campeona'}`}
-                                                                            className="w-8 h-8 rounded-full object-cover border border-[var(--metal-gold)] shadow-[0_0_14px_rgba(250,204,21,0.35)]"
-                                                                        />
-                                                                    </div>
-                                                                )}
-                                                                <span className="font-black text-slate-100 truncate">{idx + 1}. {p.nombre || 'Sin nombre'}</span>
-                                                            </div>
-                                                            <span className="text-[var(--metal-gold)] font-black shrink-0">{calcularPromedio(p)}</span>
-                                                        </li>
-                                                    );
-                                                }) : <li className="text-xs text-slate-400">Sin datos suficientes.</li>}
-                                            </ol>
-                                        </article>
+                                <div className="space-y-7">
+                                    {sections.map((section) => (
+                                        <section key={section.id} className="space-y-4">
+                                            <h3 className={`text-sm font-black uppercase tracking-[0.22em] ${section.id === 'general' ? 'text-[var(--metal-gold)]' : 'text-cyan-200'}`}>
+                                                {section.title}
+                                            </h3>
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                                                {section.cards.map((card) => renderPodiumCard(card, section.id === 'general'))}
+                                            </div>
+                                        </section>
                                     ))}
                                 </div>
                             </div>
