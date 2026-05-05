@@ -5082,7 +5082,7 @@ const saveProfile = (e) => {
                             const top = [...safeProfiles]
                                 .sort((a, b) => (Number(b?.puntuaciones?.[item]) || 0) - (Number(a?.puntuaciones?.[item]) || 0))
                                 .slice(0, 3);
-                            cards.push({ id: `item-${item}`, title: `Ítem · ${item}`, top });
+                            cards.push({ id: `item-${item}`, title: `Ítem · ${item}`, top, scoreType: 'item', scoreKey: item });
                         });
 
                         [['Cuerpo', ['Cuerpo', 'Cola', 'Pechos', 'Cintura', 'Piernas', 'Estatura']], ['Rostro', ['Rostro', 'Ojos', 'Boca', 'Cabello']], ['Actitud', ['Sensualidad', 'Carisma', 'Elegancia', 'Dulzura', 'Talento']]].forEach(([label, keys]) => {
@@ -5093,7 +5093,7 @@ const saveProfile = (e) => {
                                 }))
                                 .sort((a, b) => (b.__metaScore || 0) - (a.__metaScore || 0))
                                 .slice(0, 3);
-                            cards.push({ id: `meta-${label}`, title: label, top });
+                            cards.push({ id: `meta-${label}`, title: label, top, scoreType: 'meta' });
                         });
 
                         return (
@@ -5125,7 +5125,13 @@ const saveProfile = (e) => {
                                                                 )}
                                                                 <span className="font-black text-slate-100 truncate">{idx + 1}. {p.nombre || 'Sin nombre'}</span>
                                                             </div>
-                                                            <span className="text-[var(--metal-gold)] font-black shrink-0">{calcularPromedio(p)}</span>
+                                                            <span className="text-[var(--metal-gold)] font-black shrink-0">{
+                                                                card.scoreType === 'item'
+                                                                    ? Number(p?.puntuaciones?.[card.scoreKey] || 0).toFixed(1)
+                                                                    : card.scoreType === 'meta'
+                                                                        ? Number(p?.__metaScore || 0).toFixed(1)
+                                                                        : calcularPromedio(p)
+                                                            }</span>
                                                         </li>
                                                     );
                                                 }) : <li className="text-xs text-slate-400">Sin datos suficientes.</li>}
