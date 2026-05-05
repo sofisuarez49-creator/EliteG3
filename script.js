@@ -5107,12 +5107,28 @@ const saveProfile = (e) => {
                                         <article key={card.id} className="theme-surface-soft border theme-border-secondary rounded-2xl p-5">
                                             <h3 className="text-xs font-black uppercase tracking-[0.18em] text-cyan-200 mb-3">{card.title}</h3>
                                             <ol className="space-y-2">
-                                                {card.top.length ? card.top.map((p, idx) => (
-                                                    <li key={`${card.id}-${p.firebaseId || p.nombre || idx}`} className="flex items-center justify-between text-xs">
-                                                        <span className="font-black text-slate-100">{idx + 1}. {p.nombre || 'Sin nombre'}</span>
-                                                        <span className="text-[var(--metal-gold)] font-black">{calcularPromedio(p)}</span>
-                                                    </li>
-                                                )) : <li className="text-xs text-slate-400">Sin datos suficientes.</li>}
+                                                {card.top.length ? card.top.map((p, idx) => {
+                                                    const championThumb = getSafeImageSrc(String(p?.fotos?.[0] || '').trim(), '');
+                                                    const isChampion = idx === 0;
+                                                    return (
+                                                        <li key={`${card.id}-${p.firebaseId || p.nombre || idx}`} className="flex items-center justify-between gap-3 text-xs">
+                                                            <div className="flex items-center gap-2 min-w-0">
+                                                                {isChampion && championThumb && (
+                                                                    <div className="flex flex-col items-center shrink-0 -mt-1" title={`Campeona de ${card.title}`}>
+                                                                        <span className="text-[12px] leading-none -mb-0.5" aria-hidden="true">👑</span>
+                                                                        <img
+                                                                            src={championThumb}
+                                                                            alt={`Miniatura de ${p.nombre || 'Campeona'}`}
+                                                                            className="w-8 h-8 rounded-full object-cover border border-[var(--metal-gold)] shadow-[0_0_14px_rgba(250,204,21,0.35)]"
+                                                                        />
+                                                                    </div>
+                                                                )}
+                                                                <span className="font-black text-slate-100 truncate">{idx + 1}. {p.nombre || 'Sin nombre'}</span>
+                                                            </div>
+                                                            <span className="text-[var(--metal-gold)] font-black shrink-0">{calcularPromedio(p)}</span>
+                                                        </li>
+                                                    );
+                                                }) : <li className="text-xs text-slate-400">Sin datos suficientes.</li>}
                                             </ol>
                                         </article>
                                     ))}
