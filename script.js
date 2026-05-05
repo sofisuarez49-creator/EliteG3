@@ -17,7 +17,8 @@
         const db = firebase.database();
         const { useState, useEffect, useMemo, useRef } = React;
 
-        const GALLERY_LABELS = ['C', 'P', 'B', 'N', 'S', 'E', 'X'];
+        const GALLERY_LABELS = ['C', 'P', 'B', 'N', 'S', 'E', 'X', 'R'];
+        const GENERAL_GALLERY_HIDDEN_LABELS = ['R'];
         const ANON_GALLERY_NODE_PATH = 'anonimo/galeria';
         const ANON_PROFILE_ID = '__anonimo_gallery__';
         const GALLERY_VIEW_MODES = ['PERSONAJE', 'ETIQUETA', 'GENERAL'];
@@ -101,6 +102,12 @@
                 border: 'rgba(254,226,226,1)',
                 glow: 'rgba(239,68,68,0.95)',
                 text: '#fff7f7'
+            },
+            R: {
+                bg: 'linear-gradient(135deg, rgba(148,163,184,0.95), rgba(71,85,105,0.98))',
+                border: 'rgba(226,232,240,0.95)',
+                glow: 'rgba(148,163,184,0.82)',
+                text: '#f8fafc'
             },
             DEFAULT: {
                 bg: 'linear-gradient(135deg, rgba(51,65,85,0.92), rgba(15,23,42,0.95))',
@@ -2996,7 +3003,7 @@ const getInitialCatFormData = () => ({
                         profesion: 'Archivo global',
                         nacionalidad: '',
                         fotoPerfil: allGalleryPhotos[0]?.url || '',
-                        photos: allGalleryPhotos
+                        photos: allGalleryPhotos.filter((photo) => !GENERAL_GALLERY_HIDDEN_LABELS.includes(photo.label || ''))
                     }];
                 }
 
