@@ -6218,25 +6218,55 @@ const saveProfile = (e) => {
                 </div>
             </div>
 
-            {!selectedBattleScope && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
-                    {BATTLE_SCOPES.map((scope) => (
-                        <button
-                            key={scope.id}
-                            onClick={() => {
-                                setSelectedBattleScope(scope.id);
-                                setSelectedBattleGroupKey(scope.id === 'GENERAL' ? 'all' : '');
-                                setSelectedArena(null);
-                            }}
-                            className="solid-metal-ui battle-mode-card battle-mode-card--mode border rounded-2xl p-4 text-left transition-all"
-                        >
-                            <p className="text-[10px] font-black uppercase tracking-[0.28em] text-slate-500">Modo</p>
-                            <h3 className="font-black italic text-white mt-2">{scope.label}</h3>
-                            <p className="text-xs text-slate-300 mt-2">{scope.description}</p>
-                        </button>
-                    ))}
-                </div>
-            )}
+            {!selectedBattleScope && (() => {
+                const generalScope = BATTLE_SCOPES.find((scope) => scope.id === 'GENERAL');
+                const segmentedScopes = BATTLE_SCOPES.filter((scope) => scope.id !== 'GENERAL');
+                const openScope = (scopeId) => {
+                    setSelectedBattleScope(scopeId);
+                    setSelectedBattleGroupKey(scopeId === 'GENERAL' ? 'all' : '');
+                    setSelectedArena(null);
+                };
+
+                return (
+                    <div className="space-y-6">
+                        <section className="theme-surface-card border theme-border-secondary rounded-2xl p-5">
+                            <p className="text-[10px] font-black uppercase tracking-[0.28em] text-slate-400">Podio principal</p>
+                            <button
+                                type="button"
+                                onClick={() => openScope(generalScope?.id || 'GENERAL')}
+                                className="w-full mt-3 solid-metal-ui battle-mode-card battle-mode-card--mode border rounded-2xl p-4 text-left transition-all"
+                            >
+                                <h3 className="font-black italic text-white">Podio de puntuación general</h3>
+                                <p className="text-xs text-slate-300 mt-2">Vista global para definir el top general antes de entrar al resto de secciones.</p>
+                            </button>
+                        </section>
+
+                        <section className="theme-surface-card border theme-border-secondary rounded-2xl p-5">
+                            <p className="text-[10px] font-black uppercase tracking-[0.28em] text-slate-400">Podios por filtros</p>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 mt-3">
+                                {segmentedScopes.map((scope) => (
+                                    <button
+                                        key={scope.id}
+                                        onClick={() => openScope(scope.id)}
+                                        className="solid-metal-ui battle-mode-card battle-mode-card--mode border rounded-2xl p-4 text-left transition-all"
+                                    >
+                                        <h3 className="font-black italic text-white">Podio por {scope.label.toLowerCase()}</h3>
+                                        <p className="text-xs text-slate-300 mt-2">{scope.description}</p>
+                                    </button>
+                                ))}
+                                <div className="theme-surface-soft border theme-border-secondary rounded-2xl p-4">
+                                    <h3 className="font-black italic text-white">Podio por ítem</h3>
+                                    <p className="text-xs text-slate-300 mt-2">Se construye al seleccionar cada arena de evaluación.</p>
+                                </div>
+                                <div className="theme-surface-soft border theme-border-secondary rounded-2xl p-4">
+                                    <h3 className="font-black italic text-white">Podio por características</h3>
+                                    <p className="text-xs text-slate-300 mt-2">Compara perfiles según los 15 atributos del sistema.</p>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+                );
+            })()}
 
             {selectedBattleScope && (
                 <div className="space-y-4">
