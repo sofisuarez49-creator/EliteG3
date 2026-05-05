@@ -5041,12 +5041,85 @@ const saveProfile = (e) => {
                     )}
 
 
-                    {activeTab === 'CAMPEONAS' && !selectedCategory && (
-                        <div className="rounded-[1.8rem] border border-cyan-200/20 bg-slate-900/60 p-8 text-center">
-                            <h2 className="font-title text-2xl md:text-3xl text-cyan-100 uppercase tracking-[0.12em] mb-3">Campeonas</h2>
-                            <p className="text-slate-300 text-sm md:text-base">Esta sección estará disponible próximamente.</p>
-                        </div>
-                    )}
+                    {activeTab === 'CAMPEONAS' && !selectedCategory && (() => {
+                        const ageRanges = [
+                            { id: '18-23', min: 18, max: 23 },
+                            { id: '24-29', min: 24, max: 29 },
+                            { id: '30-35', min: 30, max: 35 },
+                            { id: '36-41', min: 36, max: 41 },
+                            { id: '42-60', min: 42, max: 60 }
+                        ];
+                        const safeProfiles = (perfiles || []).filter(Boolean);
+                        const getTopThree = (items = []) => [...items]
+                            .sort((a, b) => (Number(calcularPromedio(b)) || 0) - (Number(calcularPromedio(a)) || 0))
+                            .slice(0, 3);
+                        const cards = [];
+
+                        const nacionalidades = [...new Set(safeProfiles.map((p) => String(p.nacionalidad || '').trim()).filter(Boolean))];
+                        nacionalidades.forEach((nacionalidad) => cards.push({
+                            id: `nac-${nacionalidad}`,
+                            title: `Nacionalidad · ${nacionalidad}`,
+                            top: getTopThree(safeProfiles.filter((p) => String(p.nacionalidad || '').trim() === nacionalidad))
+                        }));
+
+                        ageRanges.forEach((range) => cards.push({
+                            id: `edad-${range.id}`,
+                            title: `Edad · ${range.id}`,
+                            top: getTopThree(safeProfiles.filter((p) => {
+                                const age = calcularEdad(p.fechaNacimiento);
+                                return typeof age === 'number' && age >= range.min && age <= range.max;
+                            }))
+                        }));
+
+                        const profesiones = [...new Set(safeProfiles.map((p) => String(p.profesion || '').trim()).filter(Boolean))];
+                        profesiones.forEach((profesion) => cards.push({
+                            id: `prof-${profesion}`,
+                            title: `Profesión · ${profesion}`,
+                            top: getTopThree(safeProfiles.filter((p) => String(p.profesion || '').trim() === profesion))
+                        }));
+
+                        CARACTERISTICAS.forEach((item) => {
+                            const top = [...safeProfiles]
+                                .sort((a, b) => (Number(b?.puntuaciones?.[item]) || 0) - (Number(a?.puntuaciones?.[item]) || 0))
+                                .slice(0, 3);
+                            cards.push({ id: `item-${item}`, title: `Ítem · ${item}`, top });
+                        });
+
+                        [['Cuerpo', ['Cuerpo', 'Cola', 'Pechos', 'Cintura', 'Piernas', 'Estatura']], ['Rostro', ['Rostro', 'Ojos', 'Boca', 'Cabello']], ['Actitud', ['Sensualidad', 'Carisma', 'Elegancia', 'Dulzura', 'Talento']]].forEach(([label, keys]) => {
+                            const top = [...safeProfiles]
+                                .map((p) => ({
+                                    ...p,
+                                    __metaScore: keys.reduce((acc, key) => acc + (Number(p?.puntuaciones?.[key]) || 0), 0) / keys.length
+                                }))
+                                .sort((a, b) => (b.__metaScore || 0) - (a.__metaScore || 0))
+                                .slice(0, 3);
+                            cards.push({ id: `meta-${label}`, title: label, top });
+                        });
+
+                        return (
+                            <div className="space-y-8 animate-in fade-in duration-500">
+                                <div>
+                                    <h2 className="neon-sign neon-sign--magenta text-4xl font-black italic text-white uppercase tracking-tighter">Campeonas</h2>
+                                    <p className="text-xs font-bold text-[var(--metal-gold)] uppercase tracking-widest mt-1">Podios por nacionalidad, edad, profesión e ítems</p>
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                                    {cards.map((card) => (
+                                        <article key={card.id} className="theme-surface-soft border theme-border-secondary rounded-2xl p-5">
+                                            <h3 className="text-xs font-black uppercase tracking-[0.18em] text-cyan-200 mb-3">{card.title}</h3>
+                                            <ol className="space-y-2">
+                                                {card.top.length ? card.top.map((p, idx) => (
+                                                    <li key={`${card.id}-${p.firebaseId || p.nombre || idx}`} className="flex items-center justify-between text-xs">
+                                                        <span className="font-black text-slate-100">{idx + 1}. {p.nombre || 'Sin nombre'}</span>
+                                                        <span className="text-[var(--metal-gold)] font-black">{calcularPromedio(p)}</span>
+                                                    </li>
+                                                )) : <li className="text-xs text-slate-400">Sin datos suficientes.</li>}
+                                            </ol>
+                                        </article>
+                                    ))}
+                                </div>
+                            </div>
+                        );
+                    })()}
 
                     {activeTab === 'anonimo' && !selectedCategory && (
                         <div className="space-y-8 animate-in fade-in duration-500">
