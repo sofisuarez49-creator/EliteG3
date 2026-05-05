@@ -2226,9 +2226,12 @@
             const [anonMediaLabel, setAnonMediaLabel] = useState(GALLERY_LABELS[0]);
             const [anonMediaAuthor, setAnonMediaAuthor] = useState('');
             const [anonMediaError, setAnonMediaError] = useState('');
+            const [anonUploadType, setAnonUploadType] = useState('');
             const [galleryAudioTracks, setGalleryAudioTracks] = useState([]);
             const [galleryAudioName, setGalleryAudioName] = useState('');
+            const [galleryAudioSource, setGalleryAudioSource] = useState('url');
             const [galleryAudioUrl, setGalleryAudioUrl] = useState('');
+            const [galleryAudioFile, setGalleryAudioFile] = useState(null);
             const [galleryAudioError, setGalleryAudioError] = useState('');
             const [isGalleryMusicEnabled, setIsGalleryMusicEnabled] = useState(false);
             const [selectedGalleryAudioA, setSelectedGalleryAudioA] = useState('');
@@ -2547,7 +2550,7 @@ const getInitialCatFormData = () => ({
                     event.target.value = '';
                 }
             };
-            const addAnonymousGalleryItem = async ({ url, label, autor = '' }) => {
+            const addAnonymousGalleryItem = async ({ url, label, autor = '', forcedTag = '' }) => {
                 const normalizedUrl = String(url || '').trim();
                 if (!normalizedUrl) throw new Error('Ingresá una URL o seleccioná un archivo.');
                 const normalizedLabel = GALLERY_LABELS.includes(label) ? label : '';
@@ -2558,7 +2561,7 @@ const getInitialCatFormData = () => ({
                 if (!isValidMedia) {
                     throw new Error('Formato no válido. Usá imagen, video archivo o URL de YouTube/Vimeo.');
                 }
-                const tag = inferredType === 'video' ? 'videos' : 'fotos';
+                const tag = forcedTag || (inferredType === 'video' ? 'videos' : 'fotos');
                 const galleryRef = db.ref(`${ANON_GALLERY_NODE_PATH}/${tag}`);
                 const snapshot = await galleryRef.once('value');
                 const currentItems = Array.isArray(snapshot.val()) ? snapshot.val() : [];
@@ -2570,7 +2573,7 @@ const getInitialCatFormData = () => ({
                 }];
                 await galleryRef.set(updatedItems);
             };
-            const handleAnonMediaSubmit = async () => {
+            const handleAnonMediaSubmit = async (forcedTag = '') => {
                 setAnonMediaError('');
                 try {
                     let finalUrl = String(anonMediaUrl || '').trim();
@@ -2578,7 +2581,7 @@ const getInitialCatFormData = () => ({
                         if (!anonMediaFile) throw new Error('Seleccioná un archivo local.');
                         finalUrl = await readFileAsDataUrl(anonMediaFile);
                     }
-                    await addAnonymousGalleryItem({ url: finalUrl, label: anonMediaLabel, autor: anonMediaAuthor });
+                    await addAnonymousGalleryItem({ url: finalUrl, label: anonMediaLabel, autor: anonMediaAuthor, forcedTag });
                     setAnonMediaUrl('');
                     setAnonMediaFile(null);
                     setAnonMediaAuthor('');
@@ -2589,17 +2592,27 @@ const getInitialCatFormData = () => ({
             };
             const addGalleryAudioTrack = async () => {
                 const normalizedName = String(galleryAudioName || '').trim();
-                const normalizedUrl = String(galleryAudioUrl || '').trim();
                 setGalleryAudioError('');
-                if (!normalizedName || !normalizedUrl) {
-                    setGalleryAudioError('Completá nombre y URL del audio.');
-                    return;
-                }
-                if (!AUDIO_FILE_REGEX.test(normalizedUrl)) {
-                    setGalleryAudioError('La URL debe apuntar a un archivo de audio válido.');
+                if (!normalizedName) {
+                    setGalleryAudioError('Completá el nombre del audio.');
                     return;
                 }
                 try {
+                    let normalizedUrl = String(galleryAudioUrl || '').trim();
+                    if (galleryAudioSource === 'file') {
+                        if (!galleryAudioFile) {
+                            setGalleryAudioError('Seleccioná un archivo de audio.');
+                            return;
+                        }
+                        normalizedUrl = await readFileAsDataUrl(galleryAudioFile);
+                    } else if (!normalizedUrl) {
+                        setGalleryAudioError('Completá la URL del audio.');
+                        return;
+                    }
+                    if (galleryAudioSource === 'url' && !AUDIO_FILE_REGEX.test(normalizedUrl)) {
+                        setGalleryAudioError('La URL debe apuntar a un archivo de audio válido.');
+                        return;
+                    }
                     const audioRef = db.ref(`${ANON_GALLERY_NODE_PATH}/audios`);
                     const snapshot = await audioRef.once('value');
                     const currentAudios = Array.isArray(snapshot.val()) ? snapshot.val() : [];
@@ -2607,6 +2620,8 @@ const getInitialCatFormData = () => ({
                     await audioRef.set(updatedAudios);
                     setGalleryAudioName('');
                     setGalleryAudioUrl('');
+                    setGalleryAudioFile(null);
+                    setGalleryAudioSource('url');
                 } catch (error) {
                     setGalleryAudioError('No se pudo guardar el audio en Firebase.');
                 }
@@ -5179,70 +5194,117 @@ const saveProfile = (e) => {
                                 <p className="text-sm md:text-base text-slate-200/85 mt-4 max-w-3xl">
                                     Este panel reutiliza el estilo visual del sistema y no abre la ficha de personaje para mantener una navegación discreta.
                                 </p>
-                                <div className="mt-8 grid gap-4 md:grid-cols-2">
-                                    <select
-                                        className="theme-surface-soft border theme-border-secondary p-3 rounded-xl outline-none text-white font-bold"
-                                        value={anonMediaSource}
-                                        onChange={(event) => {
-                                            setAnonMediaSource(event.target.value);
-                                            setAnonMediaError('');
-                                        }}
-                                    >
-                                        <option value="url">Origen: URL</option>
-                                        <option value="file">Origen: Archivo local</option>
-                                    </select>
-                                    <select
-                                        className="theme-surface-soft border theme-border-secondary p-3 rounded-xl outline-none text-white font-bold"
-                                        value={anonMediaLabel}
-                                        onChange={(event) => setAnonMediaLabel(event.target.value)}
-                                    >
-                                        {GALLERY_LABELS.map((label) => <option key={label} value={label}>{label}</option>)}
-                                    </select>
-                                    {anonMediaSource === 'url' ? (
-                                        <input
-                                            placeholder="https://ejemplo.com/media.jpg o YouTube/Vimeo"
-                                            className="md:col-span-2 theme-surface-soft border theme-border-secondary p-3 rounded-xl outline-none text-white font-bold"
-                                            value={anonMediaUrl}
-                                            onChange={(event) => setAnonMediaUrl(event.target.value)}
-                                        />
-                                    ) : (
-                                        <input
-                                            type="file"
-                                            accept="image/*,video/*,.gif"
-                                            className="md:col-span-2 theme-surface-soft border theme-border-secondary p-3 rounded-xl outline-none text-white font-bold"
-                                            onChange={(event) => setAnonMediaFile(event.target.files?.[0] || null)}
-                                        />
+                                <div className="mt-8 space-y-5">
+                                    <div className="grid gap-3 sm:grid-cols-3">
+                                        {[
+                                            { key: 'imagen', label: 'Imagen' },
+                                            { key: 'escena', label: 'Escena' },
+                                            { key: 'audio', label: 'Audio' }
+                                        ].map((item) => (
+                                            <button
+                                                key={item.key}
+                                                type="button"
+                                                onClick={() => {
+                                                    setAnonUploadType(item.key);
+                                                    setAnonMediaError('');
+                                                    setGalleryAudioError('');
+                                                }}
+                                                className={`px-5 py-3 rounded-xl font-black uppercase tracking-[0.14em] transition-all border ${anonUploadType === item.key ? 'text-cyan-100 border-cyan-300/50 bg-cyan-500/35' : 'text-slate-200 border-slate-500/50 bg-slate-700/30 hover:bg-slate-600/35'}`}
+                                            >
+                                                {item.label}
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    {(anonUploadType === 'imagen' || anonUploadType === 'escena') && (
+                                        <div className="grid gap-4 md:grid-cols-2">
+                                            <select
+                                                className="theme-surface-soft border theme-border-secondary p-3 rounded-xl outline-none text-white font-bold"
+                                                value={anonMediaSource}
+                                                onChange={(event) => {
+                                                    setAnonMediaSource(event.target.value);
+                                                    setAnonMediaError('');
+                                                }}
+                                            >
+                                                <option value="url">URL</option>
+                                                <option value="file">Archivo de dispositivo</option>
+                                            </select>
+                                            <select
+                                                className="theme-surface-soft border theme-border-secondary p-3 rounded-xl outline-none text-white font-bold"
+                                                value={anonMediaLabel}
+                                                onChange={(event) => setAnonMediaLabel(event.target.value)}
+                                            >
+                                                {GALLERY_LABELS.map((label) => <option key={label} value={label}>{label}</option>)}
+                                            </select>
+                                            {anonMediaSource === 'url' ? (
+                                                <input
+                                                    placeholder="URL"
+                                                    className="md:col-span-2 theme-surface-soft border theme-border-secondary p-3 rounded-xl outline-none text-white font-bold"
+                                                    value={anonMediaUrl}
+                                                    onChange={(event) => setAnonMediaUrl(event.target.value)}
+                                                />
+                                            ) : (
+                                                <input
+                                                    type="file"
+                                                    accept={anonUploadType === 'imagen' ? 'image/*,.gif' : 'image/*,video/*,.gif'}
+                                                    className="md:col-span-2 theme-surface-soft border theme-border-secondary p-3 rounded-xl outline-none text-white font-bold"
+                                                    onChange={(event) => setAnonMediaFile(event.target.files?.[0] || null)}
+                                                />
+                                            )}
+                                            <input
+                                                placeholder="Autor (opcional)"
+                                                className="md:col-span-2 theme-surface-soft border theme-border-secondary p-3 rounded-xl outline-none text-white font-bold"
+                                                value={anonMediaAuthor}
+                                                onChange={(event) => setAnonMediaAuthor(event.target.value)}
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={async () => {
+                                                    const forcedTag = anonUploadType === 'escena' ? 'videos' : 'fotos';
+                                                    await handleAnonMediaSubmit(forcedTag);
+                                                }}
+                                                className="md:col-span-2 px-5 py-3 rounded-xl font-black uppercase tracking-[0.14em] text-cyan-100 border border-cyan-300/50 bg-cyan-500/20 hover:bg-cyan-500/35 transition-all"
+                                            >
+                                                Guardar {anonUploadType}
+                                            </button>
+                                            {anonMediaError && (
+                                                <p className="md:col-span-2 text-xs font-black uppercase tracking-[0.12em] text-rose-300">{anonMediaError}</p>
+                                            )}
+                                        </div>
                                     )}
-                                    <input
-                                        placeholder="Autor (opcional)"
-                                        className="md:col-span-2 theme-surface-soft border theme-border-secondary p-3 rounded-xl outline-none text-white font-bold"
-                                        value={anonMediaAuthor}
-                                        onChange={(event) => setAnonMediaAuthor(event.target.value)}
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={handleAnonMediaSubmit}
-                                        className="md:col-span-2 px-5 py-3 rounded-xl font-black uppercase tracking-[0.14em] text-cyan-100 border border-cyan-300/50 bg-cyan-500/20 hover:bg-cyan-500/35 transition-all"
-                                    >
-                                        Guardar en anónimo
-                                    </button>
-                                    {anonMediaError && (
-                                        <p className="md:col-span-2 text-xs font-black uppercase tracking-[0.12em] text-rose-300">{anonMediaError}</p>
-                                    )}
-                                    <div className="md:col-span-2 border-t border-cyan-300/25 pt-4 mt-2 space-y-3">
-                                        <p className="text-[11px] uppercase tracking-[0.25em] text-cyan-200/80 font-black">Audio para botón 🎵</p>
+
+                                    {anonUploadType === 'audio' && (
+                                        <div className="border-t border-cyan-300/25 pt-4 mt-2 space-y-3">
+                                            <p className="text-[11px] uppercase tracking-[0.25em] text-cyan-200/80 font-black">Audio para botón 🎵</p>
                                         <input
-                                            placeholder="Nombre del audio"
+                                            placeholder="Nombre"
                                             className="theme-surface-soft border theme-border-secondary p-3 rounded-xl outline-none text-white font-bold w-full"
                                             value={galleryAudioName}
                                             onChange={(event) => setGalleryAudioName(event.target.value)}
                                         />
-                                        <input
-                                            placeholder="https://ejemplo.com/audio.mp3"
+                                        <select
                                             className="theme-surface-soft border theme-border-secondary p-3 rounded-xl outline-none text-white font-bold w-full"
-                                            value={galleryAudioUrl}
-                                            onChange={(event) => setGalleryAudioUrl(event.target.value)}
-                                        />
+                                            value={galleryAudioSource}
+                                            onChange={(event) => setGalleryAudioSource(event.target.value)}
+                                        >
+                                            <option value="url">URL</option>
+                                            <option value="file">Archivo de dispositivo</option>
+                                        </select>
+                                        {galleryAudioSource === 'url' ? (
+                                            <input
+                                                placeholder="URL"
+                                                className="theme-surface-soft border theme-border-secondary p-3 rounded-xl outline-none text-white font-bold w-full"
+                                                value={galleryAudioUrl}
+                                                onChange={(event) => setGalleryAudioUrl(event.target.value)}
+                                            />
+                                        ) : (
+                                            <input
+                                                type="file"
+                                                accept="audio/*"
+                                                className="theme-surface-soft border theme-border-secondary p-3 rounded-xl outline-none text-white font-bold w-full"
+                                                onChange={(event) => setGalleryAudioFile(event.target.files?.[0] || null)}
+                                            />
+                                        )}
                                         <button
                                             type="button"
                                             onClick={addGalleryAudioTrack}
@@ -5251,7 +5313,8 @@ const saveProfile = (e) => {
                                             Guardar audio en Firebase
                                         </button>
                                         {galleryAudioError ? <p className="text-xs font-black uppercase tracking-[0.12em] text-rose-300">{galleryAudioError}</p> : null}
-                                    </div>
+                                        </div>
+                                    )}
                                 </div>
                             </section>
                         </div>
