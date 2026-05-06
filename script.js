@@ -978,7 +978,9 @@
             'Modelo': { glyph: 'floron', color: 'rgba(168, 85, 247, 0.8)', tailwind: 'purple-500' },
             'NSFW': { glyph: 'torch', color: 'rgba(239, 68, 68, 0.8)', tailwind: 'red-500' },
             'Influencer': { glyph: 'sigil', color: 'rgba(236, 72, 153, 0.8)', tailwind: 'pink-500' },
-            'Bailarina y Atleta': { glyph: 'floron', color: 'rgba(249, 115, 22, 0.8)', tailwind: 'orange-500' },
+            'Periodista': { glyph: 'quill', color: 'rgba(234, 179, 8, 0.8)', tailwind: 'yellow-500' },
+            'Bailarina': { glyph: 'floron', color: 'rgba(249, 115, 22, 0.8)', tailwind: 'orange-500' },
+            'Atleta': { glyph: 'shield', color: 'rgba(59, 130, 246, 0.8)', tailwind: 'blue-500' },
             'Otro': { glyph: 'sigil', color: 'rgba(148, 163, 184, 0.8)', tailwind: 'slate-400' }
         };
         const getProfessionGlyph = (profession = '') => {
@@ -7274,7 +7276,9 @@ const saveProfile = (e) => {
                         <option value="Modelo" className="theme-surface-card">👠 Modelo</option>
                         <option value="NSFW" className="theme-surface-card">🔥 NSFW</option>
                         <option value="Influencer" className="theme-surface-card">📱 Influencer</option>
-                        <option value="Bailarina y Atleta" className="theme-surface-card">💃🏋️‍♀️ Bailarina y Atleta</option>
+                        <option value="Periodista" className="theme-surface-card">👓 Periodista</option>
+                        <option value="Bailarina" className="theme-surface-card">💃 Bailarina</option>
+                        <option value="Atleta" className="theme-surface-card">🏋️‍♀️ Atleta</option>
                         <option value="Otro" className="theme-surface-card">📖 Otro</option>
                     </select>
                     <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--metal-gold)]/50">
