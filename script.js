@@ -1060,6 +1060,10 @@
             if (!targetWindow || targetWindow.closed) return;
             const safeBattlePhotoPrefs = sanitizeBattlePhotoPreferences(battlePhotoPrefs);
             const normalizedProfilePhotoUrl = getSafeImageSrc(String(profilePhotoUrl || '').trim(), '');
+            const fallbackGalleryLabel = GALLERY_LABELS[0] || '';
+            const safeProfileName = String(profileName || '').replace(/[<>&"']/g, (char) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&#39;' }[char] || char));
+            const safeProfession = String(profession || '');
+            const escapeAttr = (value = '') => String(value).replace(/[&"'<>`]/g, (char) => ({ '&': '&amp;', '"': '&quot;', "'": '&#39;', '<': '&lt;', '>': '&gt;', '`': '&#96;' }[char] || char));
 
             const fotosGaleria = (photos || []).map((item, index) => {
                 const normalizedItem = normalizeGalleryItem(item);
@@ -1075,7 +1079,7 @@
             <!DOCTYPE html>
             <html>
             <head>
-                <title>Galería de ${profileName}</title>
+                <title>Galería de ${safeProfileName}</title>
                 <style>
                     body {
                         background:
@@ -1391,7 +1395,7 @@
                 </style>
             </head>
             <body>
-                <h1>Galería de ${profileName}</h1>
+                <h1>Galería de ${safeProfileName}</h1>
                 <button class="btn-critical-plate" onclick="document.getElementById('miModal').style.display='block'">
                     AGREGAR ARCHIVO
                 </button>
@@ -1487,14 +1491,14 @@
                         "OTRO":{ color: "#ffffff", sombra: "rgba(255,255,255,0.8)" },
                         "DEFAULT": { color: "#334155", sombra: "transparent" }
                     };
-                    const estilo = config[profession?.toUpperCase()] || config["DEFAULT"];
+                    const estilo = config[safeProfession?.toUpperCase()] || config["DEFAULT"];
                     return `
                         <div
                             class="gallery-card"
                             data-gallery-index="${index}"
                             data-source-index="${foto.sourceIndex}"
                             data-media-type="${getGalleryItemType(foto)}"
-                            data-url="${fotoUrl}"
+                            data-url="${escapeAttr(fotoUrl)}"
                             data-compatible-slots="${fotoLabel}"
                             draggable="${getGalleryItemType(foto) === 'image' ? 'true' : 'false'}"
                             title="Abrir visor de pantalla completa"
@@ -1580,6 +1584,7 @@
                 </div>
 
                 <script>
+                    const jsonFallbackLabel = ${JSON.stringify(fallbackGalleryLabel)};
                     const viewer = document.getElementById('fullscreenViewer');
                     const viewerStage = document.getElementById('viewerStage');
                     const galleryGrid = document.getElementById('galleryGrid');
@@ -1713,7 +1718,7 @@
                         const slotInput = document.getElementById('slotSelectionId');
                         if (urlInput) urlInput.value = '';
                         if (localInput) localInput.value = '';
-                        if (labelInput) labelInput.value = '${GALLERY_LABELS[0]}';
+                        if (labelInput) labelInput.value = jsonFallbackLabel;
                         if (authorInput) authorInput.value = '';
                         if (mediaTypeInput) mediaTypeInput.value = 'image';
                         if (slotInput) slotInput.value = '';
@@ -1732,7 +1737,7 @@
                         const normalizedUrl = (urlInput?.value || '').trim();
                         const selectedFiles = Array.from(localInput?.files || []);
                         const mediaType = mediaTypeInput?.value || 'image';
-                        const label = labelInput?.value || '${GALLERY_LABELS[0]}';
+                        const label = labelInput?.value || jsonFallbackLabel;
                         const autor = (authorInput?.value || '').trim();
                         const slotSelectionId = activeSlotSelectionId || document.getElementById('slotSelectionId')?.value || '';
 
@@ -1802,6 +1807,7 @@
 
                         postMedia(normalizedUrl, mediaType);
                     }
+                    window.addMediaFromModal = addMediaFromModal;
 
                     galleryGrid?.addEventListener('click', (event) => {
                         const card = event.target.closest('.gallery-card');
