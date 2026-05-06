@@ -5222,29 +5222,28 @@ const saveProfile = (e) => {
                         ];
 
                         const renderPodiumCard = (card, isGeneralSection = false) => (
-                            <article key={card.id} className={`champions-podium-card champions-podium-card--3d border rounded-2xl p-5 ${isGeneralSection ? 'champions-podium-card--general' : ''}`}>
-                                <div className="champions-podium-card__shine" aria-hidden="true" />
-                                <h3 className={`text-xs font-black uppercase tracking-[0.18em] mb-3 champions-podium-card__title ${isGeneralSection ? 'text-[var(--metal-gold)]' : 'text-cyan-200'}`}>{card.title}</h3>
-                                <ol className="space-y-2 relative z-[2]">
+                            <article key={card.id} className={`theme-surface-soft border theme-border-secondary rounded-2xl p-5 ${isGeneralSection ? 'shadow-[0_0_22px_rgba(250,204,21,0.18)]' : ''}`}>
+                                <h3 className={`text-xs font-black uppercase tracking-[0.18em] mb-3 ${isGeneralSection ? 'text-[var(--metal-gold)]' : 'text-cyan-200'}`}>{card.title}</h3>
+                                <ol className="space-y-2">
                                     {card.top.length ? card.top.map((p, idx) => {
                                         const championThumb = getSafeImageSrc(String(p?.fotos?.[0] || '').trim(), '');
                                         const isChampion = idx === 0;
                                         return (
-                                            <li key={`${card.id}-${p.firebaseId || p.nombre || idx}`} className={`champions-podium-item champions-podium-item--${idx + 1} flex items-center justify-between gap-3 text-xs`}>
+                                            <li key={`${card.id}-${p.firebaseId || p.nombre || idx}`} className="flex items-center justify-between gap-3 text-xs">
                                                 <div className="flex items-center gap-2 min-w-0">
                                                     {isChampion && championThumb && (
                                                         <div className="flex flex-col items-center shrink-0 -mt-1" title={`Campeona de ${card.title}`}>
-                                                            <span className="text-[12px] leading-none -mb-0.5 champions-podium-crown" aria-hidden="true">👑</span>
+                                                            <span className="text-[12px] leading-none -mb-0.5" aria-hidden="true">👑</span>
                                                             <img
                                                                 src={championThumb}
                                                                 alt={`Miniatura de ${p.nombre || 'Campeona'}`}
-                                                                className={`w-8 h-8 rounded-full object-cover border champions-podium-avatar ${isGeneralSection ? 'border-[var(--metal-gold)] shadow-[0_0_16px_rgba(250,204,21,0.48)]' : 'border-[var(--metal-gold)] shadow-[0_0_14px_rgba(250,204,21,0.35)]'}`}
+                                                                className={`w-8 h-8 rounded-full object-cover border ${isGeneralSection ? 'border-[var(--metal-gold)] shadow-[0_0_16px_rgba(250,204,21,0.48)]' : 'border-[var(--metal-gold)] shadow-[0_0_14px_rgba(250,204,21,0.35)]'}`}
                                                             />
                                                         </div>
                                                     )}
-                                                    <span className="font-black text-slate-100 truncate champions-podium-name">{idx + 1}. {p.nombre || 'Sin nombre'}</span>
+                                                    <span className="font-black text-slate-100 truncate">{idx + 1}. {p.nombre || 'Sin nombre'}</span>
                                                 </div>
-                                                <span className="text-[var(--metal-gold)] font-black shrink-0 champions-podium-score">{calcularPromedio(p)}</span>
+                                                <span className="text-[var(--metal-gold)] font-black shrink-0">{calcularPromedio(p)}</span>
                                             </li>
                                         );
                                     }) : <li className="text-xs text-slate-400">Sin datos suficientes.</li>}
