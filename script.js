@@ -1755,9 +1755,9 @@
                             const selectedBytes = selectedFiles.reduce((sum, file) => sum + (Number(file.size) || 0), 0);
                             const projectedBytes = totalGalleryBytes + selectedBytes;
                             const shouldContinue = confirm(
-                                'Vas a subir ' + selectedFiles.length + ' archivo(s) por ' + formatBytes(selectedBytes) + '.\n' +
-                                'Uso total actual en galerías: ' + formatBytes(totalGalleryBytes) + ' de ' + formatBytes(galleryStorageLimitBytes) + '.\n' +
-                                'Uso proyectado: ' + formatBytes(projectedBytes) + '.'
+                                `Vas a subir ${selectedFiles.length} archivo(s) por ${formatBytes(selectedBytes)}.\n` +
+                                `Uso total actual en galerías: ${formatBytes(totalGalleryBytes)} de ${formatBytes(galleryStorageLimitBytes)}.\n` +
+                                `Uso proyectado: ${formatBytes(projectedBytes)}.`
                             );
                             if (!shouldContinue) return;
                             Promise.all(selectedFiles.map((file) => new Promise((resolve, reject) => {
