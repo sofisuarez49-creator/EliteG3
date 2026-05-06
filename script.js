@@ -5150,14 +5150,14 @@ const saveProfile = (e) => {
                         ];
 
                         const renderPodiumCard = (card, isGeneralSection = false) => (
-                            <article key={card.id} className={`theme-surface-soft border theme-border-secondary rounded-2xl p-5 ${isGeneralSection ? 'shadow-[0_0_22px_rgba(250,204,21,0.18)]' : ''}`}>
-                                <h3 className={`text-xs font-black uppercase tracking-[0.18em] mb-3 ${isGeneralSection ? 'text-[var(--metal-gold)]' : 'text-cyan-200'}`}>{card.title}</h3>
+                            <article key={card.id} className={`champion-podium-card champion-podium-card--${isGeneralSection ? 'general' : 'section'} rounded-2xl p-5`}>
+                                <h3 className={`champion-podium-title text-xs font-black uppercase tracking-[0.18em] mb-3 ${isGeneralSection ? 'text-[var(--metal-gold)]' : 'text-cyan-100'}`}>{card.title}</h3>
                                 <ol className="space-y-2">
                                     {card.top.length ? card.top.map((p, idx) => {
                                         const championThumb = getSafeImageSrc(String(p?.fotos?.[0] || '').trim(), '');
                                         const isChampion = idx === 0;
                                         return (
-                                            <li key={`${card.id}-${p.firebaseId || p.nombre || idx}`} className="flex items-center justify-between gap-3 text-xs">
+                                            <li key={`${card.id}-${p.firebaseId || p.nombre || idx}`} className={`champion-rank-row champion-rank-row--${idx + 1} flex items-center justify-between gap-3 text-xs`}>
                                                 <div className="flex items-center gap-2 min-w-0">
                                                     {isChampion && championThumb && (
                                                         <div className="flex flex-col items-center shrink-0 -mt-1" title={`Campeona de ${card.title}`}>
@@ -5165,13 +5165,13 @@ const saveProfile = (e) => {
                                                             <img
                                                                 src={championThumb}
                                                                 alt={`Miniatura de ${p.nombre || 'Campeona'}`}
-                                                                className={`w-8 h-8 rounded-full object-cover border ${isGeneralSection ? 'border-[var(--metal-gold)] shadow-[0_0_16px_rgba(250,204,21,0.48)]' : 'border-[var(--metal-gold)] shadow-[0_0_14px_rgba(250,204,21,0.35)]'}`}
+                                                                className={`champion-avatar w-8 h-8 rounded-full object-cover border ${isGeneralSection ? 'champion-avatar--general' : 'champion-avatar--section'}`}
                                                             />
                                                         </div>
                                                     )}
-                                                    <span className="font-black text-slate-100 truncate">{idx + 1}. {p.nombre || 'Sin nombre'}</span>
+                                                    <span className={`champion-rank-name font-black truncate ${isChampion ? 'champion-rank-name--winner' : 'text-slate-100'}`}>{idx + 1}. {p.nombre || 'Sin nombre'}</span>
                                                 </div>
-                                                <span className="text-[var(--metal-gold)] font-black shrink-0">{calcularPromedio(p)}</span>
+                                                <span className={`champion-score font-black shrink-0 ${idx === 0 ? 'champion-score--winner' : ''}`}>{calcularPromedio(p)}</span>
                                             </li>
                                         );
                                     }) : <li className="text-xs text-slate-400">Sin datos suficientes.</li>}
