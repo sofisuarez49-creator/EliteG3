@@ -1372,7 +1372,7 @@
                     <h2 style="margin:0; font-size: 14px; color: #94a3b8;">PEGAR URL DEL ARCHIVO</h2>
                     <input type="text" id="nuevaFotoUrl" placeholder="https://ejemplo.com/foto.jpg o https://youtube.com/...">
                     <label for="nuevoArchivoLocal" style="display:block; margin-top: 14px; font-size: 10px; font-weight: 900; letter-spacing: 0.14em; color: #94a3b8; text-transform: uppercase;">o subir desde escritorio</label>
-                    <input type="file" id="nuevoArchivoLocal" accept="image/*,video/*,.gif" style="width: 100%; margin-top: 8px; padding: 10px; background: #020617; border: 1px dashed rgba(34,211,238,0.65); color: #e2e8f0; border-radius: 8px; outline: none; font-size: 12px; box-shadow: 0 0 10px rgba(34,211,238,0.18);">
+                    <input type="file" id="nuevoArchivoLocal" accept="image/*,video/*,.gif" multiple style="width: 100%; margin-top: 8px; padding: 10px; background: #020617; border: 1px dashed rgba(34,211,238,0.65); color: #e2e8f0; border-radius: 8px; outline: none; font-size: 12px; box-shadow: 0 0 10px rgba(34,211,238,0.18);">
                     <select id="nuevoArchivoTipo" style="width: 100%; padding: 12px; margin-top: 15px; background: #020617; border: 1px solid rgba(71,85,105,0.92); color: #e2e8f0; border-radius: 8px; outline: none; box-shadow: inset 0 1px 0 rgba(148,163,184,0.18);">
                         <option value="image">Imagen</option>
                         <option value="video">Video</option>
@@ -1699,36 +1699,53 @@
                         const authorInput = document.getElementById('nuevaFotoAutor');
                         const mediaTypeInput = document.getElementById('nuevoArchivoTipo');
                         const normalizedUrl = (urlInput?.value || '').trim();
-                        const selectedFile = localInput?.files?.[0];
+                        const selectedFiles = Array.from(localInput?.files || []);
                         const mediaType = mediaTypeInput?.value || 'image';
                         const label = labelInput?.value || '${GALLERY_LABELS[0]}';
                         const autor = (authorInput?.value || '').trim();
                         const slotSelectionId = activeSlotSelectionId || document.getElementById('slotSelectionId')?.value || '';
 
-                        const postMedia = (finalUrl, finalType) => {
+                        const postMedia = (finalUrl, finalType, canAssignSlot = true) => {
                             if (!finalUrl) return;
                             window.opener.postMessage({ type: 'ADD_IMAGE', url: finalUrl, label, autor, mediaType: finalType, id: '${editingId}' }, '*');
-                            if (slotSelectionId) {
+                            if (slotSelectionId && canAssignSlot) {
                                 window.opener.postMessage({ type: 'SET_BATTLE_PHOTO_PREF_BY_URL', id: '${editingId}', slotId: slotSelectionId, url: finalUrl, mediaType: finalType, label }, '*');
                             }
-                            document.getElementById('miModal').style.display = 'none';
-                            resetAddMediaModalFields();
                         };
 
-                        if (selectedFile) {
-                            if (!isAllowedFileType(selectedFile)) {
-                                alert('Tipo de archivo no válido. Usá imagen o video.');
+                        if (selectedFiles.length) {
+                            const invalidFile = selectedFiles.find((file) => !isAllowedFileType(file));
+                            if (invalidFile) {
+                                alert('Uno o más archivos no son válidos. Usá imagen o video.');
                                 return;
                             }
-                            const inferredType = selectedFile.type && selectedFile.type.startsWith('video/') ? 'video' : 'image';
-                            const reader = new FileReader();
-                            reader.onload = () => postMedia(String(reader.result || ''), inferredType);
-                            reader.onerror = () => alert('No se pudo leer el archivo seleccionado.');
-                            reader.readAsDataURL(selectedFile);
+                            const readFileAsDataUrl = (file) => new Promise((resolve, reject) => {
+                                const reader = new FileReader();
+                                reader.onload = () => resolve({
+                                    url: String(reader.result || ''),
+                                    type: file.type && file.type.startsWith('video/') ? 'video' : 'image'
+                                });
+                                reader.onerror = () => reject(new Error('No se pudo leer uno de los archivos seleccionados.'));
+                                reader.readAsDataURL(file);
+                            });
+
+                            Promise.all(selectedFiles.map(readFileAsDataUrl))
+                                .then((filesData) => {
+                                    filesData.forEach((fileData, index) => {
+                                        postMedia(fileData.url, fileData.type, index === 0);
+                                    });
+                                    document.getElementById('miModal').style.display = 'none';
+                                    resetAddMediaModalFields();
+                                })
+                                .catch((error) => {
+                                    alert(error.message || 'No se pudo leer el archivo seleccionado.');
+                                });
                             return;
                         }
 
                         postMedia(normalizedUrl, mediaType);
+                        document.getElementById('miModal').style.display = 'none';
+                        resetAddMediaModalFields();
                     }
 
                     galleryGrid?.addEventListener('click', (event) => {
