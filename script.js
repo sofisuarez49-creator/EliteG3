@@ -154,6 +154,7 @@
                 filter: isActive ? 'brightness(1.14)' : 'brightness(1)'
             };
         };
+        const MAX_GALLERY_STORAGE_BYTES = 5 * 1024 * 1024 * 1024;
         const VIDEO_FILE_REGEX = /\.(mp4|webm|ogg|mov|m4v)(\?.*)?$/i;
         const AUDIO_FILE_REGEX = /\.(mp3|wav|ogg|m4a|aac|flac)(\?.*)?$/i;
         const GIF_FILE_REGEX = /\.gif(\?.*)?$/i;
@@ -210,6 +211,35 @@
         };
         const normalizeGalleryAuthor = (author = '') => {
             return typeof author === 'string' ? author.trim() : '';
+        };
+        const formatBytes = (bytes = 0) => {
+            const safeBytes = Number.isFinite(bytes) && bytes > 0 ? bytes : 0;
+            if (!safeBytes) return '0 B';
+            const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+            const index = Math.min(Math.floor(Math.log(safeBytes) / Math.log(1024)), units.length - 1);
+            const value = safeBytes / Math.pow(1024, index);
+            return `${value.toFixed(value >= 10 || index === 0 ? 0 : 2)} ${units[index]}`;
+        };
+        const estimateDataUrlBytes = (url = '') => {
+            const normalized = String(url || '').trim();
+            const marker = ';base64,';
+            const markerIndex = normalized.indexOf(marker);
+            if (!normalized.startsWith('data:') || markerIndex === -1) return 0;
+            const payload = normalized.slice(markerIndex + marker.length);
+            const padding = (payload.match(/=+$/) || [''])[0].length;
+            return Math.max(0, Math.floor((payload.length * 3) / 4) - padding);
+        };
+        const estimateGalleryItemBytes = (item = {}) => {
+            if (Number.isFinite(item?.sizeBytes) && item.sizeBytes > 0) return Number(item.sizeBytes);
+            return estimateDataUrlBytes(item?.url || '');
+        };
+        const estimateProfilesGalleryBytes = (profiles = []) => {
+            if (!Array.isArray(profiles)) return 0;
+            return profiles.reduce((total, profile) => total + ['fotos', 'gifs', 'videos'].reduce((acc, key) => {
+                const items = profile?.galeria?.[key];
+                if (!Array.isArray(items)) return acc;
+                return acc + items.reduce((sum, item) => sum + estimateGalleryItemBytes(item), 0);
+            }, 0), 0);
         };
         const normalizeGalleryItem = (item, fallbackType = '') => {
             if (typeof item === 'string') {
@@ -1028,7 +1058,7 @@
             );
         };
 
-        const renderGalleryWindow = ({ targetWindow, profileName, profession, photos, editingId, battlePhotoPrefs = {}, profilePhotoUrl = '' }) => {
+        const renderGalleryWindow = ({ targetWindow, profileName, profession, photos, editingId, battlePhotoPrefs = {}, profilePhotoUrl = '', totalGalleryBytes = 0 }) => {
             if (!targetWindow || targetWindow.closed) return;
             const safeBattlePhotoPrefs = sanitizeBattlePhotoPreferences(battlePhotoPrefs);
             const normalizedProfilePhotoUrl = getSafeImageSrc(String(profilePhotoUrl || '').trim(), '');
@@ -1372,7 +1402,8 @@
                     <h2 style="margin:0; font-size: 14px; color: #94a3b8;">PEGAR URL DEL ARCHIVO</h2>
                     <input type="text" id="nuevaFotoUrl" placeholder="https://ejemplo.com/foto.jpg o https://youtube.com/...">
                     <label for="nuevoArchivoLocal" style="display:block; margin-top: 14px; font-size: 10px; font-weight: 900; letter-spacing: 0.14em; color: #94a3b8; text-transform: uppercase;">o subir desde escritorio</label>
-                    <input type="file" id="nuevoArchivoLocal" accept="image/*,video/*,.gif" style="width: 100%; margin-top: 8px; padding: 10px; background: #020617; border: 1px dashed rgba(34,211,238,0.65); color: #e2e8f0; border-radius: 8px; outline: none; font-size: 12px; box-shadow: 0 0 10px rgba(34,211,238,0.18);">
+                    <input type="file" id="nuevoArchivoLocal" accept="image/*,video/*,.gif" multiple style="width: 100%; margin-top: 8px; padding: 10px; background: #020617; border: 1px dashed rgba(34,211,238,0.65); color: #e2e8f0; border-radius: 8px; outline: none; font-size: 12px; box-shadow: 0 0 10px rgba(34,211,238,0.18);">
+                    <p id="galleryStorageInfo" style="margin:8px 0 0; font-size:11px; color:#94a3b8;">Uso total en galerías: ${formatBytes(totalGalleryBytes)} de ${formatBytes(MAX_GALLERY_STORAGE_BYTES)}</p>
                     <select id="nuevoArchivoTipo" style="width: 100%; padding: 12px; margin-top: 15px; background: #020617; border: 1px solid rgba(71,85,105,0.92); color: #e2e8f0; border-radius: 8px; outline: none; box-shadow: inset 0 1px 0 rgba(148,163,184,0.18);">
                         <option value="image">Imagen</option>
                         <option value="video">Video</option>
@@ -1559,6 +1590,8 @@
                     const viewerPlayToggleButton = document.getElementById('viewerPlayToggle');
                     const viewerRandomToggleButton = document.getElementById('viewerRandomToggle');
                     const modalPlayFullscreenButton = document.getElementById('modalPlayFullscreenButton');
+                    const totalGalleryBytes = Number(${totalGalleryBytes}) || 0;
+                    const galleryStorageLimitBytes = Number(${MAX_GALLERY_STORAGE_BYTES}) || 0;
                     const VALID_FILE_MIME_PREFIXES = ['image/', 'video/'];
                     const VALID_FILE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'mp4', 'webm', 'ogg', 'mov', 'm4v'];
                     const VIEWER_IMAGE_TIMEOUT_MS = 7000;
@@ -1699,7 +1732,7 @@
                         const authorInput = document.getElementById('nuevaFotoAutor');
                         const mediaTypeInput = document.getElementById('nuevoArchivoTipo');
                         const normalizedUrl = (urlInput?.value || '').trim();
-                        const selectedFile = localInput?.files?.[0];
+                        const selectedFiles = Array.from(localInput?.files || []);
                         const mediaType = mediaTypeInput?.value || 'image';
                         const label = labelInput?.value || '${GALLERY_LABELS[0]}';
                         const autor = (authorInput?.value || '').trim();
@@ -1715,16 +1748,35 @@
                             resetAddMediaModalFields();
                         };
 
-                        if (selectedFile) {
-                            if (!isAllowedFileType(selectedFile)) {
+                        if (selectedFiles.length) {
+                            const invalidFile = selectedFiles.find((file) => !isAllowedFileType(file));
+                            if (invalidFile) {
                                 alert('Tipo de archivo no válido. Usá imagen o video.');
                                 return;
                             }
-                            const inferredType = selectedFile.type && selectedFile.type.startsWith('video/') ? 'video' : 'image';
-                            const reader = new FileReader();
-                            reader.onload = () => postMedia(String(reader.result || ''), inferredType);
-                            reader.onerror = () => alert('No se pudo leer el archivo seleccionado.');
-                            reader.readAsDataURL(selectedFile);
+                            const selectedBytes = selectedFiles.reduce((sum, file) => sum + (Number(file.size) || 0), 0);
+                            const projectedBytes = totalGalleryBytes + selectedBytes;
+                            const shouldContinue = confirm(
+                                `Vas a subir ${selectedFiles.length} archivo(s) por ${formatBytes(selectedBytes)}.\n` +
+                                `Uso total actual en galerías: ${formatBytes(totalGalleryBytes)} de ${formatBytes(galleryStorageLimitBytes)}.\n` +
+                                `Uso proyectado: ${formatBytes(projectedBytes)}.`
+                            );
+                            if (!shouldContinue) return;
+                            Promise.all(selectedFiles.map((file) => new Promise((resolve, reject) => {
+                                const inferredType = file.type && file.type.startsWith('video/') ? 'video' : 'image';
+                                const reader = new FileReader();
+                                reader.onload = () => resolve({
+                                    url: String(reader.result || ''),
+                                    mediaType: inferredType,
+                                    sizeBytes: Number(file.size) || 0
+                                });
+                                reader.onerror = () => reject(new Error('No se pudo leer el archivo seleccionado.'));
+                                reader.readAsDataURL(file);
+                            }))).then((items) => {
+                                window.opener.postMessage({ type: 'ADD_IMAGES_BATCH', items, label, autor, id: '${editingId}' }, '*');
+                                document.getElementById('miModal').style.display = 'none';
+                                resetAddMediaModalFields();
+                            }).catch(() => alert('No se pudo leer uno de los archivos seleccionados.'));
                             return;
                         }
 
@@ -2336,7 +2388,8 @@ const getInitialCatFormData = () => ({
                     ],
                     editingId: profile?.firebaseId || profile?.id || '',
                     battlePhotoPrefs: profile?.batallaFotosPreferidas || profile?.galeria?.battlePhotoPreferences || {},
-                    profilePhotoUrl: profile?.fotos?.[0] || ''
+                    profilePhotoUrl: profile?.fotos?.[0] || '',
+                    totalGalleryBytes: estimateProfilesGalleryBytes(perfiles)
                 });
                 nuevaVentana?.focus();
                 setSelectedTallerProfileId('');
@@ -2658,7 +2711,8 @@ const getInitialCatFormData = () => ({
                         ],
                         editingId,
                         battlePhotoPrefs: formData.batallaFotosPreferidas,
-                        profilePhotoUrl: formData.fotos?.[0] || ''
+                        profilePhotoUrl: formData.fotos?.[0] || '',
+                        totalGalleryBytes: estimateProfilesGalleryBytes(perfiles)
                     });
                 }
             }, [editingId, formData.nombre, formData.profesion, formData.galeria?.fotos, formData.galeria?.videos, formData.batallaFotosPreferidas]);
@@ -2666,7 +2720,7 @@ const getInitialCatFormData = () => ({
             useEffect(() => {
                 const handleMessage = async (event) => {
                     if (event.data.type === 'ADD_IMAGE') {
-                        const { url, id, label, mediaType, autor } = event.data;
+                        const { url, id, label, mediaType, autor, sizeBytes } = event.data;
                         const tag = mediaType === 'video' ? 'videos' : 'fotos';
                         if (!id) return;
                         const galleryRef = id === ANON_PROFILE_ID
@@ -2676,13 +2730,47 @@ const getInitialCatFormData = () => ({
                         const currentPhotos = snapshot.val() || [];
                         const normalizedUrl = (url || '').trim();
                         if (!normalizedUrl) return;
-                        const updatedPhotos = [...currentPhotos, { url: normalizedUrl, label: GALLERY_LABELS.includes(label) ? label : '', type: detectGalleryItemType(normalizedUrl, mediaType), autor: normalizeGalleryAuthor(autor) }];
+                        const updatedPhotos = [...currentPhotos, { url: normalizedUrl, label: GALLERY_LABELS.includes(label) ? label : '', type: detectGalleryItemType(normalizedUrl, mediaType), autor: normalizeGalleryAuthor(autor), sizeBytes: Number(sizeBytes) || 0 }];
 
                         await galleryRef.set(updatedPhotos);
                         setFormData(prev => ({
                             ...prev,
                             galeria: { ...prev.galeria, [tag]: updatedPhotos }
                         }));
+                    }
+
+                    if (event.data.type === 'ADD_IMAGES_BATCH') {
+                        const { items, id, label, autor } = event.data;
+                        if (!id || !Array.isArray(items) || !items.length) return;
+                        const grouped = items.reduce((acc, item) => {
+                            const normalizedUrl = String(item?.url || '').trim();
+                            if (!normalizedUrl) return acc;
+                            const mediaType = item?.mediaType === 'video' ? 'video' : 'image';
+                            const tag = mediaType === 'video' ? 'videos' : 'fotos';
+                            if (!acc[tag]) acc[tag] = [];
+                            acc[tag].push({
+                                url: normalizedUrl,
+                                label: GALLERY_LABELS.includes(label) ? label : '',
+                                type: detectGalleryItemType(normalizedUrl, mediaType),
+                                autor: normalizeGalleryAuthor(autor),
+                                sizeBytes: Number(item?.sizeBytes) || 0
+                            });
+                            return acc;
+                        }, {});
+
+                        for (const [tag, newItems] of Object.entries(grouped)) {
+                            const galleryRef = id === ANON_PROFILE_ID
+                                ? db.ref(`${ANON_GALLERY_NODE_PATH}/${tag}`)
+                                : db.ref(`perfiles/${id}/galeria/${tag}`);
+                            const snapshot = await galleryRef.once('value');
+                            const currentPhotos = snapshot.val() || [];
+                            const updatedPhotos = [...currentPhotos, ...newItems];
+                            await galleryRef.set(updatedPhotos);
+                            setFormData(prev => ({
+                                ...prev,
+                                galeria: { ...prev.galeria, [tag]: updatedPhotos }
+                            }));
+                        }
                     }
 
                     if (event.data.type === 'DELETE_IMAGE') {
@@ -4886,7 +4974,8 @@ const saveProfile = (e) => {
                                                             ],
                                                             editingId: selectedTallerProfile?.firebaseId || selectedTallerProfile?.id || '',
                                                             battlePhotoPrefs: selectedTallerProfile?.batallaFotosPreferidas || selectedTallerProfile?.galeria?.battlePhotoPreferences || {},
-                                                            profilePhotoUrl: selectedTallerProfile?.fotos?.[0] || ''
+                                                            profilePhotoUrl: selectedTallerProfile?.fotos?.[0] || '',
+                                                            totalGalleryBytes: estimateProfilesGalleryBytes(perfiles)
                                                         });
                                                         nuevaVentana?.focus();
                                                     }}
