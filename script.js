@@ -1736,11 +1736,21 @@
                         const autor = (authorInput?.value || '').trim();
                         const slotSelectionId = activeSlotSelectionId || document.getElementById('slotSelectionId')?.value || '';
 
+                        const postMessageToOpener = (payload = {}) => {
+                            if (!window.opener || typeof window.opener.postMessage !== 'function') return false;
+                            window.opener.postMessage(payload, '*');
+                            return true;
+                        };
+
                         const postMedia = (finalUrl, finalType) => {
                             if (!finalUrl) return;
-                            window.opener.postMessage({ type: 'ADD_IMAGE', url: finalUrl, label, autor, mediaType: finalType, id: '${editingId}' }, '*');
+                            const sent = postMessageToOpener({ type: 'ADD_IMAGE', url: finalUrl, label, autor, mediaType: finalType, id: '${editingId}' });
+                            if (!sent) {
+                                alert('No se pudo conectar con la ventana principal. Cerrá y volvé a abrir la galería desde el personaje.');
+                                return;
+                            }
                             if (slotSelectionId) {
-                                window.opener.postMessage({ type: 'SET_BATTLE_PHOTO_PREF_BY_URL', id: '${editingId}', slotId: slotSelectionId, url: finalUrl, mediaType: finalType, label }, '*');
+                                postMessageToOpener({ type: 'SET_BATTLE_PHOTO_PREF_BY_URL', id: '${editingId}', slotId: slotSelectionId, url: finalUrl, mediaType: finalType, label });
                             }
                             document.getElementById('miModal').style.display = 'none';
                             resetAddMediaModalFields();
@@ -1771,17 +1781,19 @@
                                 reader.onerror = () => reject(new Error('No se pudo leer el archivo seleccionado.'));
                                 reader.readAsDataURL(file);
                             }))).then((items) => {
-                                items.forEach((item) => {
-                                    window.opener.postMessage({
-                                        type: 'ADD_IMAGE',
-                                        url: item.url,
-                                        label,
-                                        autor,
-                                        mediaType: item.mediaType,
-                                        sizeBytes: item.sizeBytes,
-                                        id: '${editingId}'
-                                    }, '*');
-                                });
+                                const couldSendAll = items.every((item) => postMessageToOpener({
+                                    type: 'ADD_IMAGE',
+                                    url: item.url,
+                                    label,
+                                    autor,
+                                    mediaType: item.mediaType,
+                                    sizeBytes: item.sizeBytes,
+                                    id: '${editingId}'
+                                }));
+                                if (!couldSendAll) {
+                                    alert('No se pudo conectar con la ventana principal. Cerrá y volvé a abrir la galería desde el personaje.');
+                                    return;
+                                }
                                 document.getElementById('miModal').style.display = 'none';
                                 resetAddMediaModalFields();
                             }).catch(() => alert('No se pudo leer uno de los archivos seleccionados.'));
