@@ -1771,7 +1771,17 @@
                                 reader.onerror = () => reject(new Error('No se pudo leer el archivo seleccionado.'));
                                 reader.readAsDataURL(file);
                             }))).then((items) => {
-                                window.opener.postMessage({ type: 'ADD_IMAGES_BATCH', items, label, autor, id: '${editingId}' }, '*');
+                                items.forEach((item) => {
+                                    window.opener.postMessage({
+                                        type: 'ADD_IMAGE',
+                                        url: item.url,
+                                        label,
+                                        autor,
+                                        mediaType: item.mediaType,
+                                        sizeBytes: item.sizeBytes,
+                                        id: '${editingId}'
+                                    }, '*');
+                                });
                                 document.getElementById('miModal').style.display = 'none';
                                 resetAddMediaModalFields();
                             }).catch(() => alert('No se pudo leer uno de los archivos seleccionados.'));
