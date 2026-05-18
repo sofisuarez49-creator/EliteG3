@@ -1381,16 +1381,18 @@
                 </style>
             </head>
             <body>
-                <h1>Galería de ${profileName}</h1>
-                <button class="btn-critical-plate" onclick="document.getElementById('miModal').style.display='block'">
-                    AGREGAR ARCHIVO
-                </button>
+                <div style="display:flex; align-items:center; justify-content:flex-start; gap: 12px; width:100%; margin-bottom: 16px;">
+                    <button class="btn-critical-plate" style="margin:0; background:linear-gradient(180deg, rgba(37,99,235,0.98), rgba(30,64,175,0.98)); border-color: rgba(147,197,253,0.95); box-shadow: 0 0 16px rgba(59,130,246,0.55);" onclick="document.getElementById('miModal').style.display='block'">
+                        Agregar archivo
+                    </button>
+                    <h1 style="margin:0;">Galería de ${profileName}</h1>
+                </div>
 
                 <div id="miModal" class="modal-url">
-                    <h2 style="margin:0; font-size: 14px; color: #94a3b8;">PEGAR URL DEL ARCHIVO</h2>
-                    <input type="text" id="nuevaFotoUrl" placeholder="https://ejemplo.com/foto.jpg o https://youtube.com/...">
+                    <h2 style="margin:0; font-size: 14px; color: #94a3b8;">SUBIR ARCHIVO</h2>
+                    <input type="file" id="nuevoArchivoFile" accept="image/*,video/*,.gif" style="width:100%; margin-top: 15px; color:#e2e8f0;">
                     <select id="nuevoArchivoTipo" style="width: 100%; padding: 12px; margin-top: 15px; background: #020617; border: 1px solid rgba(71,85,105,0.92); color: #e2e8f0; border-radius: 8px; outline: none; box-shadow: inset 0 1px 0 rgba(148,163,184,0.18);">
-                        <option value="image">Imagen</option>
+                        <option value="image">Imagen / GIF</option>
                         <option value="video">Video</option>
                     </select>
                     <select id="nuevaFotoEtiqueta" style="width: 100%; padding: 12px; margin-top: 15px; background: #020617; border: 1px solid rgba(71,85,105,0.92); color: #e2e8f0; border-radius: 8px; outline: none; box-shadow: inset 0 1px 0 rgba(148,163,184,0.18);">
@@ -1399,7 +1401,7 @@
                     <input type="hidden" id="slotSelectionId" value="">
                     <p id="slotGalleryHint" style="display:none; margin:10px 0 0; font-size:11px; color:#93c5fd;">Tip: para “Elegir desde galería” tocá cualquier imagen para asignarla.</p>
                     <button id="modalSaveButton" type="button" onclick="addMediaFromModal(event)"
-                        style="margin-top: 15px; width: 100%; padding: 10px; background: linear-gradient(180deg, rgba(14,116,144,0.95), rgba(8,47,73,0.95)); color: #ecfeff; border: 1px solid rgba(103,232,249,0.9); border-radius: 8px; font-weight: 800; cursor: pointer; text-transform: uppercase; letter-spacing: 0.08em; box-shadow: 0 0 14px rgba(34,211,238,0.4);">
+                        style="margin-top: 15px; width: 100%; padding: 10px; background: linear-gradient(180deg, rgba(22,163,74,0.95), rgba(21,128,61,0.95)); color: #ecfdf5; border: 1px solid rgba(134,239,172,0.95); border-radius: 8px; font-weight: 800; cursor: pointer; text-transform: uppercase; letter-spacing: 0.08em; box-shadow: 0 0 14px rgba(34,211,238,0.4);">
                         Guardar
                     </button>
                 </div>
@@ -1675,13 +1677,13 @@
                     }
 
                     function resetAddMediaModalFields() {
-                        const urlInput = document.getElementById('nuevaFotoUrl');
                         const labelInput = document.getElementById('nuevaFotoEtiqueta');
                         const mediaTypeInput = document.getElementById('nuevoArchivoTipo');
+                        const fileInput = document.getElementById('nuevoArchivoFile');
                         const slotInput = document.getElementById('slotSelectionId');
-                        if (urlInput) urlInput.value = '';
                         if (labelInput) labelInput.value = '${GALLERY_LABELS[0]}';
                         if (mediaTypeInput) mediaTypeInput.value = 'image';
+                        if (fileInput) fileInput.value = '';
                         if (slotInput) slotInput.value = '';
                         const galleryHint = document.getElementById('slotGalleryHint');
                         if (galleryHint) galleryHint.style.display = 'none';
@@ -1701,16 +1703,18 @@
 
                     async function addMediaFromModal(event) {
                         if (event?.preventDefault) event.preventDefault();
-                        const urlInput = document.getElementById('nuevaFotoUrl');
                         const labelInput = document.getElementById('nuevaFotoEtiqueta');
                         const mediaTypeInput = document.getElementById('nuevoArchivoTipo');
-                        const normalizedUrl = String(urlInput?.value || '').trim();
+                        const fileInput = document.getElementById('nuevoArchivoFile');
+                        const selectedFile = fileInput?.files?.[0];
                         const mediaType = mediaTypeInput?.value === 'video' ? 'video' : 'image';
                         const label = labelInput?.value || '${GALLERY_LABELS[0]}';
                         const slotSelectionId = activeSlotSelectionId || document.getElementById('slotSelectionId')?.value || '';
 
                         try {
-                            postMediaFromModal({ url: normalizedUrl, mediaType, label, slotSelectionId });
+                            if (!selectedFile) throw new Error('Seleccioná un archivo antes de guardar.');
+                            const uploadedUrl = await window.opener.uploadFileToFirebaseStorage(selectedFile, 'galeria');
+                            postMediaFromModal({ url: uploadedUrl, mediaType, label, slotSelectionId });
                             document.getElementById('miModal').style.display = 'none';
                             resetAddMediaModalFields();
                         } catch (error) {
