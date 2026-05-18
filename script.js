@@ -1382,9 +1382,6 @@
             </head>
             <body>
                 <div style="display:flex; align-items:center; justify-content:flex-start; gap: 12px; width:100%; margin-bottom: 16px;">
-                    <button class="btn-critical-plate" style="margin:0; background:linear-gradient(180deg, rgba(37,99,235,0.98), rgba(30,64,175,0.98)); border-color: rgba(147,197,253,0.95); box-shadow: 0 0 16px rgba(59,130,246,0.55);" onclick="document.getElementById('miModal').style.display='block'">
-                        Agregar archivo
-                    </button>
                     <h1 style="margin:0;">Galería de ${profileName}</h1>
                 </div>
 
@@ -1400,9 +1397,9 @@
                     </select>
                     <input type="hidden" id="slotSelectionId" value="">
                     <p id="slotGalleryHint" style="display:none; margin:10px 0 0; font-size:11px; color:#93c5fd;">Tip: para “Elegir desde galería” tocá cualquier imagen para asignarla.</p>
-                    <button id="modalSaveButton" type="button" onclick="addMediaFromModal(event)"
+                    <button id="modalSaveButton" type="button" onclick="document.getElementById('miModal').style.display='none'; resetAddMediaModalFields();"
                         style="margin-top: 15px; width: 100%; padding: 10px; background: linear-gradient(180deg, rgba(22,163,74,0.95), rgba(21,128,61,0.95)); color: #ecfdf5; border: 1px solid rgba(134,239,172,0.95); border-radius: 8px; font-weight: 800; cursor: pointer; text-transform: uppercase; letter-spacing: 0.08em; box-shadow: 0 0 14px rgba(34,211,238,0.4);">
-                        Guardar
+                        Cerrar
                     </button>
                 </div>
 
@@ -1700,49 +1697,6 @@
                             window.opener.postMessage({ type: 'SET_BATTLE_PHOTO_PREF_BY_URL', id: '${editingId}', slotId: slotSelectionId, url: finalUrl, mediaType: finalType, label }, '*');
                         }
                     }
-
-                    async function addMediaFromModal(event) {
-                        if (event?.preventDefault) event.preventDefault();
-                        const labelInput = document.getElementById('nuevaFotoEtiqueta');
-                        const mediaTypeInput = document.getElementById('nuevoArchivoTipo');
-                        const fileInput = document.getElementById('nuevoArchivoFile');
-                        const saveButton = document.getElementById('modalSaveButton');
-                        const selectedFile = fileInput?.files?.[0];
-                        const mediaType = mediaTypeInput?.value === 'video' ? 'video' : 'image';
-                        const label = labelInput?.value || '${GALLERY_LABELS[0]}';
-                        const slotSelectionId = activeSlotSelectionId || document.getElementById('slotSelectionId')?.value || '';
-                        const defaultButtonText = saveButton?.dataset?.idleText || 'Guardar';
-
-                        const setSavingState = (isSaving) => {
-                            if (!saveButton) return;
-                            saveButton.disabled = Boolean(isSaving);
-                            saveButton.style.opacity = isSaving ? '0.7' : '1';
-                            saveButton.style.cursor = isSaving ? 'wait' : 'pointer';
-                            saveButton.textContent = isSaving ? 'Subiendo archivo...' : defaultButtonText;
-                        };
-
-                        try {
-                            if (!selectedFile) throw new Error('Seleccioná un archivo antes de guardar.');
-                            if (!window.opener?.uploadFileToFirebaseStorage) {
-                                throw new Error('No se pudo iniciar la subida. Cerrá y volvé a abrir la galería.');
-                            }
-                            setSavingState(true);
-                            const uploadedUrl = await window.opener.uploadFileToFirebaseStorage(selectedFile, 'galeria');
-                            postMediaFromModal({ url: uploadedUrl, mediaType, label, slotSelectionId });
-                            document.getElementById('miModal').style.display = 'none';
-                            resetAddMediaModalFields();
-                        } catch (error) {
-                            const errorCode = String(error?.code || '').toLowerCase();
-                            const isRetryLimit = errorCode === 'storage/retry-limit-exceeded' || String(error?.message || '').includes('storage/retry-limit-exceeded');
-                            const message = isRetryLimit
-                                ? 'La subida tardó demasiado y se agotaron los reintentos. Probá con una red más estable o un archivo más liviano.'
-                                : (error?.message || 'No se pudo guardar el archivo.');
-                            window.alert(message);
-                        } finally {
-                            setSavingState(false);
-                        }
-                    }
-                    window.addMediaFromModal = addMediaFromModal;
 
                     galleryGrid?.addEventListener('click', (event) => {
                         const card = event.target.closest('.gallery-card');
