@@ -2561,7 +2561,24 @@ const getInitialCatFormData = () => ({
                         const sanitizedExt = extension && extension !== optimizedFile.name ? `.${extension.replace(/[^a-zA-Z0-9]/g, '').toLowerCase()}` : '';
                         const uniqueId = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
                         const storagePath = `${safeFolder}/${uniqueId}${sanitizedExt}`;
-                        const snapshot = await storage.ref(storagePath).put(optimizedFile);
+                        const uploadTask = storage.ref(storagePath).put(optimizedFile);
+                        const snapshot = await new Promise((resolve, reject) => {
+                            const timeoutMs = 90000;
+                            const timeoutId = window.setTimeout(() => {
+                                try { uploadTask.cancel(); } catch (_cancelError) {}
+                                const timeoutError = new Error('La subida se quedó sin respuesta. Revisá tu conexión e intentá nuevamente.');
+                                timeoutError.code = 'storage/upload-timeout';
+                                reject(timeoutError);
+                            }, timeoutMs);
+
+                            uploadTask.on('state_changed', null, (taskError) => {
+                                window.clearTimeout(timeoutId);
+                                reject(taskError);
+                            }, () => {
+                                window.clearTimeout(timeoutId);
+                                resolve(uploadTask.snapshot);
+                            });
+                        });
                         return snapshot.ref.getDownloadURL();
                     } catch (error) {
                         lastError = error;
