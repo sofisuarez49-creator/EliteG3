@@ -1695,67 +1695,65 @@
                         updateSlotGalleryButtons();
                     }
 
-                    async function addMediaFromModal(event) {
-                        if (event?.preventDefault) event.preventDefault();
-                        const urlInput = document.getElementById('nuevaFotoUrl');
-                        const labelInput = document.getElementById('nuevaFotoEtiqueta');
-                        const mediaTypeInput = document.getElementById('nuevoArchivoTipo');
-                        const normalizedUrl = (urlInput?.value || '').trim();
-                        const mediaType = mediaTypeInput?.value || 'image';
-                        const label = labelInput?.value || '${GALLERY_LABELS[0]}';
-                        const slotSelectionId = activeSlotSelectionId || document.getElementById('slotSelectionId')?.value || '';
+                    function isAllowedFileType(file) {
+                        if (!file) return false;
+                        const mime = String(file.type || '').toLowerCase();
+                        const name = String(file.name || '').toLowerCase();
+                        const ext = name.includes('.') ? name.split('.').pop() : '';
+                        const validMime = VALID_FILE_MIME_PREFIXES.some((prefix) => mime.startsWith(prefix));
+                        const validExt = VALID_FILE_EXTENSIONS.includes(ext);
+                        return validMime || validExt;
+                    }
 
-                        const postMedia = (finalUrl, finalType, canAssignSlot = true) => {
-                            if (!finalUrl) return;
-                            window.opener.postMessage({ type: 'ADD_IMAGE', url: finalUrl, label, mediaType: finalType, id: '${editingId}' }, '*');
-                            if (slotSelectionId && canAssignSlot) {
-                                window.opener.postMessage({ type: 'SET_BATTLE_PHOTO_PREF_BY_URL', id: '${editingId}', slotId: slotSelectionId, url: finalUrl, mediaType: finalType, label }, '*');
-                            }
-                        };
-
-                    function postMediaFromModal({ url = '', mediaType = 'image', label = '${GALLERY_LABELS[0]}', autor = '', slotSelectionId = '' } = {}) {
+                    function postMediaFromModal({ url = '', mediaType = 'image', label = '${GALLERY_LABELS[0]}', slotSelectionId = '', canAssignSlot = true } = {}) {
                         const finalUrl = String(url || '').trim();
                         if (!finalUrl) return;
                         const finalType = mediaType === 'video' ? 'video' : 'image';
-                        window.opener.postMessage({ type: 'ADD_IMAGE', url: finalUrl, label, autor, mediaType: finalType, id: '${editingId}' }, '*');
-                        if (slotSelectionId) {
+                        window.opener.postMessage({ type: 'ADD_IMAGE', url: finalUrl, label, mediaType: finalType, id: '${editingId}' }, '*');
+                        if (slotSelectionId && canAssignSlot) {
                             window.opener.postMessage({ type: 'SET_BATTLE_PHOTO_PREF_BY_URL', id: '${editingId}', slotId: slotSelectionId, url: finalUrl, mediaType: finalType, label }, '*');
                         }
                     }
 
                     async function addMediaFromModal(event) {
                         if (event?.preventDefault) event.preventDefault();
-                        if (isSubmitting) return;
                         const urlInput = document.getElementById('nuevaFotoUrl');
                         const fileInput = document.getElementById('nuevoArchivoLocalInput');
                         const labelInput = document.getElementById('nuevaFotoEtiqueta');
                         const mediaTypeInput = document.getElementById('nuevoArchivoTipo');
-                        const selectedFile = fileInput?.files?.[0];
-                        const normalizedUrl = (urlInput?.value || '').trim();
+                        const normalizedUrl = String(urlInput?.value || '').trim();
+                        const selectedFiles = Array.from(fileInput?.files || []);
+                        const mediaType = mediaTypeInput?.value === 'video' ? 'video' : 'image';
                         const label = labelInput?.value || '${GALLERY_LABELS[0]}';
-                        const detectedType = isVideo ? 'video' : 'image';
-                        const previousType = mediaTypeInput?.value || 'image';
+                        const slotSelectionId = activeSlotSelectionId || document.getElementById('slotSelectionId')?.value || '';
 
-                        setModalSubmittingState(true);
                         try {
-                            if (!window.opener || typeof window.opener.uploadFileToFirebaseStorage !== 'function') {
-                                throw new Error('No fue posible conectarse al cargador de archivos.');
-                            }
-                            const uploadedUrl = await window.opener.uploadFileToFirebaseStorage(selectedFile, 'galeria/' + (detectedType === 'video' ? 'videos' : 'fotos'));
-                            if (!uploadedUrl) throw new Error('No se obtuvo la URL del archivo subido.');
-                            window.opener.postMessage({ type: 'ADD_IMAGE', url: uploadedUrl, label, mediaType: detectedType, id: '${editingId}' }, '*');
-                            if (slotSelectionId) {
-                                window.opener.postMessage({ type: 'SET_BATTLE_PHOTO_PREF_BY_URL', id: '${editingId}', slotId: slotSelectionId, url: uploadedUrl, mediaType: detectedType, label }, '*');
+                            if (selectedFiles.length) {
+                                const invalidFile = selectedFiles.find((file) => !isAllowedFileType(file));
+                                if (invalidFile) {
+                                    window.alert('Uno o más archivos no son válidos. Usá imagen o video.');
+                                    return;
+                                }
+                                if (!window.opener || typeof window.opener.uploadFileToFirebaseStorage !== 'function') {
+                                    throw new Error('No fue posible conectarse al cargador de archivos.');
+                                }
+                                const uploads = await Promise.all(selectedFiles.map(async (file) => {
+                                    const detectedType = String(file.type || '').toLowerCase().startsWith('video/') ? 'video' : 'image';
+                                    const folder = detectedType === 'video' ? 'galeria/videos' : 'galeria/fotos';
+                                    const uploadedUrl = await window.opener.uploadFileToFirebaseStorage(file, folder);
+                                    return { url: uploadedUrl, mediaType: detectedType };
+                                }));
+                                uploads.forEach((item, index) => {
+                                    postMediaFromModal({ url: item.url, mediaType: item.mediaType, label, slotSelectionId, canAssignSlot: index === 0 });
+                                });
+                            } else {
+                                postMediaFromModal({ url: normalizedUrl, mediaType, label, slotSelectionId });
                             }
 
-                            postMediaFromModal({ url: finalUrl, mediaType: finalType, label, autor, slotSelectionId });
                             document.getElementById('miModal').style.display = 'none';
                             resetAddMediaModalFields();
                         } catch (error) {
-                            if (mediaTypeInput) mediaTypeInput.value = previousType;
                             window.alert(error?.message || 'No se pudo guardar el archivo.');
-                        } finally {
-                            setModalSubmittingState(false);
                         }
                     }
 
