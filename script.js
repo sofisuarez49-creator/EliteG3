@@ -1735,6 +1735,7 @@
                         const labelInput = document.getElementById('nuevaFotoEtiqueta');
                         const mediaTypeInput = document.getElementById('nuevoArchivoTipo');
                         const fileInput = document.getElementById('nuevoArchivoFile');
+                        const urlInput = document.getElementById('mediaUrlInput');
                         const previewContainer = document.getElementById('mediaPreviewContainer');
                         const errorContainer = document.getElementById('mediaFormError');
                         const saveButton = document.getElementById('modalSaveButton');
