@@ -1398,7 +1398,6 @@
                     <select id="nuevaFotoEtiqueta" style="width: 100%; padding: 12px; margin-top: 15px; background: #020617; border: 1px solid rgba(71,85,105,0.92); color: #e2e8f0; border-radius: 8px; outline: none; box-shadow: inset 0 1px 0 rgba(148,163,184,0.18);">
                         ${GALLERY_LABELS.map(label => `<option value="${label}">Etiqueta ${label}</option>`).join('')}
                     </select>
-                    <input type="text" id="nuevaFotoAutor" placeholder="Autor (opcional)" style="width: 100%; padding: 12px; margin-top: 15px; background: #020617; border: 1px solid rgba(71,85,105,0.92); color: #e2e8f0; border-radius: 8px; outline: none; box-shadow: inset 0 1px 0 rgba(148,163,184,0.18);">
                     <input type="hidden" id="slotSelectionId" value="">
                     <p id="slotGalleryHint" style="display:none; margin:10px 0 0; font-size:11px; color:#93c5fd;">Tip: para “Elegir desde galería” tocá cualquier imagen para asignarla.</p>
                     <button type="button" onclick="addMediaFromModal(event)"
@@ -1683,13 +1682,11 @@
                         const urlInput = document.getElementById('nuevaFotoUrl');
                         const fileInput = document.getElementById('nuevoArchivoLocalInput');
                         const labelInput = document.getElementById('nuevaFotoEtiqueta');
-                        const authorInput = document.getElementById('nuevaFotoAutor');
                         const mediaTypeInput = document.getElementById('nuevoArchivoTipo');
                         const slotInput = document.getElementById('slotSelectionId');
                         if (urlInput) urlInput.value = '';
                         if (fileInput) fileInput.value = '';
                         if (labelInput) labelInput.value = '${GALLERY_LABELS[0]}';
-                        if (authorInput) authorInput.value = '';
                         if (mediaTypeInput) mediaTypeInput.value = 'image';
                         if (slotInput) slotInput.value = '';
                         const galleryHint = document.getElementById('slotGalleryHint');
@@ -1702,17 +1699,15 @@
                         if (event?.preventDefault) event.preventDefault();
                         const urlInput = document.getElementById('nuevaFotoUrl');
                         const labelInput = document.getElementById('nuevaFotoEtiqueta');
-                        const authorInput = document.getElementById('nuevaFotoAutor');
                         const mediaTypeInput = document.getElementById('nuevoArchivoTipo');
                         const normalizedUrl = (urlInput?.value || '').trim();
                         const mediaType = mediaTypeInput?.value || 'image';
                         const label = labelInput?.value || '${GALLERY_LABELS[0]}';
-                        const autor = (authorInput?.value || '').trim();
                         const slotSelectionId = activeSlotSelectionId || document.getElementById('slotSelectionId')?.value || '';
 
                         const postMedia = (finalUrl, finalType, canAssignSlot = true) => {
                             if (!finalUrl) return;
-                            window.opener.postMessage({ type: 'ADD_IMAGE', url: finalUrl, label, autor, mediaType: finalType, id: '${editingId}' }, '*');
+                            window.opener.postMessage({ type: 'ADD_IMAGE', url: finalUrl, label, mediaType: finalType, id: '${editingId}' }, '*');
                             if (slotSelectionId && canAssignSlot) {
                                 window.opener.postMessage({ type: 'SET_BATTLE_PHOTO_PREF_BY_URL', id: '${editingId}', slotId: slotSelectionId, url: finalUrl, mediaType: finalType, label }, '*');
                             }
@@ -1721,6 +1716,47 @@
                         postMedia(normalizedUrl, mediaType);
                         document.getElementById('miModal').style.display = 'none';
                         resetAddMediaModalFields();
+                    }
+
+                    async function addMediaFromDevice(event) {
+                        if (event?.preventDefault) event.preventDefault();
+                        const fileInput = document.getElementById('nuevoArchivoLocalInput');
+                        const labelInput = document.getElementById('nuevaFotoEtiqueta');
+                        const mediaTypeInput = document.getElementById('nuevoArchivoTipo');
+                        const selectedFile = fileInput?.files?.[0];
+                        if (!selectedFile) {
+                            window.alert('Seleccioná un archivo desde tu dispositivo.');
+                            return;
+                        }
+                        const mimeType = String(selectedFile.type || '').toLowerCase();
+                        const fallbackName = String(selectedFile.name || '').toLowerCase();
+                        const isVideo = mimeType.startsWith('video/') || /\.(mp4|webm|ogg|mov|m4v)$/i.test(fallbackName);
+                        const isImageOrGif = mimeType.startsWith('image/') || /\.gif$/i.test(fallbackName);
+                        if (!isVideo && !isImageOrGif) {
+                            window.alert('Formato no compatible. Subí imagen, GIF o video.');
+                            return;
+                        }
+                        const slotSelectionId = activeSlotSelectionId || document.getElementById('slotSelectionId')?.value || '';
+                        const label = labelInput?.value || '${GALLERY_LABELS[0]}';
+                        const detectedType = isVideo ? 'video' : 'image';
+                        const previousType = mediaTypeInput?.value || 'image';
+                        if (mediaTypeInput) mediaTypeInput.value = detectedType;
+                        try {
+                            if (!window.opener || typeof window.opener.uploadFileToFirebaseStorage !== 'function') {
+                                throw new Error('No fue posible conectarse al cargador de archivos.');
+                            }
+                            const uploadedUrl = await window.opener.uploadFileToFirebaseStorage(selectedFile, 'galeria/' + (detectedType === 'video' ? 'videos' : 'fotos'));
+                            if (!uploadedUrl) throw new Error('No se obtuvo la URL del archivo subido.');
+                            window.opener.postMessage({ type: 'ADD_IMAGE', url: uploadedUrl, label, mediaType: detectedType, id: '${editingId}' }, '*');
+                            if (slotSelectionId) {
+                                window.opener.postMessage({ type: 'SET_BATTLE_PHOTO_PREF_BY_URL', id: '${editingId}', slotId: slotSelectionId, url: uploadedUrl, mediaType: detectedType, label }, '*');
+                            }
+                            document.getElementById('miModal').style.display = 'none';
+                            resetAddMediaModalFields();
+                        } catch (error) {
+                            if (mediaTypeInput) mediaTypeInput.value = previousType;
+                            window.alert(error?.message || 'No se pudo subir el archivo.');
+                        }
                     }
 
                     galleryGrid?.addEventListener('click', (event) => {
@@ -2679,7 +2715,7 @@ const getInitialCatFormData = () => ({
             useEffect(() => {
                 const handleMessage = async (event) => {
                     if (event.data.type === 'ADD_IMAGE') {
-                        const { url, id, label, mediaType, autor } = event.data;
+                        const { url, id, label, mediaType } = event.data;
                         const tag = mediaType === 'video' ? 'videos' : 'fotos';
                         if (!id) return;
                         const galleryRef = id === ANON_PROFILE_ID
@@ -2689,7 +2725,7 @@ const getInitialCatFormData = () => ({
                         const currentPhotos = snapshot.val() || [];
                         const normalizedUrl = (url || '').trim();
                         if (!normalizedUrl) return;
-                        const updatedPhotos = [...currentPhotos, { url: normalizedUrl, label: GALLERY_LABELS.includes(label) ? label : '', type: detectGalleryItemType(normalizedUrl, mediaType), autor: normalizeGalleryAuthor(autor) }];
+                        const updatedPhotos = [...currentPhotos, { url: normalizedUrl, label: GALLERY_LABELS.includes(label) ? label : '', type: detectGalleryItemType(normalizedUrl, mediaType), autor: '' }];
 
                         await galleryRef.set(updatedPhotos);
                         setFormData(prev => ({
