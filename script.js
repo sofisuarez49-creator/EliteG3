@@ -1404,14 +1404,6 @@
                         style="margin-top: 15px; width: 100%; padding: 10px; background: linear-gradient(180deg, rgba(14,116,144,0.95), rgba(8,47,73,0.95)); color: #ecfeff; border: 1px solid rgba(103,232,249,0.9); border-radius: 8px; font-weight: 800; cursor: pointer; text-transform: uppercase; letter-spacing: 0.08em; box-shadow: 0 0 14px rgba(34,211,238,0.4);">
                         Guardar
                     </button>
-                    <button type="button" onclick="addMediaFromDevice(event)"
-                        style="margin-top: 10px; width: 100%; padding: 10px; background: linear-gradient(180deg, rgba(22,163,74,0.95), rgba(21,128,61,0.95)); color: #ecfdf5; border: 1px solid rgba(134,239,172,0.9); border-radius: 8px; font-weight: 800; cursor: pointer; text-transform: uppercase; letter-spacing: 0.08em; box-shadow: 0 0 14px rgba(74,222,128,0.4);">
-                        Subir archivo del dispositivo
-                    </button>
-                    <button id="modalPlayFullscreenButton" type="button" onclick="startFullscreenPlaybackFromModal(event)"
-                        style="margin-top: 10px; width: 100%; padding: 10px; background: linear-gradient(180deg, rgba(30,64,175,0.95), rgba(30,58,138,0.95)); color: #dbeafe; border: 1px solid rgba(147,197,253,0.9); border-radius: 8px; font-weight: 800; cursor: pointer; text-transform: uppercase; letter-spacing: 0.08em; box-shadow: 0 0 14px rgba(59,130,246,0.38);">
-                        Play pantalla completa
-                    </button>
                 </div>
 
                 <details open style="width:100%; margin-bottom: 20px; border-radius: 12px; border: 1px solid rgba(148,163,184,0.28); background: rgba(2,6,23,0.45);">
@@ -1579,7 +1571,6 @@
                     var viewerNextButton = document.getElementById('viewerNext');
                     var viewerPlayToggleButton = document.getElementById('viewerPlayToggle');
                     var viewerRandomToggleButton = document.getElementById('viewerRandomToggle');
-                    var modalPlayFullscreenButton = document.getElementById('modalPlayFullscreenButton');
                     var VALID_FILE_MIME_PREFIXES = ['image/', 'video/'];
                     var VALID_FILE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'mp4', 'webm', 'ogg', 'mov', 'm4v'];
                     var VIEWER_IMAGE_TIMEOUT_MS = 7000;
@@ -2113,15 +2104,6 @@
                         setViewerRandomState(!viewerRandom);
                     }
 
-                    function startFullscreenPlaybackFromModal(event) {
-                        if (event) event.stopPropagation();
-                        const modal = document.getElementById('miModal');
-                        if (modal) modal.style.display = 'none';
-                        if (!viewer.classList.contains('open')) {
-                            openFullscreenViewer(currentViewerIndex || 0);
-                        }
-                        setViewerAutoplayState(true);
-                    }
                     if (galleryGrid) {
                         galleryGrid.addEventListener('click', function(event) {
                             const deleteButton = event.target.closest('.gallery-delete');
