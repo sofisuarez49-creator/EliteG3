@@ -945,3 +945,50 @@ body::-webkit-scrollbar-thumb {
     height: 2.2rem;
     box-shadow: 0 0 20px rgba(250,204,21,0.55), 0 0 28px rgba(34,211,238,0.36);
 }
+
+
+/* Rendimiento agresivo en móviles: menos filtros, sombras y repintados costosos */
+@media (max-width: 768px) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+
+    body {
+        background-image: linear-gradient(165deg, var(--space-0) 0%, var(--space-1) 65%, var(--space-2) 100%);
+        text-rendering: optimizeSpeed;
+    }
+
+    .glass-effect {
+        backdrop-filter: none !important;
+    }
+
+    .surface-panel,
+    .surface-panel--metal,
+    .surface-panel--neon,
+    .gothic-frame,
+    .gothic-frame--primary,
+    .gothic-frame--secondary,
+    .gothic-frame--ornate,
+    .gothic-frame--grand,
+    .profile-card,
+    .btn-neon,
+    .btn-metal,
+    .glow-neon {
+        box-shadow: none !important;
+    }
+
+    .profile-card::before,
+    .corner-ember-glow {
+        display: none !important;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation: none !important;
+        transition: none !important;
+    }
+}

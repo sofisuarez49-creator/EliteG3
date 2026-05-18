@@ -15,12 +15,15 @@
             firebase.initializeApp(firebaseConfig);
         }
         const db = firebase.database();
+        const storage = firebase.storage();
         const { useState, useEffect, useMemo, useRef } = React;
 
         const GALLERY_LABELS = ['C', 'P', 'B', 'N', 'S', 'E', 'X', 'R'];
         const GENERAL_GALLERY_HIDDEN_LABELS = ['R'];
         const ANON_GALLERY_NODE_PATH = 'anonimo/galeria';
         const ANON_PROFILE_ID = '__anonimo_gallery__';
+        const PERFIL_CACHE_KEY = 'eliteg3:perfiles-cache:v1';
+        const AUDIO_CACHE_KEY = 'eliteg3:gallery-audios-cache:v1';
         const GALLERY_VIEW_MODES = ['PERSONAJE', 'ETIQUETA', 'GENERAL'];
         const GALLERY_VIEW_MODE_LABELS = {
             PERSONAJE: 'Personaje',
@@ -257,6 +260,23 @@
             puntuaciones: createZeroScores(),
             isAnonymousGallery: true
         });
+        const safeReadCache = (key, fallbackValue) => {
+            try {
+                const rawValue = window.localStorage.getItem(key);
+                if (!rawValue) return fallbackValue;
+                const parsed = JSON.parse(rawValue);
+                return parsed ?? fallbackValue;
+            } catch {
+                return fallbackValue;
+            }
+        };
+        const safeWriteCache = (key, value) => {
+            try {
+                window.localStorage.setItem(key, JSON.stringify(value));
+            } catch {
+                // noop: almacenamiento no disponible o cuota excedida.
+            }
+        };
         const getGallerySourceCharacterId = (profile = {}) => {
             if (profile?.isAnonymousGallery || profile?.firebaseId === ANON_PROFILE_ID) return 'anonimo';
             return profile?.firebaseId || '';
@@ -377,7 +397,7 @@
                         </div>
                         <div class="multimedia-slot-actions">
                             ${!isProfileSlot ? `<button type="button" class="multimedia-slot-assign-btn" data-slot-assign="${slot.id}">DESIGNAR FOTO</button>` : ''}
-                            <button type="button" class="multimedia-slot-add-btn" data-slot-add="${slot.id}">Agregar URL/Archivo</button>
+                            <button type="button" class="multimedia-slot-add-btn" data-slot-add="${slot.id}">Agregar URL</button>
                         </div>
                     </div>
                 `;
@@ -470,10 +490,10 @@
                             const dbRef = window.opener && window.opener.firebase && window.opener.firebase.database ? window.opener.firebase.database() : null;
                             const normalizeLabel = (rawLabel = '') => validLabels.includes(rawLabel) ? rawLabel : '';
                             const brokenCards = new Set();
-                            const DND_PAYLOAD_TYPE = 'application/x-battle-slot-item';
-                            const LONG_PRESS_MS = 280;
-                            let longPressTimer = null;
-                            let touchPayload = null;
+                            var DND_PAYLOAD_TYPE = 'application/x-battle-slot-item';
+                            var LONG_PRESS_MS = 280;
+                            var longPressTimer = null;
+                            var touchPayload = null;
                             const isImagePayload = (payload) => String(payload?.mediaType || '').trim() === 'image';
                             const assignToSlot = (payload = {}, slotId = '') => {
                                 if (!window.opener || !slotId || !isImagePayload(payload)) return false;
@@ -504,7 +524,7 @@
                                 await galleryRef.set(currentItems);
                                 return true;
                             };
-                            let activeSlotSelectionId = '';
+                            var activeSlotSelectionId = '';
                             const slotCards = Array.from(document.querySelectorAll('.multimedia-slot-card'));
                             const slotAssignButtons = Array.from(document.querySelectorAll('[data-slot-assign]'));
                             const updateSlotCardAssignedState = (slotId = '', assignedUrl = '') => {
@@ -1369,8 +1389,8 @@
                 <div id="miModal" class="modal-url">
                     <h2 style="margin:0; font-size: 14px; color: #94a3b8;">PEGAR URL DEL ARCHIVO</h2>
                     <input type="text" id="nuevaFotoUrl" placeholder="https://ejemplo.com/foto.jpg o https://youtube.com/...">
-                    <label for="nuevoArchivoLocal" style="display:block; margin-top: 14px; font-size: 10px; font-weight: 900; letter-spacing: 0.14em; color: #94a3b8; text-transform: uppercase;">o subir desde escritorio</label>
-                    <input type="file" id="nuevoArchivoLocal" accept="image/*,video/*,.gif" multiple style="width: 100%; margin-top: 8px; padding: 10px; background: #020617; border: 1px dashed rgba(34,211,238,0.65); color: #e2e8f0; border-radius: 8px; outline: none; font-size: 12px; box-shadow: 0 0 10px rgba(34,211,238,0.18);">
+                    <p style="margin: 12px 0 6px; font-size: 11px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700;">o subir desde tu dispositivo</p>
+                    <input type="file" id="nuevoArchivoLocalInput" accept="image/*,video/*,.gif" style="width: 100%; padding: 9px; margin-top: 6px; background: #020617; border: 1px solid rgba(71,85,105,0.92); color: #e2e8f0; border-radius: 8px; outline: none; box-shadow: inset 0 1px 0 rgba(148,163,184,0.18);">
                     <select id="nuevoArchivoTipo" style="width: 100%; padding: 12px; margin-top: 15px; background: #020617; border: 1px solid rgba(71,85,105,0.92); color: #e2e8f0; border-radius: 8px; outline: none; box-shadow: inset 0 1px 0 rgba(148,163,184,0.18);">
                         <option value="image">Imagen</option>
                         <option value="video">Video</option>
@@ -1381,9 +1401,13 @@
                     <input type="text" id="nuevaFotoAutor" placeholder="Autor (opcional)" style="width: 100%; padding: 12px; margin-top: 15px; background: #020617; border: 1px solid rgba(71,85,105,0.92); color: #e2e8f0; border-radius: 8px; outline: none; box-shadow: inset 0 1px 0 rgba(148,163,184,0.18);">
                     <input type="hidden" id="slotSelectionId" value="">
                     <p id="slotGalleryHint" style="display:none; margin:10px 0 0; font-size:11px; color:#93c5fd;">Tip: para “Elegir desde galería” tocá cualquier imagen para asignarla.</p>
-                    <button onclick="addMediaFromModal()"
+                    <button type="button" onclick="addMediaFromModal(event)"
                         style="margin-top: 15px; width: 100%; padding: 10px; background: linear-gradient(180deg, rgba(14,116,144,0.95), rgba(8,47,73,0.95)); color: #ecfeff; border: 1px solid rgba(103,232,249,0.9); border-radius: 8px; font-weight: 800; cursor: pointer; text-transform: uppercase; letter-spacing: 0.08em; box-shadow: 0 0 14px rgba(34,211,238,0.4);">
                         Guardar
+                    </button>
+                    <button type="button" onclick="addMediaFromDevice(event)"
+                        style="margin-top: 10px; width: 100%; padding: 10px; background: linear-gradient(180deg, rgba(22,163,74,0.95), rgba(21,128,61,0.95)); color: #ecfdf5; border: 1px solid rgba(134,239,172,0.9); border-radius: 8px; font-weight: 800; cursor: pointer; text-transform: uppercase; letter-spacing: 0.08em; box-shadow: 0 0 14px rgba(74,222,128,0.4);">
+                        Subir archivo del dispositivo
                     </button>
                     <button id="modalPlayFullscreenButton" type="button" onclick="startFullscreenPlaybackFromModal(event)"
                         style="margin-top: 10px; width: 100%; padding: 10px; background: linear-gradient(180deg, rgba(30,64,175,0.95), rgba(30,58,138,0.95)); color: #dbeafe; border: 1px solid rgba(147,197,253,0.9); border-radius: 8px; font-weight: 800; cursor: pointer; text-transform: uppercase; letter-spacing: 0.08em; box-shadow: 0 0 14px rgba(59,130,246,0.38);">
@@ -1421,7 +1445,7 @@
                                         onclick="event.stopPropagation(); openSlotActionModal('${slot.id}', 'url');"
                                         style="width:100%; border:1px solid rgba(125,211,252,0.6); background: rgba(2,6,23,0.82); color:#e2e8f0; border-radius:8px; padding:6px 8px; font-size:10px; font-weight:800; letter-spacing:0.08em; text-transform:uppercase; cursor:pointer; box-shadow: 0 0 12px rgba(34,211,238,0.22);"
                                     >
-                                        Agregar URL/Archivo
+                                        Agregar URL
                                     </button>
                                     ${canPickFromGallery ? `<button
                                         type="button"
@@ -1549,43 +1573,43 @@
                 </div>
 
                 <script>
-                    const viewer = document.getElementById('fullscreenViewer');
-                    const viewerStage = document.getElementById('viewerStage');
-                    const galleryGrid = document.getElementById('galleryGrid');
-                    const viewerSlides = Array.from(document.querySelectorAll('.viewer-slide'));
-                    const viewerNextButton = document.getElementById('viewerNext');
-                    const viewerPlayToggleButton = document.getElementById('viewerPlayToggle');
-                    const viewerRandomToggleButton = document.getElementById('viewerRandomToggle');
-                    const modalPlayFullscreenButton = document.getElementById('modalPlayFullscreenButton');
-                    const VALID_FILE_MIME_PREFIXES = ['image/', 'video/'];
-                    const VALID_FILE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'mp4', 'webm', 'ogg', 'mov', 'm4v'];
-                    const VIEWER_IMAGE_TIMEOUT_MS = 7000;
-                    const VIEWER_VIDEO_FALLBACK_TIMEOUT_MS = 30000;
-                    const VIEWER_RETRY_DELAY_MS = 900;
-                    const VIEWER_PRELOAD_RADIUS = 1;
-                    const VIEWER_STATES = Object.freeze({
+                    var viewer = document.getElementById('fullscreenViewer');
+                    var viewerStage = document.getElementById('viewerStage');
+                    var galleryGrid = document.getElementById('galleryGrid');
+                    var viewerSlides = Array.from(document.querySelectorAll('.viewer-slide'));
+                    var viewerNextButton = document.getElementById('viewerNext');
+                    var viewerPlayToggleButton = document.getElementById('viewerPlayToggle');
+                    var viewerRandomToggleButton = document.getElementById('viewerRandomToggle');
+                    var modalPlayFullscreenButton = document.getElementById('modalPlayFullscreenButton');
+                    var VALID_FILE_MIME_PREFIXES = ['image/', 'video/'];
+                    var VALID_FILE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'mp4', 'webm', 'ogg', 'mov', 'm4v'];
+                    var VIEWER_IMAGE_TIMEOUT_MS = 7000;
+                    var VIEWER_VIDEO_FALLBACK_TIMEOUT_MS = 30000;
+                    var VIEWER_RETRY_DELAY_MS = 900;
+                    var VIEWER_PRELOAD_RADIUS = 1;
+                    var VIEWER_STATES = Object.freeze({
                         IDLE: 'idle',
                         SHOWING_IMAGE: 'showing-image',
                         PLAYING_VIDEO: 'playing-video',
                         TRANSITIONING: 'transitioning'
                     });
-                    let currentViewerIndex = 0;
-                    let viewerAutoplay = false;
-                    let viewerRandom = false;
-                    let viewerAutoplayTimeout = null;
-                    let viewerState = VIEWER_STATES.IDLE;
-                    let viewerTransitionToken = 0;
-                    let viewerRecoveryInProgress = false;
-                    let activeSlotSelectionId = '';
-                    const DND_PAYLOAD_TYPE = 'application/x-battle-slot-item';
-                    const LONG_PRESS_MS = 280;
-                    let longPressTimer = null;
-                    let touchPayload = null;
-                    const SWIPE_DISTANCE_THRESHOLD = 72;
-                    const SWIPE_VELOCITY_THRESHOLD = 0.35;
-                    const SWIPE_FEEDBACK_MAX_TRANSLATE = 52;
-                    const SWIPE_VERTICAL_LOCK_RATIO = 1.2;
-                    let viewerSwipeState = {
+                    var currentViewerIndex = 0;
+                    var viewerAutoplay = false;
+                    var viewerRandom = false;
+                    var viewerAutoplayTimeout = null;
+                    var viewerState = VIEWER_STATES.IDLE;
+                    var viewerTransitionToken = 0;
+                    var viewerRecoveryInProgress = false;
+                    var activeSlotSelectionId = '';
+                    var DND_PAYLOAD_TYPE = 'application/x-battle-slot-item';
+                    var LONG_PRESS_MS = 280;
+                    var longPressTimer = null;
+                    var touchPayload = null;
+                    var SWIPE_DISTANCE_THRESHOLD = 72;
+                    var SWIPE_VELOCITY_THRESHOLD = 0.35;
+                    var SWIPE_FEEDBACK_MAX_TRANSLATE = 52;
+                    var SWIPE_VERTICAL_LOCK_RATIO = 1.2;
+                    var viewerSwipeState = {
                         active: false,
                         pointerId: null,
                         startX: 0,
@@ -1596,13 +1620,6 @@
                         isVertical: false,
                         blockedByMediaControl: false
                     };
-
-                    function isAllowedFileType(file) {
-                        if (!file) return false;
-                        const mime = String(file.type || '').toLowerCase();
-                        const ext = String(file.name || '').split('.').pop()?.toLowerCase() || '';
-                        return VALID_FILE_MIME_PREFIXES.some((prefix) => mime.startsWith(prefix)) || VALID_FILE_EXTENSIONS.includes(ext);
-                    }
 
                     function openSlotActionModal(slotId, mode = '') {
                         activeSlotSelectionId = slotId || '';
@@ -1673,13 +1690,13 @@
 
                     function resetAddMediaModalFields() {
                         const urlInput = document.getElementById('nuevaFotoUrl');
-                        const localInput = document.getElementById('nuevoArchivoLocal');
+                        const fileInput = document.getElementById('nuevoArchivoLocalInput');
                         const labelInput = document.getElementById('nuevaFotoEtiqueta');
                         const authorInput = document.getElementById('nuevaFotoAutor');
                         const mediaTypeInput = document.getElementById('nuevoArchivoTipo');
                         const slotInput = document.getElementById('slotSelectionId');
                         if (urlInput) urlInput.value = '';
-                        if (localInput) localInput.value = '';
+                        if (fileInput) fileInput.value = '';
                         if (labelInput) labelInput.value = '${GALLERY_LABELS[0]}';
                         if (authorInput) authorInput.value = '';
                         if (mediaTypeInput) mediaTypeInput.value = 'image';
@@ -1690,14 +1707,13 @@
                         updateSlotGalleryButtons();
                     }
 
-                    function addMediaFromModal() {
+                    async function addMediaFromModal(event) {
+                        if (event?.preventDefault) event.preventDefault();
                         const urlInput = document.getElementById('nuevaFotoUrl');
-                        const localInput = document.getElementById('nuevoArchivoLocal');
                         const labelInput = document.getElementById('nuevaFotoEtiqueta');
                         const authorInput = document.getElementById('nuevaFotoAutor');
                         const mediaTypeInput = document.getElementById('nuevoArchivoTipo');
                         const normalizedUrl = (urlInput?.value || '').trim();
-                        const selectedFiles = Array.from(localInput?.files || []);
                         const mediaType = mediaTypeInput?.value || 'image';
                         const label = labelInput?.value || '${GALLERY_LABELS[0]}';
                         const autor = (authorInput?.value || '').trim();
@@ -1711,39 +1727,52 @@
                             }
                         };
 
-                        if (selectedFiles.length) {
-                            const invalidFile = selectedFiles.find((file) => !isAllowedFileType(file));
-                            if (invalidFile) {
-                                alert('Uno o más archivos no son válidos. Usá imagen o video.');
-                                return;
-                            }
-                            const readFileAsDataUrl = (file) => new Promise((resolve, reject) => {
-                                const reader = new FileReader();
-                                reader.onload = () => resolve({
-                                    url: String(reader.result || ''),
-                                    type: file.type && file.type.startsWith('video/') ? 'video' : 'image'
-                                });
-                                reader.onerror = () => reject(new Error('No se pudo leer uno de los archivos seleccionados.'));
-                                reader.readAsDataURL(file);
-                            });
-
-                            Promise.all(selectedFiles.map(readFileAsDataUrl))
-                                .then((filesData) => {
-                                    filesData.forEach((fileData, index) => {
-                                        postMedia(fileData.url, fileData.type, index === 0);
-                                    });
-                                    document.getElementById('miModal').style.display = 'none';
-                                    resetAddMediaModalFields();
-                                })
-                                .catch((error) => {
-                                    alert(error.message || 'No se pudo leer el archivo seleccionado.');
-                                });
-                            return;
-                        }
-
                         postMedia(normalizedUrl, mediaType);
                         document.getElementById('miModal').style.display = 'none';
                         resetAddMediaModalFields();
+                    }
+
+                    async function addMediaFromDevice(event) {
+                        if (event?.preventDefault) event.preventDefault();
+                        const fileInput = document.getElementById('nuevoArchivoLocalInput');
+                        const labelInput = document.getElementById('nuevaFotoEtiqueta');
+                        const authorInput = document.getElementById('nuevaFotoAutor');
+                        const mediaTypeInput = document.getElementById('nuevoArchivoTipo');
+                        const selectedFile = fileInput?.files?.[0];
+                        if (!selectedFile) {
+                            window.alert('Seleccioná un archivo desde tu dispositivo.');
+                            return;
+                        }
+                        const mimeType = String(selectedFile.type || '').toLowerCase();
+                        const fallbackName = String(selectedFile.name || '').toLowerCase();
+                        const isVideo = mimeType.startsWith('video/') || /\.(mp4|webm|ogg|mov|m4v)$/i.test(fallbackName);
+                        const isImageOrGif = mimeType.startsWith('image/') || /\.gif$/i.test(fallbackName);
+                        if (!isVideo && !isImageOrGif) {
+                            window.alert('Formato no compatible. Subí imagen, GIF o video.');
+                            return;
+                        }
+                        const slotSelectionId = activeSlotSelectionId || document.getElementById('slotSelectionId')?.value || '';
+                        const label = labelInput?.value || '${GALLERY_LABELS[0]}';
+                        const autor = (authorInput?.value || '').trim();
+                        const detectedType = isVideo ? 'video' : 'image';
+                        const previousType = mediaTypeInput?.value || 'image';
+                        if (mediaTypeInput) mediaTypeInput.value = detectedType;
+                        try {
+                            if (!window.opener || typeof window.opener.uploadFileToFirebaseStorage !== 'function') {
+                                throw new Error('No fue posible conectarse al cargador de archivos.');
+                            }
+                            const uploadedUrl = await window.opener.uploadFileToFirebaseStorage(selectedFile, 'galeria/' + (detectedType === 'video' ? 'videos' : 'fotos'));
+                            if (!uploadedUrl) throw new Error('No se obtuvo la URL del archivo subido.');
+                            window.opener.postMessage({ type: 'ADD_IMAGE', url: uploadedUrl, label, autor, mediaType: detectedType, id: '${editingId}' }, '*');
+                            if (slotSelectionId) {
+                                window.opener.postMessage({ type: 'SET_BATTLE_PHOTO_PREF_BY_URL', id: '${editingId}', slotId: slotSelectionId, url: uploadedUrl, mediaType: detectedType, label }, '*');
+                            }
+                            document.getElementById('miModal').style.display = 'none';
+                            resetAddMediaModalFields();
+                        } catch (error) {
+                            if (mediaTypeInput) mediaTypeInput.value = previousType;
+                            window.alert(error?.message || 'No se pudo subir el archivo.');
+                        }
                     }
 
                     galleryGrid?.addEventListener('click', (event) => {
@@ -2203,6 +2232,7 @@
             const [showBattleResetPanel, setShowBattleResetPanel] = useState(false);
             const [isModalOpen, setIsModalOpen] = useState(false);
             const [isCatModalOpen, setIsCatModalOpen] = useState(false);
+            const [isSavingProfile, setIsSavingProfile] = useState(false);
             const [editingId, setEditingId] = useState(null);
             const [contextMenuProfileId, setContextMenuProfileId] = useState(null);
             const [contextProfile, setContextProfile] = useState(null);
@@ -2235,18 +2265,14 @@
             const [galleryEditorError, setGalleryEditorError] = useState('');
             const [isSavingGalleryEditor, setIsSavingGalleryEditor] = useState(false);
             const [tallerSearchTerm, setTallerSearchTerm] = useState('');
-            const [anonMediaSource, setAnonMediaSource] = useState('url');
             const [anonMediaUrl, setAnonMediaUrl] = useState('');
-            const [anonMediaFile, setAnonMediaFile] = useState(null);
             const [anonMediaLabel, setAnonMediaLabel] = useState(GALLERY_LABELS[0]);
             const [anonMediaAuthor, setAnonMediaAuthor] = useState('');
             const [anonMediaError, setAnonMediaError] = useState('');
             const [anonUploadType, setAnonUploadType] = useState('');
             const [galleryAudioTracks, setGalleryAudioTracks] = useState([]);
             const [galleryAudioName, setGalleryAudioName] = useState('');
-            const [galleryAudioSource, setGalleryAudioSource] = useState('url');
             const [galleryAudioUrl, setGalleryAudioUrl] = useState('');
-            const [galleryAudioFile, setGalleryAudioFile] = useState(null);
             const [galleryAudioError, setGalleryAudioError] = useState('');
             const [isGalleryMusicEnabled, setIsGalleryMusicEnabled] = useState(false);
             const [selectedGalleryAudioA, setSelectedGalleryAudioA] = useState('');
@@ -2261,6 +2287,7 @@
             const [showIncompleteMainPhotosOnly, setShowIncompleteMainPhotosOnly] = useState(false);
             const [showBrokenPhotosOnly, setShowBrokenPhotosOnly] = useState(false);
             const [tallerMissingPhotosTooltipProfileId, setTallerMissingPhotosTooltipProfileId] = useState('');
+            const [activeGalleryProfileId, setActiveGalleryProfileId] = useState('');
             const galleryPlaybackTimeoutRef = useRef(null);
             const galleryViewerOverlayRef = useRef(null);
             const galleryViewerMediaRef = useRef(null);
@@ -2353,6 +2380,7 @@ const getInitialCatFormData = () => ({
                     battlePhotoPrefs: profile?.batallaFotosPreferidas || profile?.galeria?.battlePhotoPreferences || {},
                     profilePhotoUrl: profile?.fotos?.[0] || ''
                 });
+                setActiveGalleryProfileId(profile?.firebaseId || profile?.id || '');
                 nuevaVentana?.focus();
                 setSelectedTallerProfileId('');
                 setTallerMissingPhotosTooltipProfileId('');
@@ -2528,6 +2556,16 @@ const getInitialCatFormData = () => ({
                     }));
                 }
             };
+            const uploadFileToFirebaseStorage = window.uploadFileToFirebaseStorage = async (file, folder = 'galeria') => {
+                if (!file) throw new Error('No se encontró el archivo para subir.');
+                const safeFolder = String(folder || 'galeria').replace(/[^a-zA-Z0-9/_-]/g, '');
+                const extension = (file.name || '').split('.').pop();
+                const sanitizedExt = extension && extension !== file.name ? `.${extension.replace(/[^a-zA-Z0-9]/g, '').toLowerCase()}` : '';
+                const uniqueId = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+                const storagePath = `${safeFolder}/${uniqueId}${sanitizedExt}`;
+                const snapshot = await storage.ref(storagePath).put(file);
+                return snapshot.ref.getDownloadURL();
+            };
             const readFileAsDataUrl = (file) => new Promise((resolve, reject) => {
                 const reader = new FileReader();
                 reader.onload = () => resolve(String(reader.result || ''));
@@ -2553,21 +2591,9 @@ const getInitialCatFormData = () => ({
                     }
                 };
             };
-            const handleLocalProfilePhotoUpload = async (event) => {
-                const selectedFile = event.target.files?.[0];
-                if (!selectedFile) return;
-                try {
-                    const dataUrl = await readFileAsDataUrl(selectedFile);
-                    setFormData(prev => withProfilePhotoSyncedToGallery(prev, dataUrl));
-                } catch (error) {
-                    console.error('Error al cargar foto de perfil local:', error);
-                } finally {
-                    event.target.value = '';
-                }
-            };
             const addAnonymousGalleryItem = async ({ url, label, autor = '', forcedTag = '' }) => {
                 const normalizedUrl = String(url || '').trim();
-                if (!normalizedUrl) throw new Error('Ingresá una URL o seleccioná un archivo.');
+                if (!normalizedUrl) throw new Error('Ingresá una URL.');
                 const normalizedLabel = GALLERY_LABELS.includes(label) ? label : '';
                 const inferredType = detectGalleryItemType(normalizedUrl);
                 const isValidMedia = inferredType === 'image'
@@ -2592,15 +2618,9 @@ const getInitialCatFormData = () => ({
                 setAnonMediaError('');
                 try {
                     let finalUrl = String(anonMediaUrl || '').trim();
-                    if (anonMediaSource === 'file') {
-                        if (!anonMediaFile) throw new Error('Seleccioná un archivo local.');
-                        finalUrl = await readFileAsDataUrl(anonMediaFile);
-                    }
                     await addAnonymousGalleryItem({ url: finalUrl, label: anonMediaLabel, autor: anonMediaAuthor, forcedTag });
                     setAnonMediaUrl('');
-                    setAnonMediaFile(null);
                     setAnonMediaAuthor('');
-                    setAnonMediaSource('url');
                 } catch (error) {
                     setAnonMediaError(error?.message || 'No se pudo guardar en galería anónima.');
                 }
@@ -2614,17 +2634,11 @@ const getInitialCatFormData = () => ({
                 }
                 try {
                     let normalizedUrl = String(galleryAudioUrl || '').trim();
-                    if (galleryAudioSource === 'file') {
-                        if (!galleryAudioFile) {
-                            setGalleryAudioError('Seleccioná un archivo de audio.');
-                            return;
-                        }
-                        normalizedUrl = await readFileAsDataUrl(galleryAudioFile);
-                    } else if (!normalizedUrl) {
+                    if (!normalizedUrl) {
                         setGalleryAudioError('Completá la URL del audio.');
                         return;
                     }
-                    if (galleryAudioSource === 'url' && !AUDIO_FILE_REGEX.test(normalizedUrl)) {
+                    if (!AUDIO_FILE_REGEX.test(normalizedUrl)) {
                         setGalleryAudioError('La URL debe apuntar a un archivo de audio válido.');
                         return;
                     }
@@ -2635,10 +2649,32 @@ const getInitialCatFormData = () => ({
                     await audioRef.set(updatedAudios);
                     setGalleryAudioName('');
                     setGalleryAudioUrl('');
-                    setGalleryAudioFile(null);
-                    setGalleryAudioSource('url');
                 } catch (error) {
                     setGalleryAudioError('No se pudo guardar el audio en Firebase.');
+                }
+            };
+            const removeGalleryAudioTrack = async (indexToRemove) => {
+                if (!Number.isInteger(indexToRemove) || indexToRemove < 0) return;
+                setGalleryAudioError('');
+                try {
+                    const audioRef = db.ref(`${ANON_GALLERY_NODE_PATH}/audios`);
+                    const snapshot = await audioRef.once('value');
+                    const currentAudios = Array.isArray(snapshot.val()) ? snapshot.val() : [];
+                    if (!currentAudios[indexToRemove]) return;
+                    const removedTrack = {
+                        nombre: String(currentAudios[indexToRemove]?.nombre || '').trim(),
+                        url: String(currentAudios[indexToRemove]?.url || '').trim()
+                    };
+                    const updatedAudios = currentAudios.filter((_, index) => index !== indexToRemove);
+                    await audioRef.set(updatedAudios);
+                    if (removedTrack.url && removedTrack.url === selectedGalleryAudioA) {
+                        setSelectedGalleryAudioA('');
+                    }
+                    if (removedTrack.url && removedTrack.url === selectedGalleryAudioB) {
+                        setSelectedGalleryAudioB('');
+                    }
+                } catch (error) {
+                    setGalleryAudioError('No se pudo eliminar el audio de Firebase.');
                 }
             };
             const handleDelete = async (id, e) => {
@@ -2677,6 +2713,29 @@ const getInitialCatFormData = () => ({
                     });
                 }
             }, [editingId, formData.nombre, formData.profesion, formData.galeria?.fotos, formData.galeria?.videos, formData.batallaFotosPreferidas]);
+
+            useEffect(() => {
+                if (!activeGalleryProfileId) return;
+                const galleryWindow = galleryWindowRef.current;
+                if (!galleryWindow || galleryWindow.closed) return;
+                if (editingId && editingId === activeGalleryProfileId) return;
+
+                const liveProfile = perfiles.find((profile) => (profile?.firebaseId || profile?.id) === activeGalleryProfileId);
+                if (!liveProfile) return;
+
+                renderGalleryWindow({
+                    targetWindow: galleryWindow,
+                    profileName: liveProfile?.nombre || '',
+                    profession: liveProfile?.profesion || '',
+                    photos: [
+                        ...((liveProfile?.galeria?.fotos || []).map((item, index) => ({ ...normalizeGalleryItem(item, 'image'), sourceTag: 'fotos', sourceIndex: index }))),
+                        ...((liveProfile?.galeria?.videos || []).map((item, index) => ({ ...normalizeGalleryItem(item, 'video'), sourceTag: 'videos', sourceIndex: index })))
+                    ],
+                    editingId: liveProfile?.firebaseId || liveProfile?.id || '',
+                    battlePhotoPrefs: liveProfile?.batallaFotosPreferidas || liveProfile?.galeria?.battlePhotoPreferences || {},
+                    profilePhotoUrl: liveProfile?.fotos?.[0] || ''
+                });
+            }, [activeGalleryProfileId, perfiles, editingId]);
 
             useEffect(() => {
                 const handleMessage = async (event) => {
@@ -2804,21 +2863,49 @@ const getInitialCatFormData = () => ({
                 window.addEventListener('message', handleMessage);
                 const perfilesRef = db.ref('perfiles');
                 const anonGalleryRef = db.ref(ANON_GALLERY_NODE_PATH);
-                let perfilesData = {};
+                let perfilesById = {};
                 let anonGalleryData = {};
+                const cachedPerfiles = safeReadCache(PERFIL_CACHE_KEY, []);
+                if (Array.isArray(cachedPerfiles) && cachedPerfiles.length) {
+                    setPerfiles(cachedPerfiles);
+                }
+                const cachedAudios = safeReadCache(AUDIO_CACHE_KEY, []);
+                if (Array.isArray(cachedAudios) && cachedAudios.length) {
+                    setGalleryAudioTracks(cachedAudios);
+                }
                 const refreshPerfilesState = () => {
-                    const listaPerfiles = Object.keys(perfilesData || {}).map(key => ({
-                        ...mapProfileToFormData(perfilesData[key]),
-                        firebaseId: key // Guardamos la llave de Firebase por si necesitamos editar
+                    const listaPerfiles = Object.entries(perfilesById || {}).map(([firebaseId, perfilData]) => ({
+                        ...mapProfileToFormData(perfilData),
+                        firebaseId // Guardamos la llave de Firebase por si necesitamos editar
                     }));
                     const anonProfile = mapAnonymousGalleryToProfile(anonGalleryData || {});
                     const hasAnonGallery = Object.values(anonProfile.galeria || {}).some((items) => Array.isArray(items) && items.length > 0);
-                    setPerfiles(hasAnonGallery ? [...listaPerfiles, anonProfile] : listaPerfiles);
+                    const nextPerfiles = hasAnonGallery ? [...listaPerfiles, anonProfile] : listaPerfiles;
+                    setPerfiles(nextPerfiles);
+                    safeWriteCache(PERFIL_CACHE_KEY, nextPerfiles);
                 };
-                perfilesRef.on('value', (snapshot) => {
-                    perfilesData = snapshot.val() || {};
+                const handlePerfilAdded = (snapshot) => {
+                    perfilesById = {
+                        ...perfilesById,
+                        [snapshot.key]: snapshot.val() || {}
+                    };
                     refreshPerfilesState();
-                });
+                };
+                const handlePerfilChanged = (snapshot) => {
+                    perfilesById = {
+                        ...perfilesById,
+                        [snapshot.key]: snapshot.val() || {}
+                    };
+                    refreshPerfilesState();
+                };
+                const handlePerfilRemoved = (snapshot) => {
+                    const { [snapshot.key]: _, ...remainingPerfiles } = perfilesById;
+                    perfilesById = remainingPerfiles;
+                    refreshPerfilesState();
+                };
+                perfilesRef.on('child_added', handlePerfilAdded);
+                perfilesRef.on('child_changed', handlePerfilChanged);
+                perfilesRef.on('child_removed', handlePerfilRemoved);
                 anonGalleryRef.on('value', (snapshot) => {
                     anonGalleryData = snapshot.val() || {};
                     const audios = Array.isArray(anonGalleryData?.audios)
@@ -2830,6 +2917,7 @@ const getInitialCatFormData = () => ({
                             .filter((audio) => audio.nombre && audio.url)
                         : [];
                     setGalleryAudioTracks(audios);
+                    safeWriteCache(AUDIO_CACHE_KEY, audios);
                     refreshPerfilesState();
                 });
 
@@ -2847,7 +2935,9 @@ const getInitialCatFormData = () => ({
 
                 return () => {
                     window.removeEventListener('message', handleMessage);
-                    perfilesRef.off();
+                    perfilesRef.off('child_added', handlePerfilAdded);
+                    perfilesRef.off('child_changed', handlePerfilChanged);
+                    perfilesRef.off('child_removed', handlePerfilRemoved);
                     anonGalleryRef.off();
                     arenasRef.off();
                     arenaGlobalRef.off();
@@ -3624,26 +3714,29 @@ const getInitialCatFormData = () => ({
                 return currentGalleryModeLabel;
             }, [galleryViewMode, selectedCharacterBuckets, activeGalleryBucket, isGalleryBucketMode, currentGalleryModeLabel]);
 
-const saveProfile = (e) => {
+const saveProfile = async (e) => {
                 e.preventDefault();
+                if (isSavingProfile) return;
+                setIsSavingProfile(true);
                 const profileData = { ...formData };
 
-                if (editingId) {
-                    // Si estamos editando, buscamos el lugar exacto y lo actualizamos
-                    db.ref(`perfiles/${editingId}`).set(profileData)
-                        .then(() => {
-                            setIsModalOpen(false);
-                            setEditingId(null);
-                        })
-                        .catch(err => console.error("Error al excitar la base de datos:", err));
-                } else {
-                    // Si es nuevo, lo empujamos con fuerza a la colección
-                    db.ref('perfiles').push(profileData)
-                        .then(() => {
-                            setIsModalOpen(false);
-                            setFormData(getEmptyProfileFormData());
-                        })
-                        .catch(err => console.error("No pudo entrar el perfil:", err));
+                try {
+                    if (editingId) {
+                        // Si estamos editando, buscamos el lugar exacto y lo actualizamos
+                        await db.ref(`perfiles/${editingId}`).set(profileData);
+                        setIsModalOpen(false);
+                        setEditingId(null);
+                    } else {
+                        // Si es nuevo, lo empujamos con fuerza a la colección
+                        await db.ref('perfiles').push(profileData);
+                        setIsModalOpen(false);
+                        setFormData(getEmptyProfileFormData());
+                    }
+                } catch (err) {
+                    console.error("No se pudo guardar el perfil:", err);
+                    window.alert('No se pudo guardar el perfil. Revisá tu conexión e intentá de nuevo.');
+                } finally {
+                    setIsSavingProfile(false);
                 }
             };
             const saveCategory = async (e) => {
@@ -3955,11 +4048,15 @@ const saveProfile = (e) => {
                     ...derivedState
                 };
             };
+            const hasArenaPairBeenPlayed = (matchups = {}, profileAId = '', profileBId = '') => {
+                if (!profileAId || !profileBId || profileAId === profileBId) return false;
+                const key = getPairKey(profileAId, profileBId);
+                return isMatchupResolved(matchups, key);
+            };
             const findNextPendingPairInGroup = (groupIds = [], playedMatchups = {}) => {
                 for (let i = 0; i < groupIds.length - 1; i++) {
                     for (let j = i + 1; j < groupIds.length; j++) {
-                        const key = getPairKey(groupIds[i], groupIds[j]);
-                        if (!isMatchupResolved(playedMatchups, key)) return [groupIds[i], groupIds[j]];
+                        if (!hasArenaPairBeenPlayed(playedMatchups, groupIds[i], groupIds[j])) return [groupIds[i], groupIds[j]];
                     }
                 }
                 return null;
@@ -4088,7 +4185,7 @@ const saveProfile = (e) => {
                     !!currentChallengerId &&
                     currentChampionId !== currentChallengerId &&
                     !!currentGroup &&
-                    !isMatchupResolved(globalMatchups, getPairKey(currentChampionId, currentChallengerId))
+                    !hasArenaPairBeenPlayed(globalMatchups, currentChampionId, currentChallengerId)
                 );
                 const nextPendingPair = groupedIds.length
                     ? findNextPendingPairByGroups(groupedIds, arenaState.matchups || {}, globalMatchups)
@@ -4203,8 +4300,9 @@ const saveProfile = (e) => {
                 const normalizedGlobal = normalizeArenaGlobalState(arenaName, arenaGlobalState?.[globalKey] || {});
                 const globalMatchups = normalizedGlobal?.matchups || {};
                 const initialPair = findNextPendingPairByGroups(groupedIds, {}, globalMatchups);
-                if (!initialPair) return;
-                const activeGroup = getGroupForPair(groupedIds, initialPair[0], initialPair[1]);
+                const activeGroup = initialPair
+                    ? getGroupForPair(groupedIds, initialPair[0], initialPair[1])
+                    : null;
 
                 const nextArenaState = {
                     mode,
@@ -4215,11 +4313,11 @@ const saveProfile = (e) => {
                     directMatchups: normalizedGlobal?.directMatchups || {},
                     matchups: globalMatchups,
                     victoryGraph: normalizedGlobal?.victoryGraph || {},
-                    championId: initialPair[0],
-                    challengerId: initialPair[1],
+                    championId: initialPair ? initialPair[0] : null,
+                    challengerId: initialPair ? initialPair[1] : null,
                     activeGroupKey: activeGroup?.key || null,
                     activeGroupLabel: activeGroup ? `${activeGroup.typeLabel}: ${activeGroup.label}` : '',
-                    isFinished: false
+                    isFinished: !initialPair
                 };
                 const arenaKey = getArenaBattleKey(arenaName, scopeId, groupKey);
                 if (!arenaKey) return;
@@ -4264,6 +4362,7 @@ const saveProfile = (e) => {
                 if (winnerId !== championId && winnerId !== challengerId) return;
                 const loserId = winnerId === championId ? challengerId : championId;
                 if (!winnerId || !loserId) return;
+                if (hasArenaPairBeenPlayed(currentGlobalState?.matchups || {}, winnerId, loserId)) return;
 
                 const pairKey = getPairKey(winnerId, loserId);
                 const updatedDirectMatchups = {
@@ -4903,6 +5002,7 @@ const saveProfile = (e) => {
                                                             battlePhotoPrefs: selectedTallerProfile?.batallaFotosPreferidas || selectedTallerProfile?.galeria?.battlePhotoPreferences || {},
                                                             profilePhotoUrl: selectedTallerProfile?.fotos?.[0] || ''
                                                         });
+                                                        setActiveGalleryProfileId(selectedTallerProfile?.firebaseId || selectedTallerProfile?.id || '');
                                                         nuevaVentana?.focus();
                                                     }}
                                                     className="btn-metal py-3 rounded-xl text-[11px] font-black tracking-wide uppercase"
@@ -5235,37 +5335,17 @@ const saveProfile = (e) => {
                                         <div className="grid gap-4 md:grid-cols-2">
                                             <select
                                                 className="theme-surface-soft border theme-border-secondary p-3 rounded-xl outline-none text-white font-bold"
-                                                value={anonMediaSource}
-                                                onChange={(event) => {
-                                                    setAnonMediaSource(event.target.value);
-                                                    setAnonMediaError('');
-                                                }}
-                                            >
-                                                <option value="url">URL</option>
-                                                <option value="file">Archivo de dispositivo</option>
-                                            </select>
-                                            <select
-                                                className="theme-surface-soft border theme-border-secondary p-3 rounded-xl outline-none text-white font-bold"
                                                 value={anonMediaLabel}
                                                 onChange={(event) => setAnonMediaLabel(event.target.value)}
                                             >
                                                 {GALLERY_LABELS.map((label) => <option key={label} value={label}>{label}</option>)}
                                             </select>
-                                            {anonMediaSource === 'url' ? (
-                                                <input
-                                                    placeholder="URL"
-                                                    className="md:col-span-2 theme-surface-soft border theme-border-secondary p-3 rounded-xl outline-none text-white font-bold"
-                                                    value={anonMediaUrl}
-                                                    onChange={(event) => setAnonMediaUrl(event.target.value)}
-                                                />
-                                            ) : (
-                                                <input
-                                                    type="file"
-                                                    accept={anonUploadType === 'imagen' ? 'image/*,.gif' : 'image/*,video/*,.gif'}
-                                                    className="md:col-span-2 theme-surface-soft border theme-border-secondary p-3 rounded-xl outline-none text-white font-bold"
-                                                    onChange={(event) => setAnonMediaFile(event.target.files?.[0] || null)}
-                                                />
-                                            )}
+                                            <input
+                                                placeholder="URL"
+                                                className="md:col-span-2 theme-surface-soft border theme-border-secondary p-3 rounded-xl outline-none text-white font-bold"
+                                                value={anonMediaUrl}
+                                                onChange={(event) => setAnonMediaUrl(event.target.value)}
+                                            />
                                             <input
                                                 placeholder="Autor (opcional)"
                                                 className="md:col-span-2 theme-surface-soft border theme-border-secondary p-3 rounded-xl outline-none text-white font-bold"
@@ -5297,29 +5377,12 @@ const saveProfile = (e) => {
                                             value={galleryAudioName}
                                             onChange={(event) => setGalleryAudioName(event.target.value)}
                                         />
-                                        <select
+                                        <input
+                                            placeholder="URL"
                                             className="theme-surface-soft border theme-border-secondary p-3 rounded-xl outline-none text-white font-bold w-full"
-                                            value={galleryAudioSource}
-                                            onChange={(event) => setGalleryAudioSource(event.target.value)}
-                                        >
-                                            <option value="url">URL</option>
-                                            <option value="file">Archivo de dispositivo</option>
-                                        </select>
-                                        {galleryAudioSource === 'url' ? (
-                                            <input
-                                                placeholder="URL"
-                                                className="theme-surface-soft border theme-border-secondary p-3 rounded-xl outline-none text-white font-bold w-full"
-                                                value={galleryAudioUrl}
-                                                onChange={(event) => setGalleryAudioUrl(event.target.value)}
-                                            />
-                                        ) : (
-                                            <input
-                                                type="file"
-                                                accept="audio/*"
-                                                className="theme-surface-soft border theme-border-secondary p-3 rounded-xl outline-none text-white font-bold w-full"
-                                                onChange={(event) => setGalleryAudioFile(event.target.files?.[0] || null)}
-                                            />
-                                        )}
+                                            value={galleryAudioUrl}
+                                            onChange={(event) => setGalleryAudioUrl(event.target.value)}
+                                        />
                                         <button
                                             type="button"
                                             onClick={addGalleryAudioTrack}
@@ -5327,6 +5390,29 @@ const saveProfile = (e) => {
                                         >
                                             Guardar audio en Firebase
                                         </button>
+                                        <div className="space-y-2 pt-2">
+                                            <p className="text-[11px] uppercase tracking-[0.25em] text-cyan-200/80 font-black">Audios guardados</p>
+                                            {galleryAudioTracks.length ? (
+                                                <ul className="space-y-2">
+                                                    {galleryAudioTracks.map((track, index) => (
+                                                        <li key={`${track.url}-${track.nombre}-${index}`} className="flex items-center justify-between gap-3 rounded-xl border border-slate-500/45 bg-slate-900/55 px-3 py-2">
+                                                            <span className="text-sm text-slate-100 font-bold truncate">{track.nombre}</span>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => removeGalleryAudioTrack(index)}
+                                                                className="shrink-0 w-8 h-8 rounded-full border border-rose-300/55 text-rose-200 hover:text-white hover:bg-rose-500/35 transition-all font-black text-lg leading-none"
+                                                                aria-label={`Eliminar audio ${track.nombre}`}
+                                                                title={`Eliminar ${track.nombre}`}
+                                                            >
+                                                                ×
+                                                            </button>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            ) : (
+                                                <p className="text-xs text-slate-300/80 font-semibold">No hay audios guardados todavía.</p>
+                                            )}
+                                        </div>
                                         {galleryAudioError ? <p className="text-xs font-black uppercase tracking-[0.12em] text-rose-300">{galleryAudioError}</p> : null}
                                         </div>
                                     )}
@@ -7167,12 +7253,6 @@ const saveProfile = (e) => {
                         value={formData.fotos[0] || ''}
                         onChange={e => setFormData(prev => withProfilePhotoSyncedToGallery(prev, e.target.value))}
                     />
-                    <input
-                        type="file"
-                        accept="image/*,.gif"
-                        onChange={handleLocalProfilePhotoUpload}
-                        className="w-full theme-surface-soft border border-dashed theme-border-secondary p-4 rounded-xl outline-none text-slate-200 font-semibold text-xs file:mr-3 file:rounded-lg file:border-0 file:bg-cyan-500/20 file:px-3 file:py-2 file:text-cyan-200 file:font-black"
-                    />
                 </div>
 
                 <div className="space-y-1">
@@ -7220,8 +7300,10 @@ const saveProfile = (e) => {
                                                 <LucideIcon name="trash-2" size={20} />
                                             </button>
                                         )}
-                                        <button type="submit" className="btn-metal btn-metal--gold flex-1 py-8 rounded-xl text-xs">
-                                            {editingId ? 'Actualizar Registro' : 'Guardar Perfil'}
+                                        <button type="submit" disabled={isSavingProfile} className="btn-metal btn-metal--gold flex-1 py-8 rounded-xl text-xs disabled:cursor-not-allowed disabled:opacity-60">
+                                            {isSavingProfile
+                                                ? 'Guardando...'
+                                                : (editingId ? 'Actualizar Registro' : 'Guardar Perfil')}
                                         </button>
                                     </div>
                                 </form>
