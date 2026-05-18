@@ -2516,13 +2516,37 @@ const getInitialCatFormData = () => ({
                     }));
                 }
             };
+
+            const maybeOptimizeImageForUpload = async (file) => {
+                if (!(file instanceof File)) return file;
+                const mimeType = String(file.type || '').toLowerCase();
+                if (!mimeType.startsWith('image/') || mimeType === 'image/gif') return file;
+                if (file.size <= 1_200_000) return file;
+
+                const bitmap = await createImageBitmap(file);
+                const maxDimension = 1920;
+                const scale = Math.min(1, maxDimension / Math.max(bitmap.width, bitmap.height));
+                const targetWidth = Math.max(1, Math.round(bitmap.width * scale));
+                const targetHeight = Math.max(1, Math.round(bitmap.height * scale));
+                const canvas = document.createElement('canvas');
+                canvas.width = targetWidth;
+                canvas.height = targetHeight;
+                const ctx = canvas.getContext('2d', { alpha: false });
+                if (!ctx) return file;
+                ctx.drawImage(bitmap, 0, 0, targetWidth, targetHeight);
+
+                const outputType = mimeType === 'image/png' ? 'image/png' : 'image/jpeg';
+                const outputQuality = outputType === 'image/jpeg' ? 0.82 : undefined;
+                const blob = await new Promise((resolve) => canvas.toBlob(resolve, outputType, outputQuality));
+                if (!blob || blob.size >= file.size) return file;
+
+                const baseName = (file.name || 'archivo').replace(/\.[^.]+$/, '');
+                const ext = outputType === 'image/png' ? 'png' : 'jpg';
+                return new File([blob], `${baseName}.${ext}`, { type: outputType, lastModified: Date.now() });
+            };
             const uploadFileToFirebaseStorage = window.uploadFileToFirebaseStorage = async (file, folder = 'galeria') => {
                 if (!file) throw new Error('No se encontró el archivo para subir.');
                 const safeFolder = String(folder || 'galeria').replace(/[^a-zA-Z0-9/_-]/g, '');
-                const extension = (file.name || '').split('.').pop();
-                const sanitizedExt = extension && extension !== file.name ? `.${extension.replace(/[^a-zA-Z0-9]/g, '').toLowerCase()}` : '';
-                const uniqueId = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
-                const storagePath = `${safeFolder}/${uniqueId}${sanitizedExt}`;
                 try {
                     if (typeof storage?.setMaxUploadRetryTime === 'function') {
                         storage.setMaxUploadRetryTime(120000);
@@ -2532,7 +2556,12 @@ const getInitialCatFormData = () => ({
                 let lastError = null;
                 for (let attempt = 1; attempt <= 2; attempt += 1) {
                     try {
-                        const snapshot = await storage.ref(storagePath).put(file);
+                        const optimizedFile = await maybeOptimizeImageForUpload(file);
+                        const extension = (optimizedFile.name || '').split('.').pop();
+                        const sanitizedExt = extension && extension !== optimizedFile.name ? `.${extension.replace(/[^a-zA-Z0-9]/g, '').toLowerCase()}` : '';
+                        const uniqueId = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+                        const storagePath = `${safeFolder}/${uniqueId}${sanitizedExt}`;
+                        const snapshot = await storage.ref(storagePath).put(optimizedFile);
                         return snapshot.ref.getDownloadURL();
                     } catch (error) {
                         lastError = error;
