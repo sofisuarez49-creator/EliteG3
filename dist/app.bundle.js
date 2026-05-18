@@ -1035,7 +1035,7 @@ import{jsxDEV as X,Fragment as xJ}from"react/jsx-dev-runtime";const t1={apiKey:"
                         const previewContainer = document.getElementById('mediaPreviewContainer');
                         const mediaType = document.getElementById('nuevoArchivoTipo')?.value || '';
                         if (!previewContainer || !previewSrc) return;
-                        const localVideoRegex = /.(mp4|webm|ogg|mov|m4v)(?.*)?$/i;
+                        const localVideoRegex = /\.(mp4|webm|ogg|mov|m4v)(\?.*)?$/i;
                         const isVideo = mediaType === 'video' || localVideoRegex.test(previewSrc);
                         previewContainer.style.display = 'block';
                         previewContainer.innerHTML = isVideo
