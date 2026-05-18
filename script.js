@@ -2399,11 +2399,9 @@
             const [tallerSearchTerm, setTallerSearchTerm] = useState('');
             const [anonMediaUrl, setAnonMediaUrl] = useState('');
             const [anonMediaLabel, setAnonMediaLabel] = useState(GALLERY_LABELS[0]);
+            const [anonMediaAuthor, setAnonMediaAuthor] = useState('');
             const [anonMediaError, setAnonMediaError] = useState('');
             const [anonUploadType, setAnonUploadType] = useState('');
-            const [anonMediaMode, setAnonMediaMode] = useState('url');
-            const [anonMediaFile, setAnonMediaFile] = useState(null);
-            const [anonMediaPreviewUrl, setAnonMediaPreviewUrl] = useState('');
             const [galleryAudioTracks, setGalleryAudioTracks] = useState([]);
             const [galleryAudioName, setGalleryAudioName] = useState('');
             const [galleryAudioUrl, setGalleryAudioUrl] = useState('');
@@ -2812,41 +2810,13 @@ const getInitialCatFormData = () => ({
                 }];
                 await galleryRef.set(updatedItems);
             };
-            const getAnonGalleryTagByCategory = (category = '') => {
-                const map = { imagen: 'fotos', gif: 'gifs', video: 'videos' };
-                return map[String(category || '').toLowerCase()] || 'fotos';
-            };
-            const getAnonMediaTypeByCategory = (category = '') => (
-                String(category || '').toLowerCase() === 'video' ? 'video' : 'image'
-            );
-            const handleAnonMediaSubmit = async () => {
+            const handleAnonMediaSubmit = async (forcedTag = '') => {
                 setAnonMediaError('');
                 try {
-                    const forcedTag = getAnonGalleryTagByCategory(anonUploadType);
-                    const normalizedLabel = GALLERY_LABELS.includes(anonMediaLabel) ? anonMediaLabel : '';
-                    if (anonMediaMode === 'file') {
-                        if (!(anonMediaFile instanceof File)) {
-                            throw new Error('Seleccioná un archivo antes de guardar.');
-                        }
-                        const downloadURL = await uploadFileToFirebaseStorage(anonMediaFile, `galeria/${forcedTag}`);
-                        await addAnonymousGalleryItem({ url: downloadURL, label: normalizedLabel, autor: '', forcedTag });
-                    } else {
-                        const finalUrl = String(anonMediaUrl || '').trim();
-                        if (!finalUrl) throw new Error('Ingresá una URL.');
-                        const payload = {
-                            url: finalUrl,
-                            label: normalizedLabel,
-                            type: getAnonMediaTypeByCategory(anonUploadType),
-                            autor: ''
-                        };
-                        const galleryRef = db.ref(`${ANON_GALLERY_NODE_PATH}/${forcedTag}`);
-                        const snapshot = await galleryRef.once('value');
-                        const currentItems = Array.isArray(snapshot.val()) ? snapshot.val() : [];
-                        await galleryRef.set([...currentItems, payload]);
-                    }
+                    let finalUrl = String(anonMediaUrl || '').trim();
+                    await addAnonymousGalleryItem({ url: finalUrl, label: anonMediaLabel, autor: anonMediaAuthor, forcedTag });
                     setAnonMediaUrl('');
-                    setAnonMediaFile(null);
-                    setAnonMediaPreviewUrl('');
+                    setAnonMediaAuthor('');
                 } catch (error) {
                     setAnonMediaError(error?.message || 'No se pudo guardar en galería anónima.');
                 }
@@ -5539,8 +5509,7 @@ const saveProfile = async (e) => {
                                     <div className="grid gap-3 sm:grid-cols-3">
                                         {[
                                             { key: 'imagen', label: 'Imagen' },
-                                            { key: 'gif', label: 'Gif' },
-                                            { key: 'video', label: 'Video' },
+                                            { key: 'escena', label: 'Escena' },
                                             { key: 'audio', label: 'Audio' }
                                         ].map((item) => (
                                             <button
@@ -5548,11 +5517,7 @@ const saveProfile = async (e) => {
                                                 type="button"
                                                 onClick={() => {
                                                     setAnonUploadType(item.key);
-                                                    setAnonMediaMode('url');
                                                     setAnonMediaError('');
-                                                    setAnonMediaUrl('');
-                                                    setAnonMediaFile(null);
-                                                    setAnonMediaPreviewUrl('');
                                                     setGalleryAudioError('');
                                                 }}
                                                 className={`px-5 py-3 rounded-xl font-black uppercase tracking-[0.14em] transition-all border ${anonUploadType === item.key ? 'text-cyan-100 border-cyan-300/50 bg-cyan-500/35' : 'text-slate-200 border-slate-500/50 bg-slate-700/30 hover:bg-slate-600/35'}`}
@@ -5562,20 +5527,8 @@ const saveProfile = async (e) => {
                                         ))}
                                     </div>
 
-                                    {(anonUploadType === 'imagen' || anonUploadType === 'gif' || anonUploadType === 'video') && (
+                                    {(anonUploadType === 'imagen' || anonUploadType === 'escena') && (
                                         <div className="grid gap-4 md:grid-cols-2">
-                                            <div className="md:col-span-2 grid grid-cols-2 gap-2">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => { setAnonMediaMode('url'); setAnonMediaError(''); }}
-                                                    className={`px-4 py-2 rounded-lg font-black uppercase tracking-[0.12em] border transition-all ${anonMediaMode === 'url' ? 'text-cyan-100 border-cyan-300/60 bg-cyan-500/25' : 'text-slate-200 border-slate-500/40 bg-slate-700/25'}`}
-                                                >URL</button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => { setAnonMediaMode('file'); setAnonMediaError(''); }}
-                                                    className={`px-4 py-2 rounded-lg font-black uppercase tracking-[0.12em] border transition-all ${anonMediaMode === 'file' ? 'text-cyan-100 border-cyan-300/60 bg-cyan-500/25' : 'text-slate-200 border-slate-500/40 bg-slate-700/25'}`}
-                                                >Archivo</button>
-                                            </div>
                                             <select
                                                 className="theme-surface-soft border theme-border-secondary p-3 rounded-xl outline-none text-white font-bold"
                                                 value={anonMediaLabel}
@@ -5583,35 +5536,24 @@ const saveProfile = async (e) => {
                                             >
                                                 {GALLERY_LABELS.map((label) => <option key={label} value={label}>{label}</option>)}
                                             </select>
-                                            {anonMediaMode === 'url' ? (
-                                                <input
-                                                    placeholder="URL directa"
-                                                    className="md:col-span-2 theme-surface-soft border theme-border-secondary p-3 rounded-xl outline-none text-white font-bold"
-                                                    value={anonMediaUrl}
-                                                    onChange={(event) => setAnonMediaUrl(event.target.value)}
-                                                />
-                                            ) : (
-                                                <input
-                                                    type="file"
-                                                    accept={anonUploadType === 'video' ? 'video/*' : anonUploadType === 'gif' ? '.gif,image/gif' : 'image/*'}
-                                                    className="md:col-span-2 theme-surface-soft border theme-border-secondary p-3 rounded-xl outline-none text-white font-bold"
-                                                    onChange={(event) => {
-                                                        const file = event.target.files && event.target.files[0] ? event.target.files[0] : null;
-                                                        setAnonMediaFile(file);
-                                                        setAnonMediaPreviewUrl(file ? URL.createObjectURL(file) : '');
-                                                    }}
-                                                />
-                                            )}
-                                            {anonMediaPreviewUrl && (
-                                                <div className="md:col-span-2 rounded-xl border border-slate-500/45 bg-slate-900/50 p-3">
-                                                    {anonUploadType === 'video'
-                                                        ? <video src={anonMediaPreviewUrl} controls className="w-full rounded-lg max-h-72 bg-black/60" />
-                                                        : <img src={anonMediaPreviewUrl} alt="Preview" className="w-full rounded-lg max-h-72 object-contain bg-black/60" />}
-                                                </div>
-                                            )}
+                                            <input
+                                                placeholder="URL"
+                                                className="md:col-span-2 theme-surface-soft border theme-border-secondary p-3 rounded-xl outline-none text-white font-bold"
+                                                value={anonMediaUrl}
+                                                onChange={(event) => setAnonMediaUrl(event.target.value)}
+                                            />
+                                            <input
+                                                placeholder="Autor (opcional)"
+                                                className="md:col-span-2 theme-surface-soft border theme-border-secondary p-3 rounded-xl outline-none text-white font-bold"
+                                                value={anonMediaAuthor}
+                                                onChange={(event) => setAnonMediaAuthor(event.target.value)}
+                                            />
                                             <button
                                                 type="button"
-                                                onClick={handleAnonMediaSubmit}
+                                                onClick={async () => {
+                                                    const forcedTag = anonUploadType === 'escena' ? 'videos' : 'fotos';
+                                                    await handleAnonMediaSubmit(forcedTag);
+                                                }}
                                                 className="md:col-span-2 px-5 py-3 rounded-xl font-black uppercase tracking-[0.14em] text-cyan-100 border border-cyan-300/50 bg-cyan-500/20 hover:bg-cyan-500/35 transition-all"
                                             >
                                                 Guardar {anonUploadType}
