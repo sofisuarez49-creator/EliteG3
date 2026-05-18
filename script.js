@@ -1706,21 +1706,43 @@
                         const labelInput = document.getElementById('nuevaFotoEtiqueta');
                         const mediaTypeInput = document.getElementById('nuevoArchivoTipo');
                         const fileInput = document.getElementById('nuevoArchivoFile');
+                        const saveButton = document.getElementById('modalSaveButton');
                         const selectedFile = fileInput?.files?.[0];
                         const mediaType = mediaTypeInput?.value === 'video' ? 'video' : 'image';
                         const label = labelInput?.value || '${GALLERY_LABELS[0]}';
                         const slotSelectionId = activeSlotSelectionId || document.getElementById('slotSelectionId')?.value || '';
+                        const defaultButtonText = saveButton?.dataset?.idleText || 'Guardar';
+
+                        const setSavingState = (isSaving) => {
+                            if (!saveButton) return;
+                            saveButton.disabled = Boolean(isSaving);
+                            saveButton.style.opacity = isSaving ? '0.7' : '1';
+                            saveButton.style.cursor = isSaving ? 'wait' : 'pointer';
+                            saveButton.textContent = isSaving ? 'Subiendo archivo...' : defaultButtonText;
+                        };
 
                         try {
                             if (!selectedFile) throw new Error('Seleccioná un archivo antes de guardar.');
+                            if (!window.opener?.uploadFileToFirebaseStorage) {
+                                throw new Error('No se pudo iniciar la subida. Cerrá y volvé a abrir la galería.');
+                            }
+                            setSavingState(true);
                             const uploadedUrl = await window.opener.uploadFileToFirebaseStorage(selectedFile, 'galeria');
                             postMediaFromModal({ url: uploadedUrl, mediaType, label, slotSelectionId });
                             document.getElementById('miModal').style.display = 'none';
                             resetAddMediaModalFields();
                         } catch (error) {
-                            window.alert(error?.message || 'No se pudo guardar el archivo.');
+                            const errorCode = String(error?.code || '').toLowerCase();
+                            const isRetryLimit = errorCode === 'storage/retry-limit-exceeded' || String(error?.message || '').includes('storage/retry-limit-exceeded');
+                            const message = isRetryLimit
+                                ? 'La subida tardó demasiado y se agotaron los reintentos. Probá con una red más estable o un archivo más liviano.'
+                                : (error?.message || 'No se pudo guardar el archivo.');
+                            window.alert(message);
+                        } finally {
+                            setSavingState(false);
                         }
                     }
+                    window.addMediaFromModal = addMediaFromModal;
 
                     galleryGrid?.addEventListener('click', (event) => {
                         const card = event.target.closest('.gallery-card');
@@ -2501,8 +2523,26 @@ const getInitialCatFormData = () => ({
                 const sanitizedExt = extension && extension !== file.name ? `.${extension.replace(/[^a-zA-Z0-9]/g, '').toLowerCase()}` : '';
                 const uniqueId = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
                 const storagePath = `${safeFolder}/${uniqueId}${sanitizedExt}`;
-                const snapshot = await storage.ref(storagePath).put(file);
-                return snapshot.ref.getDownloadURL();
+                try {
+                    if (typeof storage?.setMaxUploadRetryTime === 'function') {
+                        storage.setMaxUploadRetryTime(120000);
+                    }
+                } catch (_error) {
+                }
+                let lastError = null;
+                for (let attempt = 1; attempt <= 2; attempt += 1) {
+                    try {
+                        const snapshot = await storage.ref(storagePath).put(file);
+                        return snapshot.ref.getDownloadURL();
+                    } catch (error) {
+                        lastError = error;
+                        const code = String(error?.code || '').toLowerCase();
+                        if (code !== 'storage/retry-limit-exceeded' || attempt === 2) {
+                            throw error;
+                        }
+                    }
+                }
+                throw lastError || new Error('No se pudo subir el archivo a Firebase Storage.');
             };
             const readFileAsDataUrl = (file) => new Promise((resolve, reject) => {
                 const reader = new FileReader();
