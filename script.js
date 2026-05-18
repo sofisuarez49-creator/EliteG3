@@ -1735,7 +1735,7 @@
                             const errorCode = String(error?.code || '').toLowerCase();
                             const isRetryLimit = errorCode === 'storage/retry-limit-exceeded' || String(error?.message || '').includes('storage/retry-limit-exceeded');
                             const message = isRetryLimit
-                                ? 'La subida tardó demasiado y se agotaron los reintentos. Probá con una red más estable o un archivo más liviano.'
+                                ? 'La subida tardó demasiado y se agotaron los reintentos. Esperá unos segundos y reintentá; si persiste, probá con otra conexión.'
                                 : (error?.message || 'No se pudo guardar el archivo.');
                             window.alert(message);
                         } finally {
@@ -2523,21 +2523,33 @@ const getInitialCatFormData = () => ({
                 const sanitizedExt = extension && extension !== file.name ? `.${extension.replace(/[^a-zA-Z0-9]/g, '').toLowerCase()}` : '';
                 const uniqueId = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
                 const storagePath = `${safeFolder}/${uniqueId}${sanitizedExt}`;
+                const uploadMetadata = {
+                    contentType: file.type || 'application/octet-stream',
+                    cacheControl: 'public,max-age=31536000,immutable'
+                };
                 try {
                     if (typeof storage?.setMaxUploadRetryTime === 'function') {
-                        storage.setMaxUploadRetryTime(120000);
+                        storage.setMaxUploadRetryTime(600000);
+                    }
+                    if (typeof storage?.setMaxOperationRetryTime === 'function') {
+                        storage.setMaxOperationRetryTime(120000);
                     }
                 } catch (_error) {
                 }
                 let lastError = null;
-                for (let attempt = 1; attempt <= 2; attempt += 1) {
+                for (let attempt = 1; attempt <= 3; attempt += 1) {
                     try {
-                        const snapshot = await storage.ref(storagePath).put(file);
+                        const snapshot = await storage.ref(storagePath).put(file, uploadMetadata);
                         return snapshot.ref.getDownloadURL();
                     } catch (error) {
                         lastError = error;
                         const code = String(error?.code || '').toLowerCase();
-                        if (code !== 'storage/retry-limit-exceeded' || attempt === 2) {
+                        const shouldRetry = (
+                            code === 'storage/retry-limit-exceeded'
+                            || code === 'storage/unknown'
+                            || code === 'storage/network-request-failed'
+                        );
+                        if (!shouldRetry || attempt === 3) {
                             throw error;
                         }
                     }
