@@ -1386,20 +1386,33 @@
                 </div>
 
                 <div id="miModal" class="modal-url">
-                    <h2 style="margin:0; font-size: 14px; color: #94a3b8;">SUBIR ARCHIVO</h2>
-                    <input type="file" id="nuevoArchivoFile" accept="image/*,video/*,.gif" style="width:100%; margin-top: 15px; color:#e2e8f0;">
-                    <select id="nuevoArchivoTipo" style="width: 100%; padding: 12px; margin-top: 15px; background: #020617; border: 1px solid rgba(71,85,105,0.92); color: #e2e8f0; border-radius: 8px; outline: none; box-shadow: inset 0 1px 0 rgba(148,163,184,0.18);">
-                        <option value="image">Imagen / GIF</option>
-                        <option value="video">Video</option>
+                    <h2 style="margin:0; font-size: 14px; color: #94a3b8;">AGREGAR MULTIMEDIA</h2>
+                    <select id="nuevoArchivoModo" style="width: 100%; padding: 12px; margin-top: 15px; background: #020617; border: 1px solid rgba(71,85,105,0.92); color: #e2e8f0; border-radius: 8px; outline: none;">
+                        <option value="url">Modo URL</option>
+                        <option value="file">Modo Archivo</option>
                     </select>
+                    <select id="nuevoArchivoTipo" style="width: 100%; padding: 12px; margin-top: 15px; background: #020617; border: 1px solid rgba(71,85,105,0.92); color: #e2e8f0; border-radius: 8px; outline: none; box-shadow: inset 0 1px 0 rgba(148,163,184,0.18);">
+                        <option value="">Seleccionar categoría...</option>
+                        <option value="video">Video</option>
+                        <option value="gif">Gif</option>
+                        <option value="image">Imagen</option>
+                    </select>
+                    <input type="url" id="mediaUrlInput" placeholder="https://..." style="width:100%; margin-top: 15px; padding: 12px; background: #020617; border: 1px solid rgba(71,85,105,0.92); color:#e2e8f0; border-radius: 8px; outline: none;">
+                    <input type="file" id="nuevoArchivoFile" accept="image/*,video/*,.gif" style="display:none; width:100%; margin-top: 15px; color:#e2e8f0;">
+                    <div id="mediaPreviewContainer" style="display:none; width:100%; margin-top: 15px; border-radius:10px; border:1px solid rgba(71,85,105,0.82); background:rgba(2,6,23,0.75); overflow:hidden;"></div>
+                    <p id="mediaFormError" style="display:none; margin:10px 0 0; font-size:11px; color:#fda4af;"></p>
                     <select id="nuevaFotoEtiqueta" style="width: 100%; padding: 12px; margin-top: 15px; background: #020617; border: 1px solid rgba(71,85,105,0.92); color: #e2e8f0; border-radius: 8px; outline: none; box-shadow: inset 0 1px 0 rgba(148,163,184,0.18);">
                         ${GALLERY_LABELS.map(label => `<option value="${label}">Etiqueta ${label}</option>`).join('')}
                     </select>
                     <input type="hidden" id="slotSelectionId" value="">
                     <p id="slotGalleryHint" style="display:none; margin:10px 0 0; font-size:11px; color:#93c5fd;">Tip: para “Elegir desde galería” tocá cualquier imagen para asignarla.</p>
-                    <button id="modalSaveButton" type="button" onclick="document.getElementById('miModal').style.display='none'; resetAddMediaModalFields();"
+                    <button id="modalCancelButton" type="button" onclick="handleCancelMediaModal();"
+                        style="margin-top: 15px; width: 100%; padding: 10px; background: linear-gradient(180deg, rgba(51,65,85,0.95), rgba(30,41,59,0.95)); color: #e2e8f0; border: 1px solid rgba(148,163,184,0.95); border-radius: 8px; font-weight: 800; cursor: pointer; text-transform: uppercase; letter-spacing: 0.08em;">
+                        Cancelar
+                    </button>
+                    <button id="modalSaveButton" type="button" onclick="handleSaveMediaModal();"
                         style="margin-top: 15px; width: 100%; padding: 10px; background: linear-gradient(180deg, rgba(22,163,74,0.95), rgba(21,128,61,0.95)); color: #ecfdf5; border: 1px solid rgba(134,239,172,0.95); border-radius: 8px; font-weight: 800; cursor: pointer; text-transform: uppercase; letter-spacing: 0.08em; box-shadow: 0 0 14px rgba(34,211,238,0.4);">
-                        Cerrar
+                        Guardar
                     </button>
                 </div>
 
@@ -1594,6 +1607,14 @@
                     var SWIPE_VELOCITY_THRESHOLD = 0.35;
                     var SWIPE_FEEDBACK_MAX_TRANSLATE = 52;
                     var SWIPE_VERTICAL_LOCK_RATIO = 1.2;
+                    var mediaModalState = {
+                        mediaUrlInput: '',
+                        selectedFile: null,
+                        previewSrc: '',
+                        formError: '',
+                        isSaving: false,
+                        previewObjectUrl: ''
+                    };
                     var viewerSwipeState = {
                         active: false,
                         pointerId: null,
@@ -1674,18 +1695,105 @@
                     }
 
                     function resetAddMediaModalFields() {
+                        if (mediaModalState.previewObjectUrl) {
+                            URL.revokeObjectURL(mediaModalState.previewObjectUrl);
+                        }
+                        mediaModalState = {
+                            mediaUrlInput: '',
+                            selectedFile: null,
+                            previewSrc: '',
+                            formError: '',
+                            isSaving: false,
+                            previewObjectUrl: ''
+                        };
+                        const modeInput = document.getElementById('nuevoArchivoModo');
                         const labelInput = document.getElementById('nuevaFotoEtiqueta');
                         const mediaTypeInput = document.getElementById('nuevoArchivoTipo');
                         const fileInput = document.getElementById('nuevoArchivoFile');
+                        const urlInput = document.getElementById('mediaUrlInput');
+                        const previewContainer = document.getElementById('mediaPreviewContainer');
+                        const errorContainer = document.getElementById('mediaFormError');
+                        const saveButton = document.getElementById('modalSaveButton');
                         const slotInput = document.getElementById('slotSelectionId');
+                        if (modeInput) modeInput.value = 'url';
                         if (labelInput) labelInput.value = '${GALLERY_LABELS[0]}';
-                        if (mediaTypeInput) mediaTypeInput.value = 'image';
+                        if (mediaTypeInput) mediaTypeInput.value = '';
                         if (fileInput) fileInput.value = '';
+                        if (fileInput) fileInput.style.display = 'none';
+                        if (urlInput) urlInput.value = '';
+                        if (urlInput) urlInput.style.display = 'block';
+                        if (previewContainer) previewContainer.style.display = 'none';
+                        if (previewContainer) previewContainer.innerHTML = '';
+                        if (errorContainer) errorContainer.style.display = 'none';
+                        if (errorContainer) errorContainer.textContent = '';
+                        if (saveButton) saveButton.disabled = false;
+                        if (saveButton) saveButton.textContent = 'Guardar';
                         if (slotInput) slotInput.value = '';
                         const galleryHint = document.getElementById('slotGalleryHint');
                         if (galleryHint) galleryHint.style.display = 'none';
                         activeSlotSelectionId = '';
                         updateSlotGalleryButtons();
+                    }
+
+                    function handleCancelMediaModal() {
+                        const modal = document.getElementById('miModal');
+                        if (modal) modal.style.display = 'none';
+                        resetAddMediaModalFields();
+                    }
+
+                    function renderMediaPreview(previewSrc = '') {
+                        const previewContainer = document.getElementById('mediaPreviewContainer');
+                        const mediaType = document.getElementById('nuevoArchivoTipo')?.value || '';
+                        if (!previewContainer || !previewSrc) return;
+                        const localVideoRegex = /\.(mp4|webm|ogg|mov|m4v)(\?.*)?$/i;
+                        const isVideo = mediaType === 'video' || localVideoRegex.test(previewSrc);
+                        previewContainer.style.display = 'block';
+                        previewContainer.innerHTML = isVideo
+                            ? '<video controls src="' + previewSrc + '" style="width:100%; max-height:220px; display:block; background:#000;"></video>'
+                            : '<img src="' + previewSrc + '" alt="Vista previa" style="width:100%; max-height:220px; object-fit:contain; display:block; background:#000;" />';
+                    }
+
+                    function showMediaModalError(message = '') {
+                        mediaModalState.formError = message;
+                        const errorContainer = document.getElementById('mediaFormError');
+                        if (!errorContainer) return;
+                        errorContainer.textContent = message || '';
+                        errorContainer.style.display = message ? 'block' : 'none';
+                    }
+
+                    async function handleSaveMediaModal() {
+                        if (mediaModalState.isSaving) return;
+                        const saveButton = document.getElementById('modalSaveButton');
+                        const mode = document.getElementById('nuevoArchivoModo')?.value || 'url';
+                        const mediaType = document.getElementById('nuevoArchivoTipo')?.value || '';
+                        const label = document.getElementById('nuevaFotoEtiqueta')?.value || '${GALLERY_LABELS[0]}';
+                        const slotSelectionId = document.getElementById('slotSelectionId')?.value || '';
+                        const mediaUrlInput = (document.getElementById('mediaUrlInput')?.value || '').trim();
+                        const selectedFile = document.getElementById('nuevoArchivoFile')?.files?.[0] || null;
+
+                        if (!mediaType) return showMediaModalError('Seleccioná una categoría.');
+                        if (mode === 'url') {
+                            try { new URL(mediaUrlInput); } catch { return showMediaModalError('Ingresá una URL válida.'); }
+                        } else if (!selectedFile) {
+                            return showMediaModalError('Seleccioná un archivo para continuar.');
+                        }
+                        showMediaModalError('');
+                        mediaModalState.isSaving = true;
+                        if (saveButton) { saveButton.disabled = true; saveButton.textContent = 'Guardando...'; }
+                        try {
+                            let finalUrl = mediaUrlInput;
+                            if (mode === 'file') {
+                                finalUrl = await uploadFileToFirebaseStorage(selectedFile, 'galeria');
+                            }
+                            const normalizedType = mediaType === 'video' ? 'video' : 'image';
+                            postMediaFromModal({ url: finalUrl, mediaType: normalizedType, label, slotSelectionId, canAssignSlot: true });
+                            handleCancelMediaModal();
+                        } catch (error) {
+                            showMediaModalError(error?.message || 'No se pudo guardar la multimedia. Intentá nuevamente.');
+                        } finally {
+                            mediaModalState.isSaving = false;
+                            if (saveButton) { saveButton.disabled = false; saveButton.textContent = 'Guardar'; }
+                        }
                     }
 
                     function postMediaFromModal({ url = '', mediaType = 'image', label = '${GALLERY_LABELS[0]}', slotSelectionId = '', canAssignSlot = true } = {}) {
@@ -1697,6 +1805,56 @@
                             window.opener.postMessage({ type: 'SET_BATTLE_PHOTO_PREF_BY_URL', id: '${editingId}', slotId: slotSelectionId, url: finalUrl, mediaType: finalType, label }, '*');
                         }
                     }
+
+                    document.getElementById('nuevoArchivoModo')?.addEventListener('change', (event) => {
+                        const mode = event.target.value;
+                        const urlInput = document.getElementById('mediaUrlInput');
+                        const fileInput = document.getElementById('nuevoArchivoFile');
+                        showMediaModalError('');
+                        if (mode === 'file') {
+                            if (urlInput) urlInput.style.display = 'none';
+                            if (fileInput) fileInput.style.display = 'block';
+                        } else {
+                            if (urlInput) urlInput.style.display = 'block';
+                            if (fileInput) fileInput.style.display = 'none';
+                        }
+                    });
+                    document.getElementById('mediaUrlInput')?.addEventListener('input', (event) => {
+                        mediaModalState.mediaUrlInput = String(event.target.value || '').trim();
+                        if (mediaModalState.previewObjectUrl) {
+                            URL.revokeObjectURL(mediaModalState.previewObjectUrl);
+                            mediaModalState.previewObjectUrl = '';
+                        }
+                        mediaModalState.previewSrc = mediaModalState.mediaUrlInput;
+                        const previewContainer = document.getElementById('mediaPreviewContainer');
+                        if (!mediaModalState.previewSrc) {
+                            if (previewContainer) previewContainer.style.display = 'none';
+                            if (previewContainer) previewContainer.innerHTML = '';
+                            return;
+                        }
+                        renderMediaPreview(mediaModalState.previewSrc);
+                    });
+                    document.getElementById('nuevoArchivoFile')?.addEventListener('change', (event) => {
+                        const file = event.target.files?.[0] || null;
+                        mediaModalState.selectedFile = file;
+                        if (mediaModalState.previewObjectUrl) {
+                            URL.revokeObjectURL(mediaModalState.previewObjectUrl);
+                            mediaModalState.previewObjectUrl = '';
+                        }
+                        if (!file) {
+                            mediaModalState.previewSrc = '';
+                            const previewContainer = document.getElementById('mediaPreviewContainer');
+                            if (previewContainer) previewContainer.style.display = 'none';
+                            if (previewContainer) previewContainer.innerHTML = '';
+                            return;
+                        }
+                        mediaModalState.previewObjectUrl = URL.createObjectURL(file);
+                        mediaModalState.previewSrc = mediaModalState.previewObjectUrl;
+                        renderMediaPreview(mediaModalState.previewSrc);
+                    });
+                    document.getElementById('nuevoArchivoTipo')?.addEventListener('change', () => {
+                        if (mediaModalState.previewSrc) renderMediaPreview(mediaModalState.previewSrc);
+                    });
 
                     galleryGrid?.addEventListener('click', (event) => {
                         const card = event.target.closest('.gallery-card');
