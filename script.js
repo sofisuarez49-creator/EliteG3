@@ -1398,16 +1398,11 @@
                     <select id="nuevaFotoEtiqueta" style="width: 100%; padding: 12px; margin-top: 15px; background: #020617; border: 1px solid rgba(71,85,105,0.92); color: #e2e8f0; border-radius: 8px; outline: none; box-shadow: inset 0 1px 0 rgba(148,163,184,0.18);">
                         ${GALLERY_LABELS.map(label => `<option value="${label}">Etiqueta ${label}</option>`).join('')}
                     </select>
-                    <input type="text" id="nuevaFotoAutor" placeholder="Autor (opcional)" style="width: 100%; padding: 12px; margin-top: 15px; background: #020617; border: 1px solid rgba(71,85,105,0.92); color: #e2e8f0; border-radius: 8px; outline: none; box-shadow: inset 0 1px 0 rgba(148,163,184,0.18);">
                     <input type="hidden" id="slotSelectionId" value="">
                     <p id="slotGalleryHint" style="display:none; margin:10px 0 0; font-size:11px; color:#93c5fd;">Tip: para “Elegir desde galería” tocá cualquier imagen para asignarla.</p>
                     <button id="modalSaveButton" type="button" onclick="addMediaFromModal(event)"
                         style="margin-top: 15px; width: 100%; padding: 10px; background: linear-gradient(180deg, rgba(14,116,144,0.95), rgba(8,47,73,0.95)); color: #ecfeff; border: 1px solid rgba(103,232,249,0.9); border-radius: 8px; font-weight: 800; cursor: pointer; text-transform: uppercase; letter-spacing: 0.08em; box-shadow: 0 0 14px rgba(34,211,238,0.4);">
                         Guardar
-                    </button>
-                    <button id="modalPlayFullscreenButton" type="button" onclick="startFullscreenPlaybackFromModal(event)"
-                        style="margin-top: 10px; width: 100%; padding: 10px; background: linear-gradient(180deg, rgba(30,64,175,0.95), rgba(30,58,138,0.95)); color: #dbeafe; border: 1px solid rgba(147,197,253,0.9); border-radius: 8px; font-weight: 800; cursor: pointer; text-transform: uppercase; letter-spacing: 0.08em; box-shadow: 0 0 14px rgba(59,130,246,0.38);">
-                        Play pantalla completa
                     </button>
                 </div>
 
@@ -1576,7 +1571,6 @@
                     var viewerNextButton = document.getElementById('viewerNext');
                     var viewerPlayToggleButton = document.getElementById('viewerPlayToggle');
                     var viewerRandomToggleButton = document.getElementById('viewerRandomToggle');
-                    var modalPlayFullscreenButton = document.getElementById('modalPlayFullscreenButton');
                     var VALID_FILE_MIME_PREFIXES = ['image/', 'video/'];
                     var VALID_FILE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'mp4', 'webm', 'ogg', 'mov', 'm4v'];
                     var VIEWER_IMAGE_TIMEOUT_MS = 7000;
@@ -1688,13 +1682,11 @@
                         const urlInput = document.getElementById('nuevaFotoUrl');
                         const fileInput = document.getElementById('nuevoArchivoLocalInput');
                         const labelInput = document.getElementById('nuevaFotoEtiqueta');
-                        const authorInput = document.getElementById('nuevaFotoAutor');
                         const mediaTypeInput = document.getElementById('nuevoArchivoTipo');
                         const slotInput = document.getElementById('slotSelectionId');
                         if (urlInput) urlInput.value = '';
                         if (fileInput) fileInput.value = '';
                         if (labelInput) labelInput.value = '${GALLERY_LABELS[0]}';
-                        if (authorInput) authorInput.value = '';
                         if (mediaTypeInput) mediaTypeInput.value = 'image';
                         if (slotInput) slotInput.value = '';
                         const galleryHint = document.getElementById('slotGalleryHint');
@@ -1703,17 +1695,23 @@
                         updateSlotGalleryButtons();
                     }
 
-                    let isSubmitting = false;
+                    async function addMediaFromModal(event) {
+                        if (event?.preventDefault) event.preventDefault();
+                        const urlInput = document.getElementById('nuevaFotoUrl');
+                        const labelInput = document.getElementById('nuevaFotoEtiqueta');
+                        const mediaTypeInput = document.getElementById('nuevoArchivoTipo');
+                        const normalizedUrl = (urlInput?.value || '').trim();
+                        const mediaType = mediaTypeInput?.value || 'image';
+                        const label = labelInput?.value || '${GALLERY_LABELS[0]}';
+                        const slotSelectionId = activeSlotSelectionId || document.getElementById('slotSelectionId')?.value || '';
 
-                    function setModalSubmittingState(nextSubmitting) {
-                        isSubmitting = Boolean(nextSubmitting);
-                        const saveButton = document.getElementById('modalSaveButton');
-                        if (!saveButton) return;
-                        saveButton.disabled = isSubmitting;
-                        saveButton.style.opacity = isSubmitting ? '0.68' : '1';
-                        saveButton.style.cursor = isSubmitting ? 'not-allowed' : 'pointer';
-                        saveButton.textContent = isSubmitting ? 'Guardando...' : 'Guardar';
-                    }
+                        const postMedia = (finalUrl, finalType, canAssignSlot = true) => {
+                            if (!finalUrl) return;
+                            window.opener.postMessage({ type: 'ADD_IMAGE', url: finalUrl, label, mediaType: finalType, id: '${editingId}' }, '*');
+                            if (slotSelectionId && canAssignSlot) {
+                                window.opener.postMessage({ type: 'SET_BATTLE_PHOTO_PREF_BY_URL', id: '${editingId}', slotId: slotSelectionId, url: finalUrl, mediaType: finalType, label }, '*');
+                            }
+                        };
 
                     function postMediaFromModal({ url = '', mediaType = 'image', label = '${GALLERY_LABELS[0]}', autor = '', slotSelectionId = '' } = {}) {
                         const finalUrl = String(url || '').trim();
@@ -1731,35 +1729,23 @@
                         const urlInput = document.getElementById('nuevaFotoUrl');
                         const fileInput = document.getElementById('nuevoArchivoLocalInput');
                         const labelInput = document.getElementById('nuevaFotoEtiqueta');
-                        const authorInput = document.getElementById('nuevaFotoAutor');
                         const mediaTypeInput = document.getElementById('nuevoArchivoTipo');
                         const selectedFile = fileInput?.files?.[0];
                         const normalizedUrl = (urlInput?.value || '').trim();
                         const label = labelInput?.value || '${GALLERY_LABELS[0]}';
-                        const autor = (authorInput?.value || '').trim();
-                        const slotSelectionId = activeSlotSelectionId || document.getElementById('slotSelectionId')?.value || '';
+                        const detectedType = isVideo ? 'video' : 'image';
                         const previousType = mediaTypeInput?.value || 'image';
 
                         setModalSubmittingState(true);
                         try {
-                            let finalUrl = normalizedUrl;
-                            let finalType = previousType;
-
-                            if (selectedFile) {
-                                const mimeType = String(selectedFile.type || '').toLowerCase();
-                                const fallbackName = String(selectedFile.name || '').toLowerCase();
-                                const isVideo = mimeType.startsWith('video/') || /\.(mp4|webm|ogg|mov|m4v)$/i.test(fallbackName);
-                                const isImageOrGif = mimeType.startsWith('image/') || /\.gif$/i.test(fallbackName);
-                                if (!isVideo && !isImageOrGif) {
-                                    throw new Error('Formato no compatible. Subí imagen, GIF o video.');
-                                }
-                                finalType = isVideo ? 'video' : 'image';
-                                if (mediaTypeInput) mediaTypeInput.value = finalType;
-                                if (!window.opener || typeof window.opener.uploadFileToFirebaseStorage !== 'function') {
-                                    throw new Error('No fue posible conectarse al cargador de archivos.');
-                                }
-                                finalUrl = await window.opener.uploadFileToFirebaseStorage(selectedFile, 'galeria/' + (finalType === 'video' ? 'videos' : 'fotos'));
-                                if (!finalUrl) throw new Error('No se obtuvo la URL del archivo subido.');
+                            if (!window.opener || typeof window.opener.uploadFileToFirebaseStorage !== 'function') {
+                                throw new Error('No fue posible conectarse al cargador de archivos.');
+                            }
+                            const uploadedUrl = await window.opener.uploadFileToFirebaseStorage(selectedFile, 'galeria/' + (detectedType === 'video' ? 'videos' : 'fotos'));
+                            if (!uploadedUrl) throw new Error('No se obtuvo la URL del archivo subido.');
+                            window.opener.postMessage({ type: 'ADD_IMAGE', url: uploadedUrl, label, mediaType: detectedType, id: '${editingId}' }, '*');
+                            if (slotSelectionId) {
+                                window.opener.postMessage({ type: 'SET_BATTLE_PHOTO_PREF_BY_URL', id: '${editingId}', slotId: slotSelectionId, url: uploadedUrl, mediaType: detectedType, label }, '*');
                             }
 
                             postMediaFromModal({ url: finalUrl, mediaType: finalType, label, autor, slotSelectionId });
@@ -2118,15 +2104,6 @@
                         setViewerRandomState(!viewerRandom);
                     }
 
-                    function startFullscreenPlaybackFromModal(event) {
-                        if (event) event.stopPropagation();
-                        const modal = document.getElementById('miModal');
-                        if (modal) modal.style.display = 'none';
-                        if (!viewer.classList.contains('open')) {
-                            openFullscreenViewer(currentViewerIndex || 0);
-                        }
-                        setViewerAutoplayState(true);
-                    }
                     if (galleryGrid) {
                         galleryGrid.addEventListener('click', function(event) {
                             const deleteButton = event.target.closest('.gallery-delete');
@@ -2738,7 +2715,7 @@ const getInitialCatFormData = () => ({
             useEffect(() => {
                 const handleMessage = async (event) => {
                     if (event.data.type === 'ADD_IMAGE') {
-                        const { url, id, label, mediaType, autor } = event.data;
+                        const { url, id, label, mediaType } = event.data;
                         const tag = mediaType === 'video' ? 'videos' : 'fotos';
                         if (!id) return;
                         const galleryRef = id === ANON_PROFILE_ID
@@ -2748,7 +2725,7 @@ const getInitialCatFormData = () => ({
                         const currentPhotos = snapshot.val() || [];
                         const normalizedUrl = (url || '').trim();
                         if (!normalizedUrl) return;
-                        const updatedPhotos = [...currentPhotos, { url: normalizedUrl, label: GALLERY_LABELS.includes(label) ? label : '', type: detectGalleryItemType(normalizedUrl, mediaType), autor: normalizeGalleryAuthor(autor) }];
+                        const updatedPhotos = [...currentPhotos, { url: normalizedUrl, label: GALLERY_LABELS.includes(label) ? label : '', type: detectGalleryItemType(normalizedUrl, mediaType), autor: '' }];
 
                         await galleryRef.set(updatedPhotos);
                         setFormData(prev => ({
