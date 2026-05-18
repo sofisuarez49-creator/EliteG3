@@ -1389,8 +1389,6 @@
                 <div id="miModal" class="modal-url">
                     <h2 style="margin:0; font-size: 14px; color: #94a3b8;">PEGAR URL DEL ARCHIVO</h2>
                     <input type="text" id="nuevaFotoUrl" placeholder="https://ejemplo.com/foto.jpg o https://youtube.com/...">
-                    <p style="margin: 12px 0 6px; font-size: 11px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700;">o subir desde tu dispositivo</p>
-                    <input type="file" id="nuevoArchivoLocalInput" accept="image/*,video/*,.gif" style="width: 100%; padding: 9px; margin-top: 6px; background: #020617; border: 1px solid rgba(71,85,105,0.92); color: #e2e8f0; border-radius: 8px; outline: none; box-shadow: inset 0 1px 0 rgba(148,163,184,0.18);">
                     <select id="nuevoArchivoTipo" style="width: 100%; padding: 12px; margin-top: 15px; background: #020617; border: 1px solid rgba(71,85,105,0.92); color: #e2e8f0; border-radius: 8px; outline: none; box-shadow: inset 0 1px 0 rgba(148,163,184,0.18);">
                         <option value="image">Imagen</option>
                         <option value="video">Video</option>
@@ -1571,8 +1569,6 @@
                     var viewerNextButton = document.getElementById('viewerNext');
                     var viewerPlayToggleButton = document.getElementById('viewerPlayToggle');
                     var viewerRandomToggleButton = document.getElementById('viewerRandomToggle');
-                    var VALID_FILE_MIME_PREFIXES = ['image/', 'video/'];
-                    var VALID_FILE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'mp4', 'webm', 'ogg', 'mov', 'm4v'];
                     var VIEWER_IMAGE_TIMEOUT_MS = 7000;
                     var VIEWER_VIDEO_FALLBACK_TIMEOUT_MS = 30000;
                     var VIEWER_RETRY_DELAY_MS = 900;
@@ -1680,12 +1676,10 @@
 
                     function resetAddMediaModalFields() {
                         const urlInput = document.getElementById('nuevaFotoUrl');
-                        const fileInput = document.getElementById('nuevoArchivoLocalInput');
                         const labelInput = document.getElementById('nuevaFotoEtiqueta');
                         const mediaTypeInput = document.getElementById('nuevoArchivoTipo');
                         const slotInput = document.getElementById('slotSelectionId');
                         if (urlInput) urlInput.value = '';
-                        if (fileInput) fileInput.value = '';
                         if (labelInput) labelInput.value = '${GALLERY_LABELS[0]}';
                         if (mediaTypeInput) mediaTypeInput.value = 'image';
                         if (slotInput) slotInput.value = '';
@@ -1693,16 +1687,6 @@
                         if (galleryHint) galleryHint.style.display = 'none';
                         activeSlotSelectionId = '';
                         updateSlotGalleryButtons();
-                    }
-
-                    function isAllowedFileType(file) {
-                        if (!file) return false;
-                        const mime = String(file.type || '').toLowerCase();
-                        const name = String(file.name || '').toLowerCase();
-                        const ext = name.includes('.') ? name.split('.').pop() : '';
-                        const validMime = VALID_FILE_MIME_PREFIXES.some((prefix) => mime.startsWith(prefix));
-                        const validExt = VALID_FILE_EXTENSIONS.includes(ext);
-                        return validMime || validExt;
                     }
 
                     function postMediaFromModal({ url = '', mediaType = 'image', label = '${GALLERY_LABELS[0]}', slotSelectionId = '', canAssignSlot = true } = {}) {
@@ -1718,38 +1702,15 @@
                     async function addMediaFromModal(event) {
                         if (event?.preventDefault) event.preventDefault();
                         const urlInput = document.getElementById('nuevaFotoUrl');
-                        const fileInput = document.getElementById('nuevoArchivoLocalInput');
                         const labelInput = document.getElementById('nuevaFotoEtiqueta');
                         const mediaTypeInput = document.getElementById('nuevoArchivoTipo');
                         const normalizedUrl = String(urlInput?.value || '').trim();
-                        const selectedFiles = Array.from(fileInput?.files || []);
                         const mediaType = mediaTypeInput?.value === 'video' ? 'video' : 'image';
                         const label = labelInput?.value || '${GALLERY_LABELS[0]}';
                         const slotSelectionId = activeSlotSelectionId || document.getElementById('slotSelectionId')?.value || '';
 
                         try {
-                            if (selectedFiles.length) {
-                                const invalidFile = selectedFiles.find((file) => !isAllowedFileType(file));
-                                if (invalidFile) {
-                                    window.alert('Uno o más archivos no son válidos. Usá imagen o video.');
-                                    return;
-                                }
-                                if (!window.opener || typeof window.opener.uploadFileToFirebaseStorage !== 'function') {
-                                    throw new Error('No fue posible conectarse al cargador de archivos.');
-                                }
-                                const uploads = await Promise.all(selectedFiles.map(async (file) => {
-                                    const detectedType = String(file.type || '').toLowerCase().startsWith('video/') ? 'video' : 'image';
-                                    const folder = detectedType === 'video' ? 'galeria/videos' : 'galeria/fotos';
-                                    const uploadedUrl = await window.opener.uploadFileToFirebaseStorage(file, folder);
-                                    return { url: uploadedUrl, mediaType: detectedType };
-                                }));
-                                uploads.forEach((item, index) => {
-                                    postMediaFromModal({ url: item.url, mediaType: item.mediaType, label, slotSelectionId, canAssignSlot: index === 0 });
-                                });
-                            } else {
-                                postMediaFromModal({ url: normalizedUrl, mediaType, label, slotSelectionId });
-                            }
-
+                            postMediaFromModal({ url: normalizedUrl, mediaType, label, slotSelectionId });
                             document.getElementById('miModal').style.display = 'none';
                             resetAddMediaModalFields();
                         } catch (error) {
