@@ -1391,24 +1391,19 @@
 
                 <div id="miModal" class="modal-url">
                     <h2 id="mediaFormTitle" style="margin:0; font-size: 14px; color: #94a3b8;">AGREGAR MULTIMEDIA</h2>
-                    <input type="url" id="nuevaFotoUrl" placeholder="https://..." style="display:none; width:100%; margin-top: 15px; padding: 12px; background: #020617; border: 1px solid rgba(71,85,105,0.92); color: #e2e8f0; border-radius: 8px; outline: none; box-shadow: inset 0 1px 0 rgba(148,163,184,0.18);" />
-                    <input type="file" id="nuevoArchivoFile" accept="image/*,video/*,.gif" style="display:none; width:100%; margin-top: 15px; color:#e2e8f0;">
                     <select id="nuevoArchivoTipo" style="width: 100%; padding: 12px; margin-top: 15px; background: #020617; border: 1px solid rgba(71,85,105,0.92); color: #e2e8f0; border-radius: 8px; outline: none; box-shadow: inset 0 1px 0 rgba(148,163,184,0.18);">
                         <option value="image">Imagen</option>
                         <option value="gif">GIF</option>
                         <option value="video">Video</option>
-                        <option value="gif">Gif</option>
-                        <option value="image">Imagen</option>
                     </select>
                     <input type="url" id="mediaUrlInput" placeholder="https://..." style="width:100%; margin-top: 15px; padding: 12px; background: #020617; border: 1px solid rgba(71,85,105,0.92); color:#e2e8f0; border-radius: 8px; outline: none;">
                     <input type="file" id="nuevoArchivoFile" accept="image/*,video/*,.gif" style="display:none; width:100%; margin-top: 15px; color:#e2e8f0;">
+                    <input type="hidden" id="nuevoArchivoModo" value="url">
                     <div id="mediaPreviewContainer" style="display:none; width:100%; margin-top: 15px; border-radius:10px; border:1px solid rgba(71,85,105,0.82); background:rgba(2,6,23,0.75); overflow:hidden;"></div>
                     <p id="mediaFormError" style="display:none; margin:10px 0 0; font-size:11px; color:#fda4af;"></p>
                     <select id="nuevaFotoEtiqueta" style="width: 100%; padding: 12px; margin-top: 15px; background: #020617; border: 1px solid rgba(71,85,105,0.92); color: #e2e8f0; border-radius: 8px; outline: none; box-shadow: inset 0 1px 0 rgba(148,163,184,0.18);">
                         ${GALLERY_LABELS.map(label => `<option value="${label}">Etiqueta ${label}</option>`).join('')}
                     </select>
-                    <div id="mediaPreviewWrap" style="display:none; margin-top:12px;"><img id="mediaPreview" alt="preview" style="max-width:100%; max-height:180px; margin:0 auto; border-radius:8px;" /></div>
-                    <p id="mediaFormError" style="display:none; margin:10px 0 0; font-size:11px; color:#fda4af;"></p>
                     <input type="hidden" id="slotSelectionId" value="">
                     <p id="slotGalleryHint" style="display:none; margin:10px 0 0; font-size:11px; color:#93c5fd;">Tip: para “Elegir desde galería” tocá cualquier imagen para asignarla.</p>
                     <button id="modalCancelButton" type="button" onclick="handleCancelMediaModal();"
@@ -1643,6 +1638,7 @@
                     };
 
                     function openSlotActionModal(slotId, mode = 'file') {
+                        resetAddMediaModalFields();
                         activeSlotSelectionId = slotId || '';
                         mediaFormState.isMediaFormOpen = true;
                         mediaFormState.mediaFormMode = mode === 'url' ? 'url' : 'file';
@@ -1650,10 +1646,12 @@
                         const galleryHint = document.getElementById('slotGalleryHint');
                         const slotInput = document.getElementById('slotSelectionId');
                         const title = document.getElementById('mediaFormTitle');
-                        const urlInput = document.getElementById('nuevaFotoUrl');
+                        const modeInput = document.getElementById('nuevoArchivoModo');
+                        const urlInput = document.getElementById('mediaUrlInput');
                         const fileInput = document.getElementById('nuevoArchivoFile');
                         const mediaTypeInput = document.getElementById('nuevoArchivoTipo');
                         if (slotInput) slotInput.value = activeSlotSelectionId;
+                        if (modeInput) modeInput.value = mediaFormState.mediaFormMode;
                         if (mediaTypeInput) mediaTypeInput.value = mediaFormState.mediaCategory;
                         if (title) title.textContent = mediaFormState.mediaFormMode === 'url' ? 'AGREGAR URL' : 'SUBIR ARCHIVO';
                         if (urlInput) urlInput.style.display = mediaFormState.mediaFormMode === 'url' ? 'block' : 'none';
@@ -1743,15 +1741,7 @@
                         if (modeInput) modeInput.value = 'url';
                         if (labelInput) labelInput.value = '${GALLERY_LABELS[0]}';
                         if (mediaTypeInput) mediaTypeInput.value = 'image';
-                        const urlInput = document.getElementById('nuevaFotoUrl');
-                        const previewWrap = document.getElementById('mediaPreviewWrap');
-                        const previewImg = document.getElementById('mediaPreview');
-                        const formError = document.getElementById('mediaFormError');
-                        if (urlInput) urlInput.value = '';
-                        if (previewImg) previewImg.src = '';
-                        if (previewWrap) previewWrap.style.display = 'none';
-                        if (formError) { formError.style.display = 'none'; formError.textContent = ''; }
-                        mediaFormState = { ...mediaFormState, mediaCategory: 'image', mediaUrlInput: '', selectedFile: null, previewSrc: '', isSaving: false, formError: '' };
+                        mediaFormState = { ...mediaFormState, mediaFormMode: 'url', mediaCategory: 'image', mediaUrlInput: '', selectedFile: null, previewSrc: '', isSaving: false, formError: '' };
                         if (fileInput) fileInput.value = '';
                         if (fileInput) fileInput.style.display = 'none';
                         if (urlInput) urlInput.value = '';
@@ -1817,7 +1807,11 @@
                         try {
                             let finalUrl = mediaUrlInput;
                             if (mode === 'file') {
-                                finalUrl = await uploadFileToFirebaseStorage(selectedFile, 'galeria');
+                                const uploader = window.opener?.uploadFileToFirebaseStorage;
+                                if (typeof uploader !== 'function') {
+                                    throw new Error('No se pudo conectar con el cargador de archivos. Cerrá y volvé a abrir la galería.');
+                                }
+                                finalUrl = await uploader(selectedFile, 'galeria');
                             }
                             const normalizedType = mediaType === 'video' ? 'video' : 'image';
                             postMediaFromModal({ url: finalUrl, mediaType: normalizedType, label, slotSelectionId, canAssignSlot: true });
@@ -1971,28 +1965,6 @@
 
                     document.getElementById('nuevoArchivoTipo')?.addEventListener('change', (event) => {
                         mediaFormState.mediaCategory = event.target.value || 'image';
-                    });
-                    document.getElementById('nuevaFotoUrl')?.addEventListener('input', (event) => {
-                        mediaFormState.mediaUrlInput = String(event.target.value || '').trim();
-                        mediaFormState.previewSrc = mediaFormState.mediaUrlInput;
-                        const previewWrap = document.getElementById('mediaPreviewWrap');
-                        const previewImg = document.getElementById('mediaPreview');
-                        if (previewImg) previewImg.src = mediaFormState.previewSrc;
-                        if (previewWrap) previewWrap.style.display = mediaFormState.previewSrc ? 'block' : 'none';
-                    });
-                    document.getElementById('nuevoArchivoFile')?.addEventListener('change', (event) => {
-                        const file = event.target.files && event.target.files[0] ? event.target.files[0] : null;
-                        mediaFormState.selectedFile = file;
-                        if (!file) return;
-                        const reader = new FileReader();
-                        reader.onload = () => {
-                            mediaFormState.previewSrc = String(reader.result || '');
-                            const previewWrap = document.getElementById('mediaPreviewWrap');
-                            const previewImg = document.getElementById('mediaPreview');
-                            if (previewImg) previewImg.src = mediaFormState.previewSrc;
-                            if (previewWrap) previewWrap.style.display = mediaFormState.previewSrc ? 'block' : 'none';
-                        };
-                        reader.readAsDataURL(file);
                     });
 
                     function getNextViewerIndex() {
