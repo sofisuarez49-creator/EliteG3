@@ -397,7 +397,6 @@
                         </div>
                         <div class="multimedia-slot-actions">
                             ${!isProfileSlot ? `<button type="button" class="multimedia-slot-assign-btn" data-slot-assign="${slot.id}">DESIGNAR FOTO</button>` : ''}
-                            <button type="button" class="multimedia-slot-add-btn" data-slot-add="${slot.id}">Agregar URL</button>
                         </div>
                     </div>
                 `;
@@ -456,11 +455,10 @@
                             .multimedia-slot-empty { color: #fca5a5; font-size: 10px; text-transform: uppercase; letter-spacing: .08em; font-weight: 700; text-align: center; padding: 0 8px; }
                             .multimedia-slot-card.is-active { border-color: rgba(251,191,36,0.96); box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 0 0 1px rgba(251,191,36,0.32), 0 0 20px rgba(251,191,36,0.22); }
                             .multimedia-slot-actions { display:grid; gap:6px; margin-top:8px; }
-                            .multimedia-slot-assign-btn, .multimedia-slot-add-btn { width:100%; border-radius:8px; padding:6px 8px; font-size:10px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; cursor:pointer; transition:filter .16s ease, transform .16s ease; }
+                            .multimedia-slot-assign-btn { width:100%; border-radius:8px; padding:6px 8px; font-size:10px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; cursor:pointer; transition:filter .16s ease, transform .16s ease; }
                             .multimedia-slot-assign-btn { border:1px solid rgba(203,213,225,0.9); background: linear-gradient(165deg, rgba(148,163,184,0.5) 0%, rgba(71,85,105,0.82) 45%, rgba(30,41,59,0.94) 100%); color:#f8fafc; box-shadow: inset 0 1px 0 rgba(255,255,255,0.42), inset 0 -1px 0 rgba(15,23,42,0.55), 0 6px 12px rgba(2,6,23,0.45); }
                             .multimedia-slot-assign-btn.is-selected { border-color: rgba(74,222,128,0.98); background: linear-gradient(160deg, rgba(22,163,74,0.98) 0%, rgba(34,197,94,0.94) 45%, rgba(20,83,45,0.98) 100%); color:#ecfdf5; box-shadow: inset 0 1px 0 rgba(220,252,231,0.55), inset 0 -1px 0 rgba(5,46,22,0.62), 0 0 16px rgba(74,222,128,0.95), 0 0 34px rgba(34,197,94,0.82); filter: brightness(1.24) saturate(1.2); }
-                            .multimedia-slot-add-btn { border:1px solid rgba(125,211,252,0.6); background: rgba(2,6,23,0.82); color:#e2e8f0; box-shadow:0 0 12px rgba(34,211,238,0.22); }
-                            .multimedia-slot-assign-btn:hover, .multimedia-slot-add-btn:hover { transform: translateY(-1px); filter: brightness(1.08); }
+                            .multimedia-slot-assign-btn:hover { transform: translateY(-1px); filter: brightness(1.08); }
                         </style>
                     </head>
                     <body class="text-slate-200">
@@ -603,13 +601,6 @@
                                     
                                 });
                             });
-                            document.querySelectorAll('[data-slot-add]').forEach((button) => {
-                                button.addEventListener('click', () => {
-                                    const slotId = button.dataset.slotAdd || '';
-                                    window.alert(\`Usá la edición de miniatura de Galería para cargar o actualizar la URL/archivo del casillero \${slotId}.\`);
-                                });
-                            });
-
                             document.querySelectorAll('.multimedia-thumb-btn').forEach((button) => {
                                 button.addEventListener('dragstart', (event) => {
                                     const payload = {
@@ -1105,30 +1096,6 @@
                         box-shadow: inset 0 1px 0 rgba(255,255,255,0.4), 0 0 20px rgba(255,49,49,0.5);
                         transform: translateY(-1px);
                     }
-                    .modal-url {
-                        display: none;
-                        position: fixed;
-                        top: 50%;
-                        left: 50%;
-                        transform: translate(-50%, -50%);
-                        background: #0f172a;
-                        padding: 30px;
-                        border-radius: 18px;
-                        border: 1px solid rgba(100, 116, 139, 0.45);
-                        box-shadow: inset 0 1px 0 rgba(148, 163, 184, 0.18), 0 24px 48px rgba(0,0,0,0.55);
-                        z-index: 1000;
-                        width: 350px;
-                    }
-                    input {
-                        width: 100%;
-                        padding: 12px;
-                        margin-top: 15px;
-                        background: #020617;
-                        border: 1px solid #334155;
-                        color: #22d3ee;
-                        border-radius: 8px;
-                        outline: none;
-                    }
                     h1 { font-size: 2.5rem; font-weight: 800; margin-bottom: 2rem; color: #fff; text-align: center; }
                     .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; width: 100%; }
                     .fullscreen-viewer {
@@ -1383,37 +1350,6 @@
             <body>
                 <div style="display:flex; align-items:center; justify-content:space-between; gap: 12px; width:100%; margin-bottom: 16px; flex-wrap: wrap;">
                     <h1 style="margin:0;">Galería de ${profileName}</h1>
-                    <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                        <button type="button" onclick="openSlotActionModal('', 'file');" class="btn-neon" style="border-color: rgba(59,130,246,0.9); background: linear-gradient(180deg, rgba(37,99,235,0.95), rgba(30,64,175,0.95)); color:#dbeafe;">Agregar archivo</button>
-                        <button type="button" onclick="openSlotActionModal('', 'url');" class="btn-neon" style="border-color: rgba(74,222,128,0.9); background: linear-gradient(180deg, rgba(22,163,74,0.95), rgba(21,128,61,0.95)); color:#dcfce7;">Agregar URL</button>
-                    </div>
-                </div>
-
-                <div id="miModal" class="modal-url">
-                    <h2 id="mediaFormTitle" style="margin:0; font-size: 14px; color: #94a3b8;">AGREGAR MULTIMEDIA</h2>
-                    <select id="nuevoArchivoTipo" style="width: 100%; padding: 12px; margin-top: 15px; background: #020617; border: 1px solid rgba(71,85,105,0.92); color: #e2e8f0; border-radius: 8px; outline: none; box-shadow: inset 0 1px 0 rgba(148,163,184,0.18);">
-                        <option value="image">Imagen</option>
-                        <option value="gif">GIF</option>
-                        <option value="video">Video</option>
-                    </select>
-                    <input type="url" id="mediaUrlInput" placeholder="https://..." style="width:100%; margin-top: 15px; padding: 12px; background: #020617; border: 1px solid rgba(71,85,105,0.92); color:#e2e8f0; border-radius: 8px; outline: none;">
-                    <input type="file" id="nuevoArchivoFile" accept="image/*,video/*,.gif" style="display:none; width:100%; margin-top: 15px; color:#e2e8f0;">
-                    <input type="hidden" id="nuevoArchivoModo" value="url">
-                    <div id="mediaPreviewContainer" style="display:none; width:100%; margin-top: 15px; border-radius:10px; border:1px solid rgba(71,85,105,0.82); background:rgba(2,6,23,0.75); overflow:hidden;"></div>
-                    <p id="mediaFormError" style="display:none; margin:10px 0 0; font-size:11px; color:#fda4af;"></p>
-                    <select id="nuevaFotoEtiqueta" style="width: 100%; padding: 12px; margin-top: 15px; background: #020617; border: 1px solid rgba(71,85,105,0.92); color: #e2e8f0; border-radius: 8px; outline: none; box-shadow: inset 0 1px 0 rgba(148,163,184,0.18);">
-                        ${GALLERY_LABELS.map(label => `<option value="${label}">Etiqueta ${label}</option>`).join('')}
-                    </select>
-                    <input type="hidden" id="slotSelectionId" value="">
-                    <p id="slotGalleryHint" style="display:none; margin:10px 0 0; font-size:11px; color:#93c5fd;">Tip: para “Elegir desde galería” tocá cualquier imagen para asignarla.</p>
-                    <button id="modalCancelButton" type="button" onclick="handleCancelMediaModal();"
-                        style="margin-top: 15px; width: 100%; padding: 10px; background: linear-gradient(180deg, rgba(51,65,85,0.95), rgba(30,41,59,0.95)); color: #e2e8f0; border: 1px solid rgba(148,163,184,0.95); border-radius: 8px; font-weight: 800; cursor: pointer; text-transform: uppercase; letter-spacing: 0.08em;">
-                        Cancelar
-                    </button>
-                    <button id="modalSaveButton" type="button" onclick="handleSaveMediaModal();"
-                        style="margin-top: 15px; width: 100%; padding: 10px; background: linear-gradient(180deg, rgba(22,163,74,0.95), rgba(21,128,61,0.95)); color: #ecfdf5; border: 1px solid rgba(134,239,172,0.95); border-radius: 8px; font-weight: 800; cursor: pointer; text-transform: uppercase; letter-spacing: 0.08em; box-shadow: 0 0 14px rgba(34,211,238,0.4);">
-                        Guardar
-                    </button>
                 </div>
 
                 <details open style="width:100%; margin-bottom: 20px; border-radius: 12px; border: 1px solid rgba(148,163,184,0.28); background: rgba(2,6,23,0.45);">
@@ -1441,13 +1377,6 @@
                                         : '<span style="font-size:10px; color:#fca5a5; text-transform:uppercase; letter-spacing:0.08em; font-weight:700; text-align:center; padding:0 8px;">Sin foto designada</span>'}
                                 </div>
                                 <div style="display:grid; gap:6px; margin-top:8px;">
-                                    <button
-                                        type="button"
-                                        onclick="event.stopPropagation(); openSlotActionModal('${slot.id}', 'url');"
-                                        style="width:100%; border:1px solid rgba(125,211,252,0.6); background: rgba(2,6,23,0.82); color:#e2e8f0; border-radius:8px; padding:6px 8px; font-size:10px; font-weight:800; letter-spacing:0.08em; text-transform:uppercase; cursor:pointer; box-shadow: 0 0 12px rgba(34,211,238,0.22);"
-                                    >
-                                        Agregar URL
-                                    </button>
                                     ${canPickFromGallery ? `<button
                                         type="button"
                                         class="slot-gallery-select-btn"
@@ -1599,16 +1528,6 @@
                     var viewerTransitionToken = 0;
                     var viewerRecoveryInProgress = false;
                     var activeSlotSelectionId = '';
-                    var mediaFormState = {
-                        isMediaFormOpen: false,
-                        mediaFormMode: 'file',
-                        mediaCategory: 'image',
-                        mediaUrlInput: '',
-                        selectedFile: null,
-                        previewSrc: '',
-                        isSaving: false,
-                        formError: ''
-                    };
                     var DND_PAYLOAD_TYPE = 'application/x-battle-slot-item';
                     var LONG_PRESS_MS = 280;
                     var longPressTimer = null;
@@ -1617,14 +1536,6 @@
                     var SWIPE_VELOCITY_THRESHOLD = 0.35;
                     var SWIPE_FEEDBACK_MAX_TRANSLATE = 52;
                     var SWIPE_VERTICAL_LOCK_RATIO = 1.2;
-                    var mediaModalState = {
-                        mediaUrlInput: '',
-                        selectedFile: null,
-                        previewSrc: '',
-                        formError: '',
-                        isSaving: false,
-                        previewObjectUrl: ''
-                    };
                     var viewerSwipeState = {
                         active: false,
                         pointerId: null,
@@ -1636,31 +1547,6 @@
                         isVertical: false,
                         blockedByMediaControl: false
                     };
-
-                    function openSlotActionModal(slotId, mode = 'file') {
-                        resetAddMediaModalFields();
-                        activeSlotSelectionId = slotId || '';
-                        mediaFormState.isMediaFormOpen = true;
-                        mediaFormState.mediaFormMode = mode === 'url' ? 'url' : 'file';
-                        const modal = document.getElementById('miModal');
-                        const galleryHint = document.getElementById('slotGalleryHint');
-                        const slotInput = document.getElementById('slotSelectionId');
-                        const title = document.getElementById('mediaFormTitle');
-                        const modeInput = document.getElementById('nuevoArchivoModo');
-                        const urlInput = document.getElementById('mediaUrlInput');
-                        const fileInput = document.getElementById('nuevoArchivoFile');
-                        const mediaTypeInput = document.getElementById('nuevoArchivoTipo');
-                        if (slotInput) slotInput.value = activeSlotSelectionId;
-                        if (modeInput) modeInput.value = mediaFormState.mediaFormMode;
-                        if (mediaTypeInput) mediaTypeInput.value = mediaFormState.mediaCategory;
-                        if (title) title.textContent = mediaFormState.mediaFormMode === 'url' ? 'AGREGAR URL' : 'SUBIR ARCHIVO';
-                        if (urlInput) urlInput.style.display = mediaFormState.mediaFormMode === 'url' ? 'block' : 'none';
-                        if (fileInput) fileInput.style.display = mediaFormState.mediaFormMode === 'file' ? 'block' : 'none';
-                        if (galleryHint) {
-                            galleryHint.style.display = mode === 'gallery' && slotId !== 'perfil' ? 'block' : 'none';
-                        }
-                        if (modal) modal.style.display = 'block';
-                    }
 
                     function updateSlotGalleryButtons() {
                         const buttons = document.querySelectorAll('.slot-gallery-select-btn');
@@ -1685,8 +1571,6 @@
 
                     function selectSlotFromGallery(slotId) {
                         activeSlotSelectionId = slotId || '';
-                        const slotInput = document.getElementById('slotSelectionId');
-                        if (slotInput) slotInput.value = activeSlotSelectionId;
                         updateSlotGalleryButtons();
                     }
 
@@ -1700,8 +1584,6 @@
                         if (!Number.isInteger(sourceIndex) || sourceIndex < 0) return false;
                         window.opener.postMessage({ type: 'SET_BATTLE_PHOTO_PREF', id: '${editingId}', slotId, index: sourceIndex, mediaType: payload.mediaType || 'image' }, '*');
                         activeSlotSelectionId = '';
-                        const slotInput = document.getElementById('slotSelectionId');
-                        if (slotInput) slotInput.value = '';
                         updateSlotGalleryButtons();
                         return true;
                     }
@@ -1716,173 +1598,6 @@
                         };
                         return assignToSlot(payload, activeSlotSelectionId);
                     }
-
-                    function resetAddMediaModalFields() {
-                        if (mediaModalState.previewObjectUrl) {
-                            URL.revokeObjectURL(mediaModalState.previewObjectUrl);
-                        }
-                        mediaModalState = {
-                            mediaUrlInput: '',
-                            selectedFile: null,
-                            previewSrc: '',
-                            formError: '',
-                            isSaving: false,
-                            previewObjectUrl: ''
-                        };
-                        const modeInput = document.getElementById('nuevoArchivoModo');
-                        const labelInput = document.getElementById('nuevaFotoEtiqueta');
-                        const mediaTypeInput = document.getElementById('nuevoArchivoTipo');
-                        const fileInput = document.getElementById('nuevoArchivoFile');
-                        const urlInput = document.getElementById('mediaUrlInput');
-                        const previewContainer = document.getElementById('mediaPreviewContainer');
-                        const errorContainer = document.getElementById('mediaFormError');
-                        const saveButton = document.getElementById('modalSaveButton');
-                        const slotInput = document.getElementById('slotSelectionId');
-                        if (modeInput) modeInput.value = 'url';
-                        if (labelInput) labelInput.value = '${GALLERY_LABELS[0]}';
-                        if (mediaTypeInput) mediaTypeInput.value = 'image';
-                        mediaFormState = { ...mediaFormState, mediaFormMode: 'url', mediaCategory: 'image', mediaUrlInput: '', selectedFile: null, previewSrc: '', isSaving: false, formError: '' };
-                        if (fileInput) fileInput.value = '';
-                        if (fileInput) fileInput.style.display = 'none';
-                        if (urlInput) urlInput.value = '';
-                        if (urlInput) urlInput.style.display = 'block';
-                        if (previewContainer) previewContainer.style.display = 'none';
-                        if (previewContainer) previewContainer.innerHTML = '';
-                        if (errorContainer) errorContainer.style.display = 'none';
-                        if (errorContainer) errorContainer.textContent = '';
-                        if (saveButton) saveButton.disabled = false;
-                        if (saveButton) saveButton.textContent = 'Guardar';
-                        if (slotInput) slotInput.value = '';
-                        const galleryHint = document.getElementById('slotGalleryHint');
-                        if (galleryHint) galleryHint.style.display = 'none';
-                        activeSlotSelectionId = '';
-                        updateSlotGalleryButtons();
-                    }
-
-                    function handleCancelMediaModal() {
-                        const modal = document.getElementById('miModal');
-                        if (modal) modal.style.display = 'none';
-                        resetAddMediaModalFields();
-                    }
-
-                    function renderMediaPreview(previewSrc = '') {
-                        const previewContainer = document.getElementById('mediaPreviewContainer');
-                        const mediaType = document.getElementById('nuevoArchivoTipo')?.value || '';
-                        if (!previewContainer || !previewSrc) return;
-                        const localVideoRegex = /\.(mp4|webm|ogg|mov|m4v)(\?.*)?$/i;
-                        const isVideo = mediaType === 'video' || localVideoRegex.test(previewSrc);
-                        previewContainer.style.display = 'block';
-                        previewContainer.innerHTML = isVideo
-                            ? '<video controls src="' + previewSrc + '" style="width:100%; max-height:220px; display:block; background:#000;"></video>'
-                            : '<img src="' + previewSrc + '" alt="Vista previa" style="width:100%; max-height:220px; object-fit:contain; display:block; background:#000;" />';
-                    }
-
-                    function showMediaModalError(message = '') {
-                        mediaModalState.formError = message;
-                        const errorContainer = document.getElementById('mediaFormError');
-                        if (!errorContainer) return;
-                        errorContainer.textContent = message || '';
-                        errorContainer.style.display = message ? 'block' : 'none';
-                    }
-
-                    async function handleSaveMediaModal() {
-                        if (mediaModalState.isSaving) return;
-                        const saveButton = document.getElementById('modalSaveButton');
-                        const mode = document.getElementById('nuevoArchivoModo')?.value || 'url';
-                        const mediaType = document.getElementById('nuevoArchivoTipo')?.value || '';
-                        const label = document.getElementById('nuevaFotoEtiqueta')?.value || '${GALLERY_LABELS[0]}';
-                        const slotSelectionId = document.getElementById('slotSelectionId')?.value || '';
-                        const mediaUrlInput = (document.getElementById('mediaUrlInput')?.value || '').trim();
-                        const selectedFile = document.getElementById('nuevoArchivoFile')?.files?.[0] || null;
-
-                        if (!mediaType) return showMediaModalError('Seleccioná una categoría.');
-                        if (mode === 'url') {
-                            try { new URL(mediaUrlInput); } catch { return showMediaModalError('Ingresá una URL válida.'); }
-                        } else if (!selectedFile) {
-                            return showMediaModalError('Seleccioná un archivo para continuar.');
-                        }
-                        showMediaModalError('');
-                        mediaModalState.isSaving = true;
-                        if (saveButton) { saveButton.disabled = true; saveButton.textContent = 'Guardando...'; }
-                        try {
-                            let finalUrl = mediaUrlInput;
-                            if (mode === 'file') {
-                                const uploader = window.opener?.uploadFileToFirebaseStorage;
-                                if (typeof uploader !== 'function') {
-                                    throw new Error('No se pudo conectar con el cargador de archivos. Cerrá y volvé a abrir la galería.');
-                                }
-                                finalUrl = await uploader(selectedFile, 'galeria');
-                            }
-                            const normalizedType = mediaType === 'video' ? 'video' : 'image';
-                            postMediaFromModal({ url: finalUrl, mediaType: normalizedType, label, slotSelectionId, canAssignSlot: true });
-                            handleCancelMediaModal();
-                        } catch (error) {
-                            showMediaModalError(error?.message || 'No se pudo guardar la multimedia. Intentá nuevamente.');
-                        } finally {
-                            mediaModalState.isSaving = false;
-                            if (saveButton) { saveButton.disabled = false; saveButton.textContent = 'Guardar'; }
-                        }
-                    }
-
-                    function postMediaFromModal({ url = '', mediaType = 'image', label = '${GALLERY_LABELS[0]}', slotSelectionId = '', canAssignSlot = true } = {}) {
-                        const finalUrl = String(url || '').trim();
-                        if (!finalUrl) return;
-                        const finalType = mediaType === 'video' ? 'video' : 'image';
-                        window.opener.postMessage({ type: 'ADD_IMAGE', url: finalUrl, label, mediaType: finalType, id: '${editingId}' }, '*');
-                        if (slotSelectionId && canAssignSlot) {
-                            window.opener.postMessage({ type: 'SET_BATTLE_PHOTO_PREF_BY_URL', id: '${editingId}', slotId: slotSelectionId, url: finalUrl, mediaType: finalType, label }, '*');
-                        }
-                    }
-
-                    document.getElementById('nuevoArchivoModo')?.addEventListener('change', (event) => {
-                        const mode = event.target.value;
-                        const urlInput = document.getElementById('mediaUrlInput');
-                        const fileInput = document.getElementById('nuevoArchivoFile');
-                        showMediaModalError('');
-                        if (mode === 'file') {
-                            if (urlInput) urlInput.style.display = 'none';
-                            if (fileInput) fileInput.style.display = 'block';
-                        } else {
-                            if (urlInput) urlInput.style.display = 'block';
-                            if (fileInput) fileInput.style.display = 'none';
-                        }
-                    });
-                    document.getElementById('mediaUrlInput')?.addEventListener('input', (event) => {
-                        mediaModalState.mediaUrlInput = String(event.target.value || '').trim();
-                        if (mediaModalState.previewObjectUrl) {
-                            URL.revokeObjectURL(mediaModalState.previewObjectUrl);
-                            mediaModalState.previewObjectUrl = '';
-                        }
-                        mediaModalState.previewSrc = mediaModalState.mediaUrlInput;
-                        const previewContainer = document.getElementById('mediaPreviewContainer');
-                        if (!mediaModalState.previewSrc) {
-                            if (previewContainer) previewContainer.style.display = 'none';
-                            if (previewContainer) previewContainer.innerHTML = '';
-                            return;
-                        }
-                        renderMediaPreview(mediaModalState.previewSrc);
-                    });
-                    document.getElementById('nuevoArchivoFile')?.addEventListener('change', (event) => {
-                        const file = event.target.files?.[0] || null;
-                        mediaModalState.selectedFile = file;
-                        if (mediaModalState.previewObjectUrl) {
-                            URL.revokeObjectURL(mediaModalState.previewObjectUrl);
-                            mediaModalState.previewObjectUrl = '';
-                        }
-                        if (!file) {
-                            mediaModalState.previewSrc = '';
-                            const previewContainer = document.getElementById('mediaPreviewContainer');
-                            if (previewContainer) previewContainer.style.display = 'none';
-                            if (previewContainer) previewContainer.innerHTML = '';
-                            return;
-                        }
-                        mediaModalState.previewObjectUrl = URL.createObjectURL(file);
-                        mediaModalState.previewSrc = mediaModalState.previewObjectUrl;
-                        renderMediaPreview(mediaModalState.previewSrc);
-                    });
-                    document.getElementById('nuevoArchivoTipo')?.addEventListener('change', () => {
-                        if (mediaModalState.previewSrc) renderMediaPreview(mediaModalState.previewSrc);
-                    });
 
                     galleryGrid?.addEventListener('click', (event) => {
                         const card = event.target.closest('.gallery-card');
@@ -1961,10 +1676,6 @@
                             try { payload = JSON.parse(event.dataTransfer.getData(DND_PAYLOAD_TYPE) || '{}'); } catch {}
                             assignToSlot(payload, slotId);
                         });
-                    });
-
-                    document.getElementById('nuevoArchivoTipo')?.addEventListener('change', (event) => {
-                        mediaFormState.mediaCategory = event.target.value || 'image';
                     });
 
                     function getNextViewerIndex() {
