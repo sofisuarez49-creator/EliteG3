@@ -1,21 +1,198 @@
-        // Configuración de tu proyecto de Firebase
-        const firebaseConfig = {
-            apiKey: "AIzaSyAcrVq7ryWv5EJbRhZ1TmhFia-LAV10cN4",
-            authDomain: "eliteg3-1650f.firebaseapp.com",
-            databaseURL: "https://eliteg3-1650f-default-rtdb.firebaseio.com/",
-            projectId: "eliteg3-1650f",
-            storageBucket: "eliteg3-1650f.firebasestorage.app",
-            messagingSenderId: "351711372153",
-            appId: "1:351711372153:web:60ce4742396e37974f85a8",
-            measurementId: "G-HGYPLEY6DJ",
-        };
+        const JSON_DATA_URL = 'data.json';
+        const JSON_DB_CACHE_KEY = 'eliteg3:json-db:v1';
 
-        // Inicializar Firebase
-        if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
-        }
-        const db = firebase.database();
-        const storage = firebase.storage();
+        const createLocalSnapshot = (key, value) => ({
+            key,
+            val: () => structuredCloneSafe(value)
+        });
+        const structuredCloneSafe = (value) => {
+            if (value === undefined) return null;
+            try {
+                return typeof structuredClone === 'function'
+                    ? structuredClone(value)
+                    : JSON.parse(JSON.stringify(value));
+            } catch {
+                return value;
+            }
+        };
+        const normalizeJsonPath = (path = '') => String(path || '').replace(/^\/+|\/+$/g, '');
+        const splitJsonPath = (path = '') => normalizeJsonPath(path).split('/').filter(Boolean);
+        const getJsonPathValue = (root, path = '') => {
+            const parts = splitJsonPath(path);
+            return parts.reduce((current, part) => (
+                current && typeof current === 'object' ? current[part] : undefined
+            ), root);
+        };
+        const setJsonPathValue = (root, path = '', value) => {
+            const parts = splitJsonPath(path);
+            if (!parts.length) return structuredCloneSafe(value) || {};
+            let cursor = root;
+            parts.slice(0, -1).forEach((part) => {
+                if (!cursor[part] || typeof cursor[part] !== 'object') cursor[part] = {};
+                cursor = cursor[part];
+            });
+            cursor[parts[parts.length - 1]] = structuredCloneSafe(value);
+            return root;
+        };
+        const updateJsonPathValue = (root, path = '', value = {}) => {
+            const currentValue = getJsonPathValue(root, path);
+            const nextValue = {
+                ...(currentValue && typeof currentValue === 'object' && !Array.isArray(currentValue) ? currentValue : {}),
+                ...(value && typeof value === 'object' ? value : {})
+            };
+            return setJsonPathValue(root, path, nextValue);
+        };
+        const removeJsonPathValue = (root, path = '') => {
+            const parts = splitJsonPath(path);
+            if (!parts.length) return {};
+            let cursor = root;
+            parts.slice(0, -1).forEach((part) => {
+                cursor = cursor && typeof cursor === 'object' ? cursor[part] : undefined;
+            });
+            if (cursor && typeof cursor === 'object') delete cursor[parts[parts.length - 1]];
+            return root;
+        };
+        const createLocalJsonDatabase = () => {
+            let data = { perfiles: {}, categorias: {}, anonimo: { galeria: { fotos: [], gifs: [], videos: [], audios: [] } }, arenaBattleState: {}, arenaGlobalState: {} };
+            let isLoaded = false;
+            const listeners = [];
+            const loadPromise = (async () => {
+                try {
+                    const cached = window.localStorage.getItem(JSON_DB_CACHE_KEY);
+                    if (cached) {
+                        data = { ...data, ...(JSON.parse(cached) || {}) };
+                    } else {
+                        const response = await fetch(JSON_DATA_URL, { cache: 'no-store' });
+                        if (response.ok) data = { ...data, ...(await response.json()) };
+                    }
+                } catch (error) {
+                    console.warn('No se pudo cargar data.json; se usará una base local vacía.', error);
+                } finally {
+                    isLoaded = true;
+                    notifyListeners();
+                }
+            })();
+            const persist = () => {
+                try {
+                    window.localStorage.setItem(JSON_DB_CACHE_KEY, JSON.stringify(data));
+                } catch (error) {
+                    console.warn('No se pudo guardar la base JSON local.', error);
+                }
+            };
+            const getChildEntries = (path) => {
+                const value = getJsonPathValue(data, path);
+                if (!value || typeof value !== 'object' || Array.isArray(value)) return [];
+                return Object.entries(value);
+            };
+            const notifyListeners = () => {
+                if (!isLoaded) return;
+                listeners.forEach((listener) => {
+                    if (listener.event === 'value') {
+                        listener.callback(createLocalSnapshot(splitJsonPath(listener.path).pop() || null, getJsonPathValue(data, listener.path)));
+                        return;
+                    }
+                    const currentEntries = getChildEntries(listener.path);
+                    const currentMap = new Map(currentEntries);
+                    const previousKeys = listener.knownKeys || new Set();
+                    currentEntries.forEach(([key, value]) => {
+                        const eventName = previousKeys.has(key) ? 'child_changed' : 'child_added';
+                        if (listener.event === eventName) listener.callback(createLocalSnapshot(key, value));
+                    });
+                    previousKeys.forEach((key) => {
+                        if (!currentMap.has(key) && listener.event === 'child_removed') {
+                            listener.callback(createLocalSnapshot(key, null));
+                        }
+                    });
+                    listener.knownKeys = new Set(currentEntries.map(([key]) => key));
+                });
+            };
+            const ref = (path = '') => {
+                const normalizedPath = normalizeJsonPath(path);
+                return {
+                    async once() {
+                        await loadPromise;
+                        return createLocalSnapshot(splitJsonPath(normalizedPath).pop() || null, getJsonPathValue(data, normalizedPath));
+                    },
+                    on(event, callback) {
+                        const listener = { path: normalizedPath, event, callback, knownKeys: new Set() };
+                        listeners.push(listener);
+                        loadPromise.then(notifyListeners);
+                        return callback;
+                    },
+                    off(event, callback) {
+                        for (let index = listeners.length - 1; index >= 0; index -= 1) {
+                            const listener = listeners[index];
+                            if (listener.path !== normalizedPath) continue;
+                            if (event && listener.event !== event) continue;
+                            if (callback && listener.callback !== callback) continue;
+                            listeners.splice(index, 1);
+                        }
+                    },
+                    async set(value) {
+                        await loadPromise;
+                        data = setJsonPathValue(data, normalizedPath, value);
+                        persist();
+                        notifyListeners();
+                    },
+                    async update(value) {
+                        await loadPromise;
+                        data = updateJsonPathValue(data, normalizedPath, value);
+                        persist();
+                        notifyListeners();
+                    },
+                    async remove() {
+                        await loadPromise;
+                        data = removeJsonPathValue(data, normalizedPath);
+                        persist();
+                        notifyListeners();
+                    },
+                    async push(value) {
+                        await loadPromise;
+                        const key = `json_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+                        data = setJsonPathValue(data, `${normalizedPath}/${key}`, value || {});
+                        persist();
+                        notifyListeners();
+                        return { key };
+                    }
+                };
+            };
+            const collection = (path = '') => ({
+                doc: (id = '') => ({
+                    delete: async () => ref(`${path}/${id}`).remove()
+                })
+            });
+            return { ref, collection, getData: () => structuredCloneSafe(data), resetLocalCache: () => window.localStorage.removeItem(JSON_DB_CACHE_KEY) };
+        };
+        const readBrowserFileAsDataUrl = (file) => new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(String(reader.result || ''));
+            reader.onerror = () => reject(new Error('No se pudo leer el archivo.'));
+            reader.readAsDataURL(file);
+        });
+        const createLocalJsonStorage = () => ({
+            setMaxUploadRetryTime: () => {},
+            ref: () => ({
+                put: (file) => {
+                    const task = {
+                        snapshot: { ref: { getDownloadURL: async () => readBrowserFileAsDataUrl(file) } },
+                        cancel: () => {},
+                        on: (_event, _progress, onError, onComplete) => {
+                            readBrowserFileAsDataUrl(file)
+                                .then((url) => {
+                                    task.snapshot.ref.getDownloadURL = async () => url;
+                                    onComplete?.();
+                                })
+                                .catch((error) => onError?.(error));
+                        }
+                    };
+                    return task;
+                }
+            })
+        });
+        const db = createLocalJsonDatabase();
+        const storage = createLocalJsonStorage();
+        window.localJsonDb = db;
+        window.firebase = window.firebase || { database: () => db };
         const { useState, useEffect, useMemo, useRef } = React;
 
         const GALLERY_LABELS = ['C', 'P', 'B', 'N', 'S', 'E', 'X', 'R'];
@@ -2399,7 +2576,7 @@ const getInitialCatFormData = () => ({
                 const ext = outputType === 'image/png' ? 'png' : 'jpg';
                 return new File([blob], `${baseName}.${ext}`, { type: outputType, lastModified: Date.now() });
             };
-            const uploadFileToFirebaseStorage = window.uploadFileToFirebaseStorage = async (file, folder = 'galeria') => {
+            const uploadFileToLocalJsonStorage = window.uploadFileToLocalJsonStorage = async (file, folder = 'galeria') => {
                 if (!file) throw new Error('No se encontró el archivo para subir.');
                 const safeFolder = String(folder || 'galeria').replace(/[^a-zA-Z0-9/_-]/g, '');
                 try {
@@ -2443,7 +2620,7 @@ const getInitialCatFormData = () => ({
                         }
                     }
                 }
-                throw lastError || new Error('No se pudo subir el archivo a Firebase Storage.');
+                throw lastError || new Error('No se pudo preparar el archivo para la base JSON local.');
             };
             const readFileAsDataUrl = (file) => new Promise((resolve, reject) => {
                 const reader = new FileReader();
@@ -2529,7 +2706,7 @@ const getInitialCatFormData = () => ({
                     setGalleryAudioName('');
                     setGalleryAudioUrl('');
                 } catch (error) {
-                    setGalleryAudioError('No se pudo guardar el audio en Firebase.');
+                    setGalleryAudioError('No se pudo guardar el audio en la base JSON local.');
                 }
             };
             const removeGalleryAudioTrack = async (indexToRemove) => {
@@ -2553,7 +2730,7 @@ const getInitialCatFormData = () => ({
                         setSelectedGalleryAudioB('');
                     }
                 } catch (error) {
-                    setGalleryAudioError('No se pudo eliminar el audio de Firebase.');
+                    setGalleryAudioError('No se pudo eliminar el audio de la base JSON local.');
                 }
             };
             const handleDelete = async (id, e) => {
@@ -2562,7 +2739,7 @@ const getInitialCatFormData = () => ({
                     try {
                         await db.collection('galeria').doc(id).delete();
                     } catch (error) {
-                        console.error("Error al borrar de Firebase:", error);
+                        console.error("Error al borrar de la base JSON local:", error);
                     }
                 }
             };
@@ -2755,7 +2932,7 @@ const getInitialCatFormData = () => ({
                 const refreshPerfilesState = () => {
                     const listaPerfiles = Object.entries(perfilesById || {}).map(([firebaseId, perfilData]) => ({
                         ...mapProfileToFormData(perfilData),
-                        firebaseId // Guardamos la llave de Firebase por si necesitamos editar
+                        firebaseId // Guardamos la llave del JSON por si necesitamos editar
                     }));
                     const anonProfile = mapAnonymousGalleryToProfile(anonGalleryData || {});
                     const hasAnonGallery = Object.values(anonProfile.galeria || {}).some((items) => Array.isArray(items) && items.length > 0);
@@ -2800,8 +2977,17 @@ const getInitialCatFormData = () => ({
                     refreshPerfilesState();
                 });
 
-                // Escuchar Categorías en tiempo real desde Firebase
-                setCategorias(INITIAL_CATEGORIES);
+                const categoriasRef = db.ref('categorias');
+                categoriasRef.on('value', (snapshot) => {
+                    const categoriasData = snapshot.val() || {};
+                    const categoriasList = Array.isArray(categoriasData)
+                        ? categoriasData
+                        : Object.entries(categoriasData).map(([firebaseId, category]) => ({
+                            ...(category || {}),
+                            firebaseId
+                        }));
+                    setCategorias(categoriasList.length ? categoriasList : INITIAL_CATEGORIES);
+                });
 
                 const arenasRef = db.ref('arenaBattleState');
                 arenasRef.on('value', (snapshot) => {
@@ -2818,6 +3004,7 @@ const getInitialCatFormData = () => ({
                     perfilesRef.off('child_changed', handlePerfilChanged);
                     perfilesRef.off('child_removed', handlePerfilRemoved);
                     anonGalleryRef.off();
+                    categoriasRef.off();
                     arenasRef.off();
                     arenaGlobalRef.off();
                 };
@@ -2913,7 +3100,7 @@ const getInitialCatFormData = () => ({
                         if (r.operador === 'Inferior a' && score >= umbral) matches = false;
                     }
 
-                    // USAMOS firebaseId PORQUE ES EL QUE VIENE DE LA BASE DE DATOS
+                    // Usamos firebaseId como identificador estable del registro en la base JSON.
                     if (matches) cats.push(c.firebaseId);
                 });
                 return cats;
@@ -3613,7 +3800,7 @@ const saveProfile = async (e) => {
                     }
                 } catch (err) {
                     console.error("No se pudo guardar el perfil:", err);
-                    window.alert('No se pudo guardar el perfil. Revisá tu conexión e intentá de nuevo.');
+                    window.alert('No se pudo guardar el perfil en la base JSON local. Intentá de nuevo.');
                 } finally {
                     setIsSavingProfile(false);
                 }
@@ -3690,7 +3877,7 @@ const saveProfile = async (e) => {
                     closeDeleteProfileModal();
                 } catch (error) {
                     console.error("No se pudo borrar el perfil:", error);
-                    setProfileActionError('No se pudo borrar el perfil en Firebase. Probá de nuevo.');
+                    setProfileActionError('No se pudo borrar el perfil en la base JSON local. Probá de nuevo.');
                 }
             };
 
@@ -3715,7 +3902,7 @@ const saveProfile = async (e) => {
 
             const handleContextDelete = async () => {
                 if (!contextProfile?.firebaseId) return;
-                const confirmed = confirm('¿Borrar perfil? Esta acción también lo elimina de Firebase.');
+                const confirmed = confirm('¿Borrar perfil? Esta acción también lo elimina de la base JSON local.');
                 if (!confirmed) {
                     closeContextMenu();
                     return;
@@ -5267,7 +5454,7 @@ const saveProfile = async (e) => {
                                             onClick={addGalleryAudioTrack}
                                             className="px-5 py-3 rounded-xl font-black uppercase tracking-[0.14em] text-cyan-100 border border-cyan-300/50 bg-cyan-500/20 hover:bg-cyan-500/35 transition-all"
                                         >
-                                            Guardar audio en Firebase
+                                            Guardar audio en JSON local
                                         </button>
                                         <div className="space-y-2 pt-2">
                                             <p className="text-[11px] uppercase tracking-[0.25em] text-cyan-200/80 font-black">Audios guardados</p>
@@ -6874,7 +7061,7 @@ const saveProfile = async (e) => {
                                                                                 setScoreBreakdownItemDetail(refreshedDetail);
                                                                             } catch (error) {
                                                                                 console.error('No se pudo eliminar la batalla del desglose:', error);
-                                                                                alert('No se pudo eliminar la batalla. Verificá tu conexión con Firebase e intentá de nuevo.');
+                                                                                alert('No se pudo eliminar la batalla. Verificá los datos locales e intentá de nuevo.');
                                                                             }
                                                                         }}
                                                                     >
@@ -7197,7 +7384,7 @@ const saveProfile = async (e) => {
                                     <p className="text-xs font-black uppercase tracking-[0.24em] text-red-300">Acción destructiva</p>
                                     <h3 className="text-2xl font-black italic text-white tracking-tight">¿Eliminar perfil?</h3>
                                     <p className="text-sm text-slate-300">
-                                        Esta acción eliminará de forma permanente a <span className="font-black text-white">{contextProfile?.nombre || 'este perfil'}</span> y sus datos en Firebase. No se puede deshacer.
+                                        Esta acción eliminará de forma permanente a <span className="font-black text-white">{contextProfile?.nombre || 'este perfil'}</span> y sus datos en la base JSON local. No se puede deshacer.
                                     </p>
                                     {profileActionError && (
                                         <div className="rounded-xl border border-red-400/40 bg-red-500/10 px-4 py-3 text-xs font-semibold text-red-200">
