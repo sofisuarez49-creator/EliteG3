@@ -1096,7 +1096,96 @@
                         box-shadow: inset 0 1px 0 rgba(255,255,255,0.4), 0 0 20px rgba(255,49,49,0.5);
                         transform: translateY(-1px);
                     }
-                    h1 { font-size: 2.5rem; font-weight: 800; margin-bottom: 2rem; color: #fff; text-align: center; }
+                    h1 { font-size: 2.5rem; font-weight: 800; margin: 0; color: #fff; text-align: center; }
+                    .gallery-header {
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        gap: 16px;
+                        width: 100%;
+                        margin-bottom: 22px;
+                        flex-wrap: wrap;
+                        padding: 14px;
+                        border-radius: 24px;
+                        border: 1px solid rgba(201, 162, 98, 0.35);
+                        background:
+                            linear-gradient(145deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0) 38%),
+                            radial-gradient(circle at 8% 0%, rgba(255, 214, 153, 0.18), transparent 34%),
+                            rgba(20, 14, 8, 0.78);
+                        box-shadow:
+                            inset 0 1px 0 rgba(255, 247, 230, 0.24),
+                            inset 0 -2px 0 rgba(2, 6, 23, 0.48),
+                            0 18px 40px rgba(0, 0, 0, 0.36);
+                    }
+                    .gallery-header-actions {
+                        display: flex;
+                        align-items: center;
+                        justify-content: flex-end;
+                        gap: 12px;
+                        flex-wrap: wrap;
+                    }
+                    .gallery-metal-btn {
+                        position: relative;
+                        min-height: 44px;
+                        padding: 11px 18px;
+                        border-radius: 999px;
+                        border: 1px solid rgba(255, 255, 255, 0.36);
+                        color: #f8fafc;
+                        font-size: 11px;
+                        font-weight: 950;
+                        letter-spacing: 0.16em;
+                        text-transform: uppercase;
+                        cursor: pointer;
+                        overflow: hidden;
+                        transform: translateZ(0);
+                        transition: transform 160ms ease, filter 180ms ease, box-shadow 180ms ease;
+                        text-shadow: 0 1px 0 rgba(2, 6, 23, 0.72), 0 0 10px rgba(255, 255, 255, 0.26);
+                        box-shadow:
+                            inset 0 2px 0 rgba(255, 255, 255, 0.45),
+                            inset 0 -3px 0 rgba(2, 6, 23, 0.5),
+                            inset 0 0 0 1px rgba(255, 255, 255, 0.14),
+                            0 10px 18px rgba(2, 6, 23, 0.42),
+                            0 0 22px var(--gallery-btn-glow);
+                    }
+                    .gallery-metal-btn::before {
+                        content: '';
+                        position: absolute;
+                        inset: 1px;
+                        border-radius: inherit;
+                        pointer-events: none;
+                        background:
+                            linear-gradient(135deg, rgba(255, 255, 255, 0.48) 0%, rgba(255, 255, 255, 0.12) 20%, transparent 38%, rgba(2, 6, 23, 0.22) 72%, rgba(2, 6, 23, 0.48) 100%),
+                            repeating-linear-gradient(115deg, rgba(255, 255, 255, 0.09) 0 1px, transparent 1px 6px);
+                        mix-blend-mode: screen;
+                    }
+                    .gallery-metal-btn span {
+                        position: relative;
+                        z-index: 1;
+                    }
+                    .gallery-metal-btn:hover {
+                        transform: translateY(-2px);
+                        filter: brightness(1.14) saturate(1.12);
+                    }
+                    .gallery-metal-btn:active {
+                        transform: translateY(1px) scale(0.98);
+                    }
+                    .gallery-metal-btn--url {
+                        --gallery-btn-glow: rgba(34, 197, 94, 0.5);
+                        background:
+                            linear-gradient(160deg, #bbf7d0 0%, #22c55e 18%, #15803d 48%, #052e16 100%);
+                        border-color: rgba(134, 239, 172, 0.82);
+                    }
+                    .gallery-metal-btn--file {
+                        --gallery-btn-glow: rgba(59, 130, 246, 0.55);
+                        background:
+                            linear-gradient(160deg, #bfdbfe 0%, #38bdf8 18%, #2563eb 48%, #172554 100%);
+                        border-color: rgba(147, 197, 253, 0.84);
+                    }
+                    @media (max-width: 640px) {
+                        .gallery-header { justify-content: center; text-align: center; }
+                        .gallery-header-actions { width: 100%; justify-content: center; }
+                        .gallery-metal-btn { flex: 1 1 150px; }
+                    }
                     .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; width: 100%; }
                     .fullscreen-viewer {
                         display: none;
@@ -1348,8 +1437,17 @@
                 </style>
             </head>
             <body>
-                <div style="display:flex; align-items:center; justify-content:space-between; gap: 12px; width:100%; margin-bottom: 16px; flex-wrap: wrap;">
-                    <h1 style="margin:0;">Galería de ${profileName}</h1>
+                <div class="gallery-header">
+                    <h1>Galería de ${profileName}</h1>
+                    <div class="gallery-header-actions" aria-label="Agregar contenido a la galería">
+                        <button type="button" class="gallery-metal-btn gallery-metal-btn--url" onclick="addGalleryUrlFromHeader()">
+                            <span>Agregar URL</span>
+                        </button>
+                        <button type="button" class="gallery-metal-btn gallery-metal-btn--file" onclick="openGalleryFilePicker()">
+                            <span>Agregar Archivo</span>
+                        </button>
+                        <input id="galleryHeaderFileInput" type="file" accept="image/*,video/*" style="display:none" onchange="addGalleryFileFromHeader(event)" />
+                    </div>
                 </div>
 
                 <details open style="width:100%; margin-bottom: 20px; border-radius: 12px; border: 1px solid rgba(148,163,184,0.28); background: rgba(2,6,23,0.45);">
@@ -1547,6 +1645,82 @@
                         isVertical: false,
                         blockedByMediaControl: false
                     };
+                    var galleryProfileId = '${editingId}';
+                    var galleryHeaderLabels = ${JSON.stringify(GALLERY_LABELS)};
+
+                    function detectHeaderGalleryMediaType(value) {
+                        var normalizedValue = String(value || '').trim().toLowerCase();
+                        var urlWithoutQuery = normalizedValue.split('?')[0].split('#')[0];
+                        var videoExtensions = ['.mp4', '.webm', '.ogg', '.mov', '.m4v'];
+                        var isVideoFile = videoExtensions.some(function(extension) {
+                            return urlWithoutQuery.endsWith(extension);
+                        });
+                        var isVideoProvider = normalizedValue.indexOf('youtube.com') !== -1
+                            || normalizedValue.indexOf('youtu.be') !== -1
+                            || normalizedValue.indexOf('vimeo.com') !== -1;
+                        return (isVideoFile || isVideoProvider) ? 'video' : 'image';
+                    }
+
+                    function askGalleryHeaderLabel() {
+                        var label = window.prompt('Etiqueta opcional (' + galleryHeaderLabels.join(', ') + '):', '');
+                        if (label === null) return '';
+                        label = String(label || '').trim().toUpperCase();
+                        if (!label) return '';
+                        if (galleryHeaderLabels.indexOf(label) === -1) {
+                            window.alert('Etiqueta no válida. Usá: ' + galleryHeaderLabels.join(', '));
+                            return '';
+                        }
+                        return label;
+                    }
+
+                    function addGalleryUrlFromHeader() {
+                        var url = window.prompt('Pegá la URL de la imagen o video:');
+                        url = String(url || '').trim();
+                        if (!url) return;
+                        window.opener.postMessage({
+                            type: 'ADD_IMAGE',
+                            url: url,
+                            id: galleryProfileId,
+                            label: askGalleryHeaderLabel(),
+                            mediaType: detectHeaderGalleryMediaType(url)
+                        }, '*');
+                    }
+
+                    function openGalleryFilePicker() {
+                        var input = document.getElementById('galleryHeaderFileInput');
+                        if (input) input.click();
+                    }
+
+                    async function addGalleryFileFromHeader(event) {
+                        var input = event && event.target;
+                        var file = input && input.files && input.files[0];
+                        if (!file) return;
+                        var fileButton = document.querySelector('.gallery-metal-btn--file span');
+                        var previousText = fileButton ? fileButton.textContent : '';
+                        try {
+                            if (!window.opener || typeof window.opener.uploadFileToFirebaseStorage !== 'function') {
+                                window.alert('No se pudo conectar con el cargador de archivos. Volvé a abrir la galería e intentá nuevamente.');
+                                return;
+                            }
+                            if (fileButton) fileButton.textContent = 'Subiendo...';
+                            var mediaType = String(file.type || '').toLowerCase().indexOf('video/') === 0 ? 'video' : 'image';
+                            var folderId = (galleryProfileId || 'anonimo').replace(/[^a-zA-Z0-9_-]/g, '');
+                            var uploadedUrl = await window.opener.uploadFileToFirebaseStorage(file, 'galeria/' + (folderId || 'anonimo'));
+                            window.opener.postMessage({
+                                type: 'ADD_IMAGE',
+                                url: uploadedUrl,
+                                id: galleryProfileId,
+                                label: askGalleryHeaderLabel(),
+                                mediaType: mediaType
+                            }, '*');
+                        } catch (error) {
+                            console.error(error);
+                            window.alert(error && error.message ? error.message : 'No se pudo subir el archivo.');
+                        } finally {
+                            if (fileButton) fileButton.textContent = previousText || 'Agregar Archivo';
+                            if (input) input.value = '';
+                        }
+                    }
 
                     function updateSlotGalleryButtons() {
                         const buttons = document.querySelectorAll('.slot-gallery-select-btn');
