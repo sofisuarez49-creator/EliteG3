@@ -127,6 +127,7 @@
         const VIDEO_FILE_REGEX = /\.(mp4|webm|ogg|mov|m4v)(\?.*)?$/i;
         const AUDIO_FILE_REGEX = /\.(mp3|wav|ogg|m4a|aac|flac)(\?.*)?$/i;
         const GIF_FILE_REGEX = /\.gif(\?.*)?$/i;
+        const isGifUrl = (url = '') => GIF_FILE_REGEX.test(String(url || '').trim());
         const YOUTUBE_REGEX = /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]{6,})/i;
         const VIMEO_REGEX = /vimeo\.com\/(?:video\/)?(\d+)/i;
         const getVideoEmbedInfo = (url) => {
